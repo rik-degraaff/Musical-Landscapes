@@ -11,6 +11,7 @@ export default defineConfig({
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
     { name: 'phone', use: { ...devices['Pixel 7'], viewport: { width: 393, height: 851 } } },
+    { name: 'phone-landscape', use: { ...devices['Pixel 7'], viewport: { width: 780, height: 284 } } },
   ],
   webServer: { command: 'npm run dev -- --host 127.0.0.1 --port 5173 --strictPort', url: 'http://127.0.0.1:5173', reuseExistingServer: !process.env.CI },
 });

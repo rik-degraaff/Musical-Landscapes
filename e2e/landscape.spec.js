@@ -1,7 +1,47 @@
 import { test, expect } from '@playwright/test';
 
-const instruments = ['piano', 'drums', 'bass', 'melody', 'marimba', 'flute'];
+const instruments = ['piano', 'drums', 'guitar', 'melody', 'marimba', 'flute'];
 const objects = [['Cow', 'Tractor'], ['Outdoor faucet', 'Bird'], ['Frog', 'Windmill'], ['Little bell', 'Night owl']];
+
+test('all bundled recordings decode and a failed sample load can be retried', async ({ page }, testInfo) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.route('**/audio/instruments/piano/C3.mp3', route => route.fulfill({ status: 404, body: 'Missing sample' }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Tap to play' }).click();
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.locator('.start-overlay')).toHaveCount(1);
+  await page.unroute('**/audio/instruments/piano/C3.mp3');
+  const requests = [];
+  page.on('request', request => { if(request.url().includes('/audio/instruments/')) requests.push(request.url()); });
+  await page.getByRole('button', { name: 'Tap to play' }).click();
+  await expect(page.locator('.start-overlay')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Acoustic guitar', exact: true })).toBeVisible();
+  const recordings = await page.evaluate(async () => {
+    const { SAMPLE_LIBRARY, DRUM_SAMPLES, sampleUrls } = await import('/src/audio/sampleLibrary.js');
+    const files = [...Object.keys(SAMPLE_LIBRARY).flatMap(name => Object.values(sampleUrls(name))), ...Object.values(DRUM_SAMPLES).map(sample => `drums/${sample.file}`)];
+    const context = new AudioContext();
+    try {
+      return await Promise.all(files.map(async file => {
+        const response = await fetch(`/audio/instruments/${file}`);
+        if (!response.ok) throw new Error(`Missing ${file}`);
+        const buffer = await context.decodeAudioData(await response.arrayBuffer());
+        const values = buffer.getChannelData(0);
+        return { file, duration: buffer.duration, rms: Math.sqrt(values.reduce((sum, value) => sum + value * value, 0) / values.length) };
+      }));
+    } finally { await context.close(); }
+  });
+  expect(recordings).toHaveLength(43);
+  for (const recording of recordings) {
+    expect(recording.duration, recording.file).toBeGreaterThan(0.05);
+    expect(recording.rms, recording.file).toBeGreaterThan(0.0001);
+  }
+  expect(requests.length).toBeGreaterThan(0);
+  expect(requests.every(url => url.startsWith('http://127.0.0.1:5173/'))).toBe(true);
+  await tap(page.getByRole('button', { name: 'Acoustic guitar', exact: true }), testInfo);
+  await expect(page.locator('#instrument-guitar')).toHaveAttribute('aria-pressed', 'true');
+  expect(errors).toEqual([]);
+});
 
 async function startWorld(page) {
   const errors = [];
@@ -47,7 +87,7 @@ async function measureAudio(page, name, seconds = 0.8) {
 }
 
 async function tap(locator, testInfo) {
-  if (testInfo.project.name === 'phone') await locator.tap();
+  if (testInfo.project.use.hasTouch) await locator.tap();
   else await locator.click();
 }
 
@@ -66,7 +106,7 @@ test('all six instruments produce audio, stop, restart and survive rapid toggles
   }
   for (const name of instruments) await tap(page.locator(`#instrument-${name}`), testInfo);
   for (let round = 0; round < 3; round++) {
-    for (const name of ['bass', 'melody', 'drums']) {
+    for (const name of ['guitar', 'melody', 'drums']) {
       await tap(page.locator(`#instrument-${name}`), testInfo);
       await tap(page.locator(`#instrument-${name}`), testInfo);
     }

@@ -25,7 +25,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The browser suite starts Vite locally. It measures actual Web Audio waveforms for all six instruments and eight scene objects, exercises rapid toggles and repeated taps, checks dragging, cancellation, keyboard control, audio suspension recovery, mixer persistence and reduced motion, and captures each landscape at desktop and phone sizes. Screenshots and failure traces go into the ignored `test-results/` directory.
+The browser suite starts Vite locally. It measures actual Web Audio waveforms for all six instruments and eight scene objects, decodes all bundled recordings, tests failed-load retry, exercises rapid toggles and repeated taps, checks dragging, cancellation, keyboard control, audio suspension recovery, mixer persistence and reduced motion, and captures each landscape at desktop, portrait phone and compact landscape sizes. Screenshots and failure traces go into the ignored `test-results/` directory.
 
 ## Structure
 
@@ -36,6 +36,7 @@ src/
   styles.css             Instrument illustrations and shared UI styles
   audio/
     AudioEngine.js        Tone.js instruments, mixer, transport and scene sounds
+    sampleLibrary.js      Local instrument recordings and acoustic drum mappings
     sceneSounds.js        Original deterministic procedural sound effects
   data/
     (reserved for future content packs)
@@ -74,18 +75,28 @@ Changing the landscape also changes the musical root. The pattern library is wri
 
 ## Instrument sounds
 
-The six instruments use different synthesis approaches and envelopes so they occupy different musical roles:
+All six instruments now play recorded samples through Tone.js Sampler instead of custom oscillator synthesis:
 
-- **Piano** — a bright FM strike with a quick hammer-like attack and a short, soft tail.
-- **Drums** — tuned membrane synths for kick and tom, filtered noise for snare and clap, metallic partials for closed hats, and soft noise for shaker.
-- **Bass** — a low-passed, lightly layered saw with a short filter envelope for a rounded pluck.
-- **Trumpet** — a harmonically rich saw tone shaped by a brass-like filter sweep and gentle vibrato.
-- **Marimba** — a woody, inharmonic FM strike with a fast decay.
-- **Flute** — a nearly pure tone with a slower breath-shaped onset, quiet filtered breath noise and subtle vibrato.
+- **Piano**: sampled acoustic grand piano with natural hammer attacks and resonant decays.
+- **Acoustic guitar**: nylon-string recordings, new fingerpicked phrases and chord voicings; chord notes are staggered by 16 ms for a gentle strum. This replaces the former bass instrument.
+- **Drums**: recorded MuldjordKit kick, snare, closed hi-hat and tom, plus a CC0 hand clap. Shortened snare/hat recordings provide stylized rim/shaker accents, not separate rim or shaker recordings.
+- **Trumpet**: sampled brass attacks and body rather than a saw oscillator.
+- **Marimba**: sampled wooden bars with natural attack and decay.
+- **Flute**: recorded flute tone, including its natural breath character.
 
-A shared, low-mix convolution reverb adds space, and a master limiter controls the combined level when many instruments play together. Tone.js generates the reverb impulse response asynchronously, so the start button waits for it before enabling the instruments. These are synthesized, child-friendly timbral approximations rather than recordings of acoustic instruments.
+The five pitched instruments use a compact selection of FluidR3 GM recordings distributed by MIDI.js Soundfonts. Nearby notes are repitched by at most two semitones across every authored phrase and landscape key. These are compact single-dynamic soundfont samples, not large studio libraries with multiple velocity layers or continuous wind-instrument looping; very long notes are limited by each recording's length.
 
-The sound design follows Tone.js's [FM synthesis](https://tonejs.github.io/docs/15.1.22/classes/FMSynth.html), [membrane drum](https://tonejs.github.io/docs/15.1.22/classes/MembraneSynth.html), [polyphony](https://tonejs.github.io/docs/15.1.22/classes/PolySynth.html) and [reverb readiness](https://tonejs.github.io/docs/15.1.22/classes/Reverb.html) guidance.
+All 43 audio files are bundled under `public/audio/instruments/` (about 1.63 MB total), so runtime playback has no sound-CDN dependency. The Play screen waits for every sample to decode and for the reverb to be ready. Failed loads show a retry instead of enabling silent instruments. A short, restrained convolution reverb adds space to pitched instruments; the acoustic drums remain dry and all voices feed the master limiter.
+
+Credits and sample licenses are included in [the attribution document](public/audio/instruments/ATTRIBUTION.md). FluidR3 samples follow the distribution's CC-BY 3.0 notice, MuldjordKit uses CC-BY 4.0, and the clap is CC0. Upstream drum license documents are included alongside the audio.
+
+To reproduce the sample downloads:
+
+```bash
+npm run samples:download
+```
+
+The downloader parses the soundfont data without executing remote JavaScript, extracts selected MP3s without re-encoding, checks FLAC signatures, and downloads the upstream drum license files.
 
 ## Audio behaviour
 
@@ -95,7 +106,7 @@ The sound design follows Tone.js's [FM synthesis](https://tonejs.github.io/docs/
 - If all instruments are off, the transport stops and resets.
 - Interactive scene sounds respond immediately, independently of the musical transport. Three voices per object support overlapping taps without cutting off other objects.
 - Audio unlock begins inside the Play gesture, and subsequent instrument/object gestures resume audio after a browser suspension.
-- Bar downbeats use the transport callback's audio timestamp directly; later notes use transport positions. Hi-hats supply Tone's required pitch and duration arguments.
+- Bar downbeats use the transport callback's audio timestamp directly; later notes use transport positions. Drum labels map to explicit sampler pitches and hit-specific durations.
 - All four scenes have at least two interactive objects.
 - Instrument volume settings are remembered when a muted instrument is switched back on.
 - Instruments can be toggled from a keyboard as well as by touch or mouse; canceled drags are cleared without toggling. Scene, mixer and object controls use standard buttons.

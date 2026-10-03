@@ -2,6 +2,7 @@ import * as Tone from 'tone';
 import { BPM, BAR, INSTRUMENTS, patterns, nearestBar, transposeEvents } from '../utils/music';
 import { createNoisePair } from '../utils/noise';
 import { createSceneSample, SCENE_SOUNDS } from './sceneSounds';
+import { DRUM_NOTES, DRUM_SAMPLES, SAMPLE_LIBRARY, sampleUrls } from './sampleLibrary';
 
 const MIN_GAIN = -60;
 const FADE_SECONDS = 0.045;
@@ -24,164 +25,59 @@ export class AudioEngine {
   async init() {
     if (this.ready) return;
     if (this.initPromise) return this.initPromise;
-
     this.initPromise = this.initialize();
     try {
       await this.initPromise;
+    } catch (error) {
+      this.dispose();
+      throw error;
     } finally {
       this.initPromise = null;
     }
   }
 
   async initialize() {
-
     await Tone.start();
     Tone.Transport.bpm.value = BPM;
     Tone.Transport.swing = 0;
     Tone.Transport.swingSubdivision = '8n';
-
     this.limiter = new Tone.Limiter(-1).toDestination();
     this.master = new Tone.Gain(0.8).connect(this.limiter);
-    this.reverb = new Tone.Reverb({ decay: 2.4, preDelay: 0.025, wet: 0.16 }).connect(this.master);
-    // Tone.Reverb builds its impulse response asynchronously. Wait so the
-    // first note is audible even when a child taps an instrument immediately.
-    await this.reverb.ready;
-
+    this.reverb = new Tone.Reverb({ decay: 1.2, preDelay: 0.018, wet: 0.09 }).connect(this.master);
+    const loads = [];
     for (const name of instrumentNames) {
-      const gain = new Tone.Volume(MIN_GAIN).connect(this.reverb);
+      const gain = new Tone.Volume(MIN_GAIN).connect(name === 'drums' ? this.master : this.reverb);
       this.nodes[name] = { gain };
+      loads.push(this.createSampledInstrument(name));
     }
-
-    this.createPiano();
-    this.createDrums();
-    this.createBass();
-    this.createTrumpet();
-    this.createMarimba();
-    this.createFlute();
+    await Promise.all([this.reverb.ready, ...loads]);
     this.createSceneSounds();
     this.ready = true;
   }
 
-  createPiano() {
-    // A sharp hammer-like attack and short inharmonic FM partials give a
-    // rounded, bell-bright piano tone without a brittle, continuous sustain.
-    const synth = new Tone.PolySynth(Tone.FMSynth, {
-      maxPolyphony: 10,
-      harmonicity: 3.2,
-      modulationIndex: 1.5,
-      oscillator: { type: 'sine' },
-      modulation: { type: 'sine' },
-      envelope: { attack: 0.003, decay: 0.5, sustain: 0.025, release: 0.75 },
-      modulationEnvelope: { attack: 0.001, decay: 0.22, sustain: 0.015, release: 0.15 },
-    }).connect(this.nodes.piano.gain);
-    this.nodes.piano.synth = synth;
-  }
-
-  createDrums() {
-    const bus = new Tone.Gain(0.78).connect(this.nodes.drums.gain);
-    const kick = new Tone.MembraneSynth({
-      pitchDecay: 0.045,
-      octaves: 5,
-      oscillator: { type: 'sine' },
-      envelope: { attack: 0.001, decay: 0.32, sustain: 0, release: 0.22 },
-    }).connect(bus);
-    const tom = new Tone.MembraneSynth({
-      pitchDecay: 0.075,
-      octaves: 2.4,
-      oscillator: { type: 'sine' },
-      envelope: { attack: 0.001, decay: 0.24, sustain: 0, release: 0.18 },
-    }).connect(bus);
-
-    const snareFilter = new Tone.Filter(1600, 'highpass').connect(bus);
-    const snare = new Tone.NoiseSynth({
-      noise: { type: 'white' },
-      envelope: { attack: 0.001, decay: 0.15, sustain: 0, release: 0.055 },
-    }).connect(snareFilter);
-    const clapFilter = new Tone.Filter(1250, 'bandpass').connect(bus);
-    const clap = new Tone.NoiseSynth({
-      noise: { type: 'white' },
-      envelope: { attack: 0.001, decay: 0.095, sustain: 0, release: 0.035 },
-    }).connect(clapFilter);
-
-    const hat = new Tone.MetalSynth({
-      frequency: 340,
-      harmonicity: 5.2,
-      modulationIndex: 24,
-      resonance: 3000,
-      octaves: 1.35,
-      envelope: { attack: 0.001, decay: 0.055, release: 0.025 },
-    }).connect(bus);
-    const shakerFilter = new Tone.Filter(4300, 'highpass').connect(bus);
-    const shaker = new Tone.NoiseSynth({
-      noise: { type: 'pink' },
-      envelope: { attack: 0.001, decay: 0.045, sustain: 0, release: 0.025 },
-    }).connect(shakerFilter);
-    const rim = new Tone.Synth({
-      oscillator: { type: 'triangle' },
-      envelope: { attack: 0.001, decay: 0.045, sustain: 0, release: 0.025 },
-    }).connect(bus);
-
-    this.nodes.drums.synth = { kick, tom, snare, clap, hat, shaker, rim };
-    this.nodes.drums.effects = { bus, snareFilter, clapFilter, shakerFilter };
-  }
-
-  createBass() {
-    const synth = new Tone.MonoSynth({
-      oscillator: { type: 'fatsawtooth', count: 2, spread: 3 },
-      filter: { type: 'lowpass', frequency: 520, rolloff: -24, Q: 0.8 },
-      envelope: { attack: 0.003, decay: 0.24, sustain: 0.08, release: 0.14 },
-      filterEnvelope: { attack: 0.001, decay: 0.16, sustain: 0.06, release: 0.12, baseFrequency: 85, octaves: 1.8 },
-    }).connect(this.nodes.bass.gain);
-    this.nodes.bass.synth = synth;
-  }
-
-  createTrumpet() {
-    const filter = new Tone.Filter({ type: 'lowpass', frequency: 1900, rolloff: -12, Q: 0.7 });
-    const vibrato = new Tone.Vibrato(5.1, 0.022);
-    const synth = new Tone.MonoSynth({
-      oscillator: { type: 'sawtooth' },
-      filter: { type: 'lowpass', frequency: 1500, rolloff: -12, Q: 0.8 },
-      envelope: { attack: 0.022, decay: 0.12, sustain: 0.33, release: 0.16 },
-      filterEnvelope: { attack: 0.012, decay: 0.19, sustain: 0.2, release: 0.14, baseFrequency: 390, octaves: 2.15 },
-    }).chain(filter, vibrato, this.nodes.melody.gain);
-    this.nodes.melody.synth = synth;
-    this.nodes.melody.effects = { filter, vibrato };
-  }
-
-  createMarimba() {
-    // The briefly bright FM attack suggests the woody, uneven partials of a
-    // struck bar; the fast decay keeps repeated notes clear.
-    const synth = new Tone.PolySynth(Tone.FMSynth, {
-      maxPolyphony: 8,
-      harmonicity: 3.01,
-      modulationIndex: 2.4,
-      oscillator: { type: 'sine' },
-      modulation: { type: 'sine' },
-      envelope: { attack: 0.002, decay: 0.42, sustain: 0.015, release: 0.3 },
-      modulationEnvelope: { attack: 0.001, decay: 0.12, sustain: 0, release: 0.08 },
-    }).connect(this.nodes.marimba.gain);
-    this.nodes.marimba.synth = synth;
-  }
-
-  createFlute() {
-    const vibrato = new Tone.Vibrato(4.8, 0.012);
-    const synth = new Tone.PolySynth(Tone.Synth, {
-      maxPolyphony: 5,
-      oscillator: { type: 'sine' },
-      envelope: { attack: 0.065, decay: 0.16, sustain: 0.46, release: 0.34 },
-    }).chain(vibrato, this.nodes.flute.gain);
-
-    // A quiet, filtered breath transient softens the sine-wave onset.
-    const breathFilter = new Tone.Filter(2100, 'bandpass');
-    const breathGain = new Tone.Gain(0.08).connect(breathFilter).connect(this.nodes.flute.gain);
-    const breath = new Tone.NoiseSynth({
-      noise: { type: 'pink' },
-      envelope: { attack: 0.001, decay: 0.07, sustain: 0, release: 0.04 },
-    }).connect(breathGain);
-
-    this.nodes.flute.synth = synth;
-    this.nodes.flute.breath = breath;
-    this.nodes.flute.effects = { vibrato, breathFilter, breathGain };
+  createSampledInstrument(name) {
+    const baseUrl = `${import.meta.env.BASE_URL}audio/instruments/`;
+    const urls = name === 'drums' ? {
+      C2: `drums/${DRUM_SAMPLES.kick.file}`,
+      D2: `drums/${DRUM_SAMPLES.snare.file}`,
+      'F#2': `drums/${DRUM_SAMPLES.hat.file}`,
+      G2: `drums/${DRUM_SAMPLES.tom.file}`,
+      'D#2': `drums/${DRUM_SAMPLES.clap.file}`,
+      'C#2': `drums/${DRUM_SAMPLES.snare.file}`,
+      'A#2': `drums/${DRUM_SAMPLES.hat.file}`,
+    } : sampleUrls(name);
+    return new Promise((resolve, reject) => {
+      const sampler = new Tone.Sampler({
+        urls,
+        baseUrl,
+        attack: 0.002,
+        release: name === 'drums' ? 0.08 : SAMPLE_LIBRARY[name].release,
+        curve: 'exponential',
+        onload: resolve,
+        onerror: error => reject(new Error(`Could not load ${INSTRUMENTS[name].label} recordings`, { cause: error })),
+      }).connect(this.nodes[name].gain);
+      this.nodes[name].synth = sampler;
+    });
   }
 
   createSceneSounds() {
@@ -210,15 +106,9 @@ export class AudioEngine {
     node.gain.volume.rampTo(active ? this.volumes[name] : MIN_GAIN, FADE_SECONDS);
     if (!active) {
       this.clearPendingEvents(name);
-      try {
-        if (name === 'piano' || name === 'marimba' || name === 'flute') node.synth.releaseAll();
-        if (name === 'bass' || name === 'melody') node.synth.triggerRelease();
-      } catch {}
+      node.synth.releaseAll();
     }
     this.ensureTransport();
-    // When joining an already-running landscape, let the new instrument answer
-    // on the next audio tick instead of making it wait for the next full bar.
-    // The regular phrase still enters on the shared bar line.
     if (active && transportWasPlaying) this.playPickup(name);
   }
 
@@ -286,29 +176,17 @@ export class AudioEngine {
 
   playEvent(name, event, time) {
     const velocity = event.velocity ?? 0.55;
-    const synth = this.nodes[name].synth;
-
+    const sampler = this.nodes[name].synth;
     if (name === 'drums') {
-      const hits = {
-        kick: () => synth.kick.triggerAttackRelease('C1', event.dur ?? '8n', time, velocity),
-        tom: () => synth.tom.triggerAttackRelease('G2', event.dur ?? '8n', time, velocity),
-        snare: () => synth.snare.triggerAttackRelease(event.dur ?? '16n', time, velocity),
-        clap: () => synth.clap.triggerAttackRelease(event.dur ?? '16n', time, velocity),
-        hat: () => synth.hat.triggerAttackRelease('F#6', '32n', time, velocity),
-        shaker: () => synth.shaker.triggerAttackRelease('32n', time, velocity),
-        rim: () => synth.rim.triggerAttackRelease('C6', event.dur ?? '32n', time, velocity),
-      };
-      hits[event.note]?.();
+      const durations = { kick: 0.5, snare: 0.3, hat: 0.12, tom: 0.5, clap: 0.23, rim: 0.045, shaker: 0.045 };
+      sampler.triggerAttackRelease(DRUM_NOTES[event.note], durations[event.note], time, velocity);
       return;
     }
-
-    if (name === 'piano' || name === 'marimba' || name === 'flute') {
-      synth.triggerAttackRelease(event.notes ?? event.note, event.dur, time, velocity);
-      if (name === 'flute') this.nodes.flute.breath.triggerAttackRelease('32n', time, velocity);
-      return;
-    }
-
-    synth.triggerAttackRelease(event.note, event.dur, time, velocity);
+    const notes = event.notes ?? [event.note];
+    notes.forEach((note, index) => {
+      const strumOffset = name === 'guitar' ? index * 0.016 : 0;
+      sampler.triggerAttackRelease(note, event.dur, time + strumOffset, velocity * (1 - index * 0.04));
+    });
   }
 
   playSceneSound(type) {
@@ -332,6 +210,7 @@ export class AudioEngine {
   dispose() {
     this.clearPendingEvents();
     if (this.transportEvent !== null) Tone.Transport.clear(this.transportEvent);
+    this.transportEvent = null;
     Tone.Transport.stop();
     Tone.Transport.cancel();
 

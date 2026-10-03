@@ -10,9 +10,10 @@
 .object-reaction { display: block; width: 100%; height: 100%; transform-origin: 50% 90%; }
 .object-art { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 5px 2px #22463420); transition: filter .2s; }
 .interactive-object:hover .object-art { filter: drop-shadow(0 4px 3px #22463440) brightness(1.06); }
+.scene .interactive-object:hover { transform: none; }
 .scene .interactive-object.is-tapped { animation: none; }
 .scene .cow { left: 28%; bottom: 24%; }
-.scene .tractor { left: 72%; bottom: 16%; }
+.scene .tractor { left: 67%; bottom: 16%; }
 .scene .faucet { left: 22%; bottom: 19%; }
 .scene .bird { right: auto; left: 5%; top: 44%; }
 .scene .frog { left: 22%; bottom: 16%; }
@@ -79,6 +80,29 @@
   .scene .bell { right: 4%; top: 45%; }
   .scene .owl { left: 2%; top: 45%; }
   .scene .scene-turner { width: 46px; height: 46px; right: 12px; bottom: 12px; }
+}
+@media (max-height: 550px) and (orientation: landscape) {
+  .app-shell .top-bar { height: 50px; padding: 8px 12px; }
+  .app-shell .brand { font-size: 13px; padding: 6px 9px; }
+  .app-shell .brand span { font-size: 17px; }
+  .app-shell .scene-name { font-size: 11px; padding: 6px 10px; }
+  .app-shell .mixer-button { padding: 7px 10px; }
+  .app-shell .instrument { width: 90px; height: 82px; }
+  .app-shell .instrument-drawing { scale: .72; }
+  .app-shell .instrument:hover .instrument-drawing { scale: .78; }
+  .app-shell .status-pill { font-size: 11px; padding: 7px 12px; bottom: 10px; }
+  .app-shell .mixer { top: 54px; bottom: 10px; overflow-y: auto; }
+  .app-shell .start-overlay h1 { font-size: 40px; }
+  .app-shell .title-note { font-size: 40px; margin-bottom: 12px; }
+  .app-shell .start-button { font-size: 18px; padding: 12px 26px; margin-top: 15px; }
+  .scene .interactive-object { width: 85px; height: 80px; }
+  .scene .cow { left: 28%; bottom: 18%; }
+  .scene .tractor { left: 67%; right: auto; bottom: 14%; }
+  .scene .bird, .scene .owl { left: 28%; top: 43%; }
+  .scene .bell { right: 28%; top: 43%; }
+  .scene .faucet, .scene .frog { left: 22%; bottom: 14%; }
+  .scene .windmill { right: 25%; top: auto; bottom: 21%; width: 95px; height: 95px; }
+  .scene .scene-turner { width: 42px; height: 42px; bottom: 12px; right: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .scene *, .scene *::before, .scene *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
