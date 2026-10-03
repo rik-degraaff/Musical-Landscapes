@@ -3,6 +3,7 @@ import { BPM, BAR, INSTRUMENTS, patterns, nearestBar, transposeEvents } from '..
 import { createNoisePair } from '../utils/noise';
 
 const MIN_GAIN = -60;
+const FADE_SECONDS = 0.045;
 const instrumentNames = Object.keys(INSTRUMENTS);
 
 export class AudioEngine {
@@ -199,9 +200,10 @@ export class AudioEngine {
 
   setInstrumentActive(name, active) {
     if (!this.ready || !this.nodes[name]) return;
+    const transportWasPlaying = Tone.Transport.state === 'started' && this.barIndex > 0;
     this.active[name] = active;
     const node = this.nodes[name];
-    node.gain.volume.rampTo(active ? this.volumes[name] : MIN_GAIN, 0.035);
+    node.gain.volume.rampTo(active ? this.volumes[name] : MIN_GAIN, FADE_SECONDS);
     if (!active) {
       this.clearPendingEvents(name);
       try {
@@ -210,6 +212,19 @@ export class AudioEngine {
       } catch {}
     }
     this.ensureTransport();
+    // When joining an already-running landscape, let the new instrument answer
+    // on the next audio tick instead of making it wait for the next full bar.
+    // The regular phrase still enters on the shared bar line.
+    if (active && transportWasPlaying) this.playPickup(name);
+  }
+
+  playPickup(name) {
+    const currentBar = Math.max(0, this.barIndex - 1);
+    const energy = this.noise[name].energyAt(currentBar);
+    const complexity = this.noise[name].complexityAt(currentBar);
+    const phrase = nearestBar(patterns[name], energy, complexity);
+    const [firstEvent] = transposeEvents(phrase.events.slice(0, 1), this.root);
+    if (firstEvent) this.playEvent(name, firstEvent, Tone.now() + FADE_SECONDS + 0.01);
   }
 
   ensureTransport() {
@@ -317,7 +332,7 @@ export class AudioEngine {
     for (const name of instrumentNames) {
       if (volumes[name] == null || !this.nodes[name]) continue;
       this.volumes[name] = Number(volumes[name]);
-      this.nodes[name].gain.volume.rampTo(this.active[name] ? this.volumes[name] : MIN_GAIN, 0.05);
+      this.nodes[name].gain.volume.rampTo(this.active[name] ? this.volumes[name] : MIN_GAIN, FADE_SECONDS);
     }
   }
 
