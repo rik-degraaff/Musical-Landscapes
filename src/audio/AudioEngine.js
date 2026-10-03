@@ -238,6 +238,10 @@ export class AudioEngine {
 
   scheduleBar(time) {
     const bar = this.barIndex++;
+    // `scheduleBar` is driven by the Transport, so its recurring callback's
+    // `time` is audio-clock seconds. `scheduleOnce` expects a position on the
+    // Transport timeline; derive that from the bar index instead.
+    const barPosition = bar * Tone.Time(BAR).toSeconds();
     for (const name of instrumentNames) {
       if (!this.active[name]) continue;
       const energy = this.noise[name].energyAt(bar);
@@ -251,7 +255,7 @@ export class AudioEngine {
           this.pendingEvents.delete(id);
           if (!this.active[name]) return;
           this.playEvent(name, event, at);
-        }, time + offset);
+        }, barPosition + offset);
         this.pendingEvents.set(id, name);
       }
     }
