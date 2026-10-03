@@ -20,6 +20,7 @@ export class AudioEngine {
     this.pendingEvents = new Map();
     this.nodes = {};
     this.root = 'C';
+    this.sceneVolume = -4;
   }
 
   async init() {
@@ -81,7 +82,7 @@ export class AudioEngine {
   }
 
   createSceneSounds() {
-    this.sceneGain = new Tone.Volume(-4).connect(this.master);
+    this.sceneGain = new Tone.Volume(this.sceneVolume).connect(this.master);
     this.sceneBuffers = {};
     this.scenePlayers = {};
     this.sceneVoices = {};
@@ -195,8 +196,24 @@ export class AudioEngine {
     const voice = this.sceneVoices[type]++ % this.scenePlayers[type].length;
     const player = this.scenePlayers[type][voice];
     const when = Tone.immediate() + 0.015;
+    if (type === 'water') {
+      for (const previous of this.scenePlayers.water) {
+        if (previous.state === 'started') previous.stop(Tone.immediate());
+      }
+    }
     if (player.state === 'started') player.stop(when);
     player.start(when);
+    const context = Tone.getContext().rawContext;
+    const timestamp = context.getOutputTimestamp?.();
+    const startsAt = timestamp?.performanceTime > 0
+      ? timestamp.performanceTime + (when - timestamp.contextTime) * 1000
+      : performance.now() + (when - context.currentTime + (context.outputLatency ?? 0)) * 1000;
+    return { startsAt };
+  }
+
+  setSceneVolume(value) {
+    this.sceneVolume = Math.max(-60, Math.min(0, Number(value)));
+    this.sceneGain?.volume.rampTo(this.sceneVolume, FADE_SECONDS);
   }
 
   setVolumes(volumes) {

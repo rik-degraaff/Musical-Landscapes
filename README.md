@@ -109,6 +109,8 @@ The downloader parses the soundfont data without executing remote JavaScript, ex
 - Bar downbeats use the transport callback's audio timestamp directly; later notes use transport positions. Drum labels map to explicit sampler pitches and hit-specific durations.
 - All four scenes have at least two interactive objects.
 - Instrument volume settings are remembered when a muted instrument is switched back on.
+- Opening the mixer requires two clicks or taps within 450 ms; a single click/tap still closes it. Keyboard users can activate the focused mixer button twice with Enter or Space.
+- The mixer has one shared **Scenery sounds** slider for all non-instrument sounds, including a mute setting at -60 dB. Its setting persists across scenes and does not alter instrument levels.
 - Instruments can be toggled from a keyboard as well as by touch or mouse; canceled drags are cleared without toggling. Scene, mixer and object controls use standard buttons.
 
 ## Scenes
@@ -122,6 +124,8 @@ The circular arrow control in the bottom-right rotates through the scenes. The i
 
 ## Interactive objects
 
-Each object has a distinct sound and a replayable response: the cow nods and moos, the tractor rattles with exhaust, the faucet pours and splashes, the bird flies and chirps, the frog leaps and croaks with ripples, the windmill spins faster with airy wooden clacks, the bell swings and rings, and the owl blinks and hoots. Reduced-motion preferences are respected.
+Each object has a distinct sound and a replayable response: the cow nods and moos, the tractor rattles with exhaust, the faucet makes three gentle drips with animated falling drops and impact ripples, the bird flies and chirps, the frog leaps and croaks with ripples, the windmill spins faster with airy wooden clacks, the bell swings and rings, and the owl blinks and hoots. Reduced-motion preferences are respected.
+
+The faucet uses one shared audio/animation timeline: quiet drop impacts at 0.28, 0.93 and 1.58 seconds, with silence between them. Animation start time accounts for the browser audio-output clock. Repeated taps restart the faucet sequence instead of stacking multiple leaks. Other scenery sounds retain their overlapping tap voices.
 
 All object sound effects are original procedural samples generated locally at the device sample rate. They are stylized effects rather than field recordings, and require no downloaded media, external sound service, credentials or attribution. Samples have tapered endpoints and bounded levels; the master limiter also covers scene sounds.

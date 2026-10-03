@@ -117,7 +117,11 @@ test('all six instruments produce audio, stop, restart and survive rapid toggles
 
 test('audio resumes after suspension, mixer settings persist and reduced motion works', async ({ page }, testInfo) => {
   const errors = await startWorld(page);
-  await page.getByRole('button', { name: 'Open mixer' }).click();
+  const mixerButton = page.getByRole('button', { name: 'Open mixer' });
+  await tap(mixerButton, testInfo);
+  await expect(page.locator('.mixer')).toHaveCount(0);
+  await tap(mixerButton, testInfo);
+  await expect(page.locator('.mixer')).toHaveCount(1);
   const slider = page.getByRole('slider', { name: 'Piano volume', exact: true });
   await slider.fill('-18');
   await expect(slider).toHaveValue('-18');
@@ -183,5 +187,69 @@ test('dragging does not toggle and canceled touch does not block the next tap', 
   await piano.focus();
   await page.keyboard.press('Space');
   await expect(piano).toHaveAttribute('aria-pressed', 'false');
+  expect(errors).toEqual([]);
+});
+
+test('double activation protects the mixer and scenery mute leaves instruments alone', async ({ page }, testInfo) => {
+  const errors = await startWorld(page);
+  const button = page.getByRole('button', { name: 'Open mixer', exact: true });
+  await tap(button, testInfo);
+  await expect(page.locator('.mixer')).toHaveCount(0);
+  await page.waitForTimeout(500);
+  await tap(button, testInfo);
+  await expect(page.locator('.mixer')).toHaveCount(0);
+  await tap(button, testInfo);
+  await expect(page.locator('.mixer')).toHaveCount(1);
+  const scenery = page.getByRole('slider', { name: 'Scenery sounds volume', exact: true });
+  await scenery.fill('-60');
+  await expect(page.locator('.scenery-mixer-row')).toContainText('Muted');
+  await page.locator('.mixer-head').getByRole('button', { name: 'Close mixer' }).click();
+  await tap(page.getByRole('button', { name: 'Cow', exact: true }), testInfo);
+  expect(await measureAudio(page, 'scene', 0.5)).toBeLessThan(0.001);
+  await tap(page.locator('#instrument-piano'), testInfo);
+  expect(await measureAudio(page, 'piano')).toBeGreaterThan(0.0003);
+  expect(await page.evaluate(() => window.audioEngine.volumes.piano)).toBe(-7);
+  await tap(page.locator('#instrument-piano'), testInfo);
+  await page.getByRole('button', { name: 'Change landscape' }).click();
+  await tap(button, testInfo);
+  await expect(page.locator('.mixer')).toHaveCount(0);
+  await tap(button, testInfo);
+  await expect(scenery).toHaveValue('-60');
+  await scenery.fill('-10');
+  await page.locator('.mixer-head').getByRole('button', { name: 'Close mixer' }).click();
+  await tap(page.getByRole('button', { name: 'Bird', exact: true }), testInfo);
+  expect(await measureAudio(page, 'scene', 0.5)).toBeGreaterThan(0.01);
+  expect(await page.evaluate(() => window.audioEngine.sceneVolume)).toBe(-10);
+  expect(errors).toEqual([]);
+});
+
+test('faucet drops share impact timing and rapid taps restart a single sequence', async ({ page }, testInfo) => {
+  const errors = await startWorld(page);
+  await page.getByRole('button', { name: 'Change landscape' }).click();
+  const faucet = page.getByRole('button', { name: 'Outdoor faucet', exact: true });
+  await tap(faucet, testInfo);
+  await expect(faucet.locator('.falling-drop')).toHaveCount(3);
+  const timings = await faucet.evaluate(async element => {
+    const { WATER_DROP_TIMES, WATER_DROP_FALL } = await import('/src/audio/sceneSounds.js');
+    const drops = [...element.querySelectorAll('.falling-drop')];
+    const ripples = [...element.querySelectorAll('.drop-ripple')];
+    const reactionDelay = parseFloat(element.querySelector('.object-reaction').style.animationDelay);
+    return drops.map((drop, index) => {
+      const timing = drop.getAnimations()[0].effect.getTiming();
+      const ripple = ripples[index].getAnimations()[0].effect.getTiming();
+      return { duration: timing.duration, impact: timing.delay + timing.duration - reactionDelay * 1000, ripple: ripple.delay - reactionDelay * 1000, expected: WATER_DROP_TIMES[index] * 1000, fall: WATER_DROP_FALL * 1000 };
+    });
+  });
+  for (const timing of timings) {
+    expect(timing.duration).toBeCloseTo(timing.fall, 1);
+    expect(timing.impact).toBeCloseTo(timing.expected, 1);
+    expect(timing.ripple).toBeCloseTo(timing.expected, 1);
+  }
+  for (let repeat = 0; repeat < 4; repeat++) await tap(faucet, testInfo);
+  await expect(faucet.locator('.water-drops')).toHaveCount(1);
+  const voices = await page.evaluate(() => window.audioEngine.scenePlayers.water.filter(player => player.state === 'started').length);
+  expect(voices).toBe(1);
+  await expect(faucet.locator('.water-drops')).toHaveCount(0);
+  await page.screenshot({ path: `test-results/${testInfo.project.name}-quiet-faucet.png` });
   expect(errors).toEqual([]);
 });

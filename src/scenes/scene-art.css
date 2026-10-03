@@ -28,14 +28,19 @@
 .frog .reacting { animation: frogLeap 1.3s ease-in-out; }
 .bell .reacting { animation: bellRock 1.8s ease-out; transform-origin: 50% 14%; }
 .owl .reacting { animation: owlHoot 1.8s ease-in-out; }
-.faucet .reacting, .windmill .reacting { animation: objectNod 2s ease-in-out; }
+.windmill .reacting { animation: objectNod 2s ease-in-out; }
+.faucet .reacting { animation: faucetDripSequence 1.85s linear; }
 .windmill-sails { transform-origin: 81px 65px; animation: sailTurn 14s linear infinite; }
 .is-tapped .windmill-sails { animation-duration: 1s; }
 .is-tapped .bird-wing { transform-origin: 77px 57px; animation: wingFlutter .13s ease-in-out 10 alternate; }
 .is-tapped .frog-throat { transform-origin: 80px 100px; animation: throatPuff .38s ease-in-out 3; }
 .is-tapped .tractor-exhaust { animation: exhaustPuff .4s ease-out 5; }
-.water-stream { opacity: 0; }
-.is-tapped .water-stream { opacity: 1; stroke-dasharray: 7 5; animation: flowingWater .18s linear infinite; }
+.water-drops { width: 100%; height: 100%; overflow: visible; }
+.falling-drop { fill: #a3ddeb; opacity: 0; animation: fallingDrip .28s ease-in both; }
+.drop-ripple { fill: none; stroke: #c5eef0; stroke-width: 2; opacity: 0; transform-origin: 106px 128px; animation: dripImpact .22s ease-out both; }
+@keyframes fallingDrip { 0% { opacity: 0; transform: translateY(0) scaleY(.65); } 12% { opacity: 1; } 95% { opacity: 1; transform: translateY(49px); } 100% { opacity: 0; transform: translateY(50px); } }
+@keyframes dripImpact { 0% { opacity: .8; transform: scale(.4); } 100% { opacity: 0; transform: scale(1.8); } }
+@keyframes faucetDripSequence { from { opacity: 1; } to { opacity: 1; } }
 .is-tapped .owl-eyes { transform-origin: 80px 62px; animation: owlBlink .6s ease-in-out 2; }
 .object-effect { position: absolute; inset: 0; pointer-events: none; }
 .object-effect i { position: absolute; left: 50%; top: 25%; width: 9px; height: 9px; background: #fff5b2; border-radius: 50%; animation: objectSpark 1.4s ease-out both; }
@@ -59,7 +64,6 @@
 @keyframes wingFlutter { to { transform: rotate(-35deg) scaleY(.7); } }
 @keyframes throatPuff { 50% { transform: scale(1.3); } }
 @keyframes exhaustPuff { to { transform: translateY(-15px); opacity: 0; } }
-@keyframes flowingWater { to { stroke-dashoffset: -12; } }
 @keyframes owlBlink { 50% { transform: scaleY(.12); } }
 @keyframes sailTurn { to { transform: rotate(360deg); } }
 @keyframes objectSpark { 0% { opacity: 0; transform: translateY(0) scale(.5); } 20% { opacity: .9; } 100% { opacity: 0; transform: translateY(-55px) scale(1.3); } }

@@ -16,6 +16,8 @@ export default function App() {
   const [error,setError] = useState(null);
   const [sceneIndex,setSceneIndex] = useState(0);
   const [mixer,setMixer] = useState(false);
+  const [sceneVolume,setSceneVolume] = useState(-4);
+  const mixerTap = useRef(null);
   const [instruments,setInstruments] = useState(initialInstruments);
   const stateRef = useRef(instruments);
   const drag = useRef(null);
@@ -63,6 +65,25 @@ export default function App() {
     drag.current={name,id:e.pointerId,startX:e.clientX,startY:e.clientY,baseX:rect.left+rect.width/2,baseY:rect.top+rect.height/2,moved:false};
     e.currentTarget.setPointerCapture(e.pointerId);
   }
+
+  function changeSceneVolume(value) {
+    const next = Number(value);
+    setSceneVolume(next);
+    audioRef.current?.setSceneVolume(next);
+  }
+
+  function activateMixer() {
+    if(mixer) {
+      setMixer(false);
+      mixerTap.current=null;
+      return;
+    }
+    const now=performance.now();
+    if(mixerTap.current!==null && now-mixerTap.current<=450) {
+      setMixer(true);
+      mixerTap.current=null;
+    } else mixerTap.current=now;
+  }
   function pointerMove(e,name) {
     const d=drag.current;
     if(!d || d.name!==name || d.id!==e.pointerId) return;
@@ -96,10 +117,10 @@ export default function App() {
     <div className="top-bar">
       <div className="brand"><span>♪</span><strong>Musical Landscape</strong></div>
       {started && <div className="scene-name">{SCENES[sceneIndex].name}</div>}
-      {started && <button className="mixer-button" onClick={()=>setMixer(v=>!v)} aria-label={mixer?'Close mixer':'Open mixer'} title={mixer?'Close mixer':'Open mixer'}>{mixer?<X size={19}/>:<SlidersHorizontal size={19}/>} <span>Mixer</span></button>}
+      {started && <button className="mixer-button" onClick={activateMixer} aria-expanded={mixer} aria-controls="landscape-mixer" aria-label={mixer?'Close mixer':'Open mixer'} title={mixer?'Close mixer':'Double-click or double-tap to open mixer'}>{mixer?<X size={19}/>:<SlidersHorizontal size={19}/>} <span>Mixer</span></button>}
     </div>
 
-    {started && mixer && <Mixer instruments={instruments} onVolume={volume} onClose={()=>setMixer(false)}/>}
+    {started && mixer && <Mixer instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
 
     <div className="instrument-layer">
       {Object.entries(instruments).map(([name,i])=><Instrument key={name} name={name} label={i.label} x={i.x} y={i.y} active={i.active} onToggle={toggle}
