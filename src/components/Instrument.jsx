@@ -12,6 +12,7 @@ export function Instrument({
   onPointerDown,
   onPointerMove,
   onPointerUp,
+  onPointerCancel,
 }) {
   return (
     <div
@@ -31,6 +32,8 @@ export function Instrument({
       onPointerDown={event => onPointerDown(event, name)}
       onPointerMove={event => onPointerMove(event, name)}
       onPointerUp={event => onPointerUp(event, name)}
+      onPointerCancel={onPointerCancel}
+      onLostPointerCapture={onPointerCancel}
     >
       <div className="instrument-drawing">
         <InstrumentArt type={name} />

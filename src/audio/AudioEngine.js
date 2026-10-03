@@ -1,6 +1,7 @@
 import * as Tone from 'tone';
 import { BPM, BAR, INSTRUMENTS, patterns, nearestBar, transposeEvents } from '../utils/music';
 import { createNoisePair } from '../utils/noise';
+import { createSceneSample, SCENE_SOUNDS } from './sceneSounds';
 
 const MIN_GAIN = -60;
 const FADE_SECONDS = 0.045;
@@ -184,14 +185,16 @@ export class AudioEngine {
   }
 
   createSceneSounds() {
-    this.sceneGain = new Tone.Volume(-6).connect(this.reverb);
-    this.sceneSynth = new Tone.PolySynth(Tone.FMSynth, {
-      maxPolyphony: 8,
-      harmonicity: 2.8,
-      modulationIndex: 1.8,
-      envelope: { attack: 0.004, decay: 0.28, sustain: 0.06, release: 0.65 },
-      modulationEnvelope: { attack: 0.001, decay: 0.22, sustain: 0, release: 0.12 },
-    }).connect(this.sceneGain);
+    this.sceneGain = new Tone.Volume(-4).connect(this.master);
+    this.sceneBuffers = {};
+    this.scenePlayers = {};
+    this.sceneVoices = {};
+    for (const type of SCENE_SOUNDS) {
+      const buffer = new Tone.ToneAudioBuffer().fromArray(createSceneSample(type, Tone.getContext().sampleRate));
+      this.sceneBuffers[type] = buffer;
+      this.scenePlayers[type] = Array.from({ length: 3 }, () => new Tone.Player({ url: buffer, fadeOut: 0.025 }).connect(this.sceneGain));
+      this.sceneVoices[type] = 0;
+    }
   }
 
   setSceneKey(root) {
@@ -200,6 +203,7 @@ export class AudioEngine {
 
   setInstrumentActive(name, active) {
     if (!this.ready || !this.nodes[name]) return;
+    Tone.start().catch(console.error);
     const transportWasPlaying = Tone.Transport.state === 'started' && this.barIndex > 0;
     this.active[name] = active;
     const node = this.nodes[name];
@@ -237,7 +241,7 @@ export class AudioEngine {
       this.barIndex = 0;
       return;
     }
-    if (!this.transportEvent) {
+    if (this.transportEvent === null) {
       this.transportEvent = Tone.Transport.scheduleRepeat(time => this.scheduleBar(time), BAR);
     }
     if (Tone.Transport.state !== 'started') Tone.Transport.start('+0.04');
@@ -265,6 +269,10 @@ export class AudioEngine {
       const events = transposeEvents(selected.events, this.root);
       for (const event of events) {
         const offset = Tone.Time(event.time).toSeconds();
+        if (offset === 0) {
+          this.playEvent(name, event, time);
+          continue;
+        }
         let id;
         id = Tone.Transport.scheduleOnce(at => {
           this.pendingEvents.delete(id);
@@ -286,7 +294,7 @@ export class AudioEngine {
         tom: () => synth.tom.triggerAttackRelease('G2', event.dur ?? '8n', time, velocity),
         snare: () => synth.snare.triggerAttackRelease(event.dur ?? '16n', time, velocity),
         clap: () => synth.clap.triggerAttackRelease(event.dur ?? '16n', time, velocity),
-        hat: () => synth.hat.triggerAttackRelease('32n', time, velocity),
+        hat: () => synth.hat.triggerAttackRelease('F#6', '32n', time, velocity),
         shaker: () => synth.shaker.triggerAttackRelease('32n', time, velocity),
         rim: () => synth.rim.triggerAttackRelease('C6', event.dur ?? '32n', time, velocity),
       };
@@ -303,29 +311,14 @@ export class AudioEngine {
     synth.triggerAttackRelease(event.note, event.dur, time, velocity);
   }
 
-  // One-shot landscape sounds stay in the current scene key.
-  playSceneSound(type, root = 'C') {
-    if (!this.ready) return;
-    const rootNotes = {
-      C: { tap: ['C5', 'E5', 'G5'], low: 'C3', mid: 'G4' },
-      G: { tap: ['G4', 'B4', 'D5'], low: 'G2', mid: 'D5' },
-      F: { tap: ['F4', 'A4', 'C5'], low: 'F2', mid: 'C5' },
-      A: { tap: ['A4', 'C5', 'E5'], low: 'A2', mid: 'E5' },
-    };
-    const notes = rootNotes[root] ?? rootNotes.C;
-    const sounds = {
-      moo: { notes: [notes.low], dur: '4n', velocity: 0.62 },
-      bird: { notes: [notes.tap[2]], dur: '8n', velocity: 0.42 },
-      bell: { notes: [notes.tap[1]], dur: '2n', velocity: 0.48 },
-      tractor: { notes: [notes.low], dur: '8n', velocity: 0.5 },
-      water: { notes: [notes.tap[0], notes.tap[1]], dur: '8n', velocity: 0.28 },
-      wheel: { notes: [notes.mid], dur: '16n', velocity: 0.27 },
-      windmill: { notes: [notes.tap[2], notes.tap[1]], dur: '4n', velocity: 0.34 },
-      frog: { notes: [notes.low, notes.tap[1]], dur: '8n', velocity: 0.46 },
-    };
-    const sound = sounds[type] ?? sounds.bell;
-    const when = Tone.Transport.state === 'started' ? Tone.Transport.nextSubdivision('4n') : Tone.now();
-    this.sceneSynth.triggerAttackRelease(sound.notes, sound.dur, when, sound.velocity);
+  playSceneSound(type) {
+    if (!this.ready || !this.scenePlayers[type]) return;
+    Tone.start().catch(console.error);
+    const voice = this.sceneVoices[type]++ % this.scenePlayers[type].length;
+    const player = this.scenePlayers[type][voice];
+    const when = Tone.immediate() + 0.015;
+    if (player.state === 'started') player.stop(when);
+    player.start(when);
   }
 
   setVolumes(volumes) {
@@ -338,7 +331,7 @@ export class AudioEngine {
 
   dispose() {
     this.clearPendingEvents();
-    if (this.transportEvent) Tone.Transport.clear(this.transportEvent);
+    if (this.transportEvent !== null) Tone.Transport.clear(this.transportEvent);
     Tone.Transport.stop();
     Tone.Transport.cancel();
 
@@ -353,7 +346,8 @@ export class AudioEngine {
       Object.values(node).forEach(disposeNode);
     };
     disposeNode(this.nodes);
-    disposeNode(this.sceneSynth);
+    disposeNode(this.scenePlayers);
+    disposeNode(this.sceneBuffers);
     disposeNode(this.sceneGain);
     disposeNode(this.reverb);
     disposeNode(this.master);

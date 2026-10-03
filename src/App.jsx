@@ -4,6 +4,8 @@ import { Instrument } from './components/Instrument';
 import { Mixer } from './components/Mixer';
 import { StartScreen } from './components/StartScreen';
 import { Scene, SCENES } from './scenes/Scene';
+import { AudioEngine } from './audio/AudioEngine';
+import { SlidersHorizontal, X } from 'lucide-react';
 
 const initialInstruments = Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,v])=>[name,{...v,active:false}]));
 
@@ -30,7 +32,6 @@ export default function App() {
     setLoading(true); setError(null);
     try {
       if(!audioRef.current) {
-        const { AudioEngine } = await import('./audio/AudioEngine');
         audioRef.current = new AudioEngine();
       }
       await audioRef.current.init();
@@ -57,6 +58,7 @@ export default function App() {
 
   function pointerDown(e,name) {
     if(e.pointerType==='mouse' && e.button!==0) return;
+    if(drag.current) return;
     const rect=e.currentTarget.getBoundingClientRect();
     drag.current={name,id:e.pointerId,startX:e.clientX,startY:e.clientY,baseX:rect.left+rect.width/2,baseY:rect.top+rect.height/2,moved:false};
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -65,18 +67,23 @@ export default function App() {
     const d=drag.current;
     if(!d || d.name!==name || d.id!==e.pointerId) return;
     const dx=e.clientX-d.startX,dy=e.clientY-d.startY;
-    if(Math.hypot(dx,dy)>7) d.moved=true;
+    if(Math.hypot(dx,dy)>(e.pointerType==='touch'?12:7)) d.moved=true;
     if(!d.moved) return;
     const x=Math.max(5,Math.min(95,(d.baseX+dx)/window.innerWidth*100));
     const y=Math.max(15,Math.min(82,(d.baseY+dy)/window.innerHeight*100));
-    setInstruments(prev=>({...prev,[name]:{...prev[name],x,y}}));
+    const nextState={...stateRef.current,[name]:{...stateRef.current[name],x,y}};
+    stateRef.current=nextState; setInstruments(nextState);
   }
   function pointerUp(e,name) {
     const d=drag.current;
-    if(!d || d.name!==name) return;
+    if(!d || d.name!==name || d.id!==e.pointerId) return;
     try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
     if(!d.moved) toggle(name);
     drag.current=null;
+  }
+
+  function pointerCancel(e) {
+    if(drag.current?.id===e.pointerId) drag.current=null;
   }
 
   function rotateScene() {
@@ -89,18 +96,18 @@ export default function App() {
     <div className="top-bar">
       <div className="brand"><span>♪</span><strong>Musical Landscape</strong></div>
       {started && <div className="scene-name">{SCENES[sceneIndex].name}</div>}
-      {started && <button className="mixer-button" onClick={()=>setMixer(v=>!v)} aria-label={mixer?'Close mixer':'Open mixer'}>{mixer?'×':'☰'} <span>Mixer</span></button>}
+      {started && <button className="mixer-button" onClick={()=>setMixer(v=>!v)} aria-label={mixer?'Close mixer':'Open mixer'} title={mixer?'Close mixer':'Open mixer'}>{mixer?<X size={19}/>:<SlidersHorizontal size={19}/>} <span>Mixer</span></button>}
     </div>
 
     {started && mixer && <Mixer instruments={instruments} onVolume={volume} onClose={()=>setMixer(false)}/>}
 
     <div className="instrument-layer">
       {Object.entries(instruments).map(([name,i])=><Instrument key={name} name={name} label={i.label} x={i.x} y={i.y} active={i.active} onToggle={toggle}
-        onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp}/>) }
+        onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}/>) }
     </div>
 
     {started && <div className={`status-pill ${activeCount?'has-music':''}`} aria-live="polite">
-      <span className="status-light"/>{activeCount ? `${activeCount} ${activeCount===1?'sound':'sounds'} making music` : 'Tap an instrument to begin'}
+      <span className="status-light"/>{activeCount ? `${activeCount} ${activeCount===1?'sound':'sounds'} making music` : 'Quiet landscape'}
     </div>}
 
     {!started && <StartScreen loading={loading} error={error} onStart={start}/>}
