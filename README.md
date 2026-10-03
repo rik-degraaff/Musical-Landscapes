@@ -25,7 +25,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The browser suite starts Vite locally. It measures actual Web Audio waveforms for all six instruments and eight scene objects, decodes all bundled recordings, tests failed-load retry, exercises rapid toggles and repeated taps, checks dragging, cancellation, keyboard control, audio suspension recovery, mixer persistence and reduced motion, and captures each landscape at desktop, portrait phone and compact landscape sizes. Screenshots and failure traces go into the ignored `test-results/` directory.
+The browser suite starts Vite locally. It measures actual Web Audio waveforms for all six instruments and ten scene objects, decodes all bundled recordings, tests failed-load retry, verifies saved gain corrections and full-mix headroom, exercises rapid toggles and repeated taps, checks dragging, cancellation, keyboard control, audio suspension recovery, mixer persistence and reduced motion, and captures each landscape at desktop, portrait phone and compact landscape sizes. Screenshots and failure traces go into the ignored `test-results/` directory.
 
 ## Structure
 
@@ -51,13 +51,14 @@ src/
     NoteParticles.jsx     Reusable particle component
   scenes/
     Scene.jsx             Scene registry and rotation control
-    LandscapeArt.jsx      Responsive illustrated backgrounds for all four worlds
+    LandscapeArt.jsx      Responsive illustrated backgrounds for all five worlds
     ObjectArt.jsx         Matching interactive object illustrations
     scene-art.css         Scene styling and object-specific animation
     FarmScene.jsx         Cow + tractor
     GardenScene.jsx       Outdoor faucet + bird
     PondScene.jsx         Frog + windmill
     NightScene.jsx        Bell + owl
+    DawnScene.jsx         Rooster + wind chimes
 ```
 
 ## Musical system
@@ -107,7 +108,7 @@ The downloader parses the soundfont data without executing remote JavaScript, ex
 - Interactive scene sounds respond immediately, independently of the musical transport. Three voices per object support overlapping taps without cutting off other objects.
 - Audio unlock begins inside the Play gesture, and subsequent instrument/object gestures resume audio after a browser suspension.
 - Bar downbeats use the transport callback's audio timestamp directly; later notes use transport positions. Drum labels map to explicit sampler pitches and hit-specific durations.
-- All four scenes have at least two interactive objects.
+- All five scenes have at least two interactive objects.
 - Instrument volume settings are remembered when a muted instrument is switched back on.
 - Opening the mixer requires two clicks or taps within 450 ms; a single click/tap still closes it. Keyboard users can activate the focused mixer button twice with Enter or Space.
 - The mixer has one shared **Scenery sounds** slider for all non-instrument sounds, including a mute setting at -60 dB. Its setting persists across scenes and does not alter instrument levels.
@@ -119,6 +120,7 @@ The downloader parses the soundfont data without executing remote JavaScript, ex
 2. **Little Garden** — outdoor faucet and bird
 3. **Pond Meadow** — frog and windmill
 4. **Sleepy Night** — bell and owl
+5. **First Light** — a rising sun over misty fields, a recorded rooster crow and swaying wind chimes
 
 The circular arrow control in the bottom-right rotates through the scenes. The illustrations include rolling fields, a flower garden, reflective pond water, and a moonlit woodland with fireflies. Scenery proportions adapt to portrait and landscape screens.
 
@@ -128,4 +130,22 @@ Each object has a distinct sound and a replayable response: the cow nods and moo
 
 The faucet uses one shared audio/animation timeline: quiet drop impacts at 0.28, 0.93 and 1.58 seconds, with silence between them. Animation start time accounts for the browser audio-output clock. Repeated taps restart the faucet sequence instead of stacking multiple leaks. Other scenery sounds retain their overlapping tap voices.
 
-All object sound effects are original procedural samples generated locally at the device sample rate. They are stylized effects rather than field recordings, and require no downloaded media, external sound service, credentials or attribution. Samples have tapered endpoints and bounded levels; the master limiter also covers scene sounds.
+The faucet now uses an actual recorded water drop rather than a synthesized plop; the sunrise rooster is also a real recording. Both are CC0, bundled locally, and credited in [Scenery Attribution](public/audio/scenery/ATTRIBUTION.md). Other object sounds are original procedural effects rendered to local WAV assets offline. No sound CDN is used during playback. Samples have tapered endpoints; the master limiter also covers scene sounds.
+
+## Measured Default Balance
+
+Every one of the 53 playback assets is decoded and analyzed offline using FFmpeg: integrated EBU R128/BS.1770 loudness (LUFS), full-waveform RMS, gated active RMS, and true/sample peak. Silence is excluded from the active RMS calculation using 50 ms blocks within 20 dB of the loudest block. Gated active RMS is the fallback for clips too short to yield finite integrated LUFS.
+
+The analyzer precalculates a gain toward -20 LUFS for instrument recordings, -23 LUFS for scenery, and a deliberately quieter -26 LUFS target for dripping water. Corrections are bounded to -24 through +18 dB and constrained by a -5 dBFS true/sample-peak ceiling. Transient-heavy samples may remain below the loudness target to preserve their peaks; this is linear gain, not compression. The instrument mixer defaults and authored note velocities then retain the musical foreground/accompaniment balance.
+
+The complete measurements, asset SHA-256 hashes and gains are committed in [audioLevels.json](src/audio/audioLevels.json). Instrument corrections are applied once to decoded sample buffers; scenery corrections are applied to each player's gain, before the shared scenery slider. No loudness analysis runs during playback. Tests reject stale measurements when an audio asset changes, verify runtime gain application, and exercise the full mix through the master limiter.
+
+Regenerate the recordings and calibration with:
+
+```bash
+npm run scenery:download
+npm run audio:analyze
+npm test
+```
+
+The analyzer also regenerates the original procedural scenery WAVs and builds the three-drop faucet sequence at its existing animated impact times, with a two-second duration so the last recorded drop can decay naturally. The download scripts never execute remote JavaScript. FFmpeg is a development-only dependency; it is not shipped to browsers.

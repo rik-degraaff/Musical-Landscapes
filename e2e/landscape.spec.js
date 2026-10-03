@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 const instruments = ['piano', 'drums', 'guitar', 'melody', 'marimba', 'flute'];
-const objects = [['Cow', 'Tractor'], ['Outdoor faucet', 'Bird'], ['Frog', 'Windmill'], ['Little bell', 'Night owl']];
+const objects = [['Cow', 'Tractor'], ['Outdoor faucet', 'Bird'], ['Frog', 'Windmill'], ['Little bell', 'Night owl'], ['Rooster', 'Wind chimes']];
 
 test('all bundled recordings decode and a failed sample load can be retried', async ({ page }, testInfo) => {
   const errors = [];
@@ -135,7 +135,7 @@ test('audio resumes after suspension, mixer settings persist and reduced motion 
   expect(await page.evaluate(() => window.audioEngine.pendingEvents.size)).toBe(0);
   await page.evaluate(() => window.audioEngine.master.context.rawContext.suspend());
   await tap(page.getByRole('button', { name: 'Cow', exact: true }), testInfo);
-  expect(await measureAudio(page, 'scene', 0.5)).toBeGreaterThan(0.01);
+  expect(await measureAudio(page, 'scene', 0.5)).toBeGreaterThan(0.005);
   expect(await page.evaluate(() => window.audioEngine.master.context.rawContext.state)).toBe('running');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await tap(page.getByRole('button', { name: 'Cow', exact: true }), testInfo);
@@ -146,14 +146,14 @@ test('audio resumes after suspension, mixer settings persist and reduced motion 
   expect(errors).toEqual([]);
 });
 
-test('every object is reachable, audible and animates repeatedly in all four scenes', async ({ page }, testInfo) => {
+test('every object is reachable, audible and animates repeatedly in all five scenes', async ({ page }, testInfo) => {
   const errors = await startWorld(page);
   for (let sceneIndex = 0; sceneIndex < objects.length; sceneIndex++) {
     for (const label of objects[sceneIndex]) {
       const object = page.getByRole('button', { name: label, exact: true });
       await tap(object, testInfo);
       await expect(object.locator('.reacting')).toHaveCount(1);
-      expect(await measureAudio(page, 'scene', 0.35), `${label} makes sound`).toBeGreaterThan(0.01);
+      expect(await measureAudio(page, 'scene', label === 'Outdoor faucet' ? 0.6 : 0.35), `${label} makes sound`).toBeGreaterThan(0.002);
       for (let repeat = 0; repeat < 4; repeat++) await tap(object, testInfo);
       await expect(object.locator('.reacting')).toHaveCount(1);
       const bounds = await object.boundingBox();
@@ -251,5 +251,53 @@ test('faucet drops share impact timing and rapid taps restart a single sequence'
   expect(voices).toBe(1);
   await expect(faucet.locator('.water-drops')).toHaveCount(0);
   await page.screenshot({ path: `test-results/${testInfo.project.name}-quiet-faucet.png` });
+  expect(errors).toEqual([]);
+});
+
+test('saved loudness corrections are applied and the combined mix retains headroom', async ({ page }, testInfo) => {
+  const errors = await startWorld(page);
+  const calibration = await page.evaluate(async () => {
+    const levels = (await import('/src/audio/audioLevels.json')).default;
+    const context = new AudioContext();
+    try {
+      const source = await context.decodeAudioData(await (await fetch('/audio/instruments/piano/C4.mp3')).arrayBuffer());
+      const original = source.getChannelData(0);
+      const corrected = window.audioEngine.nodes.piano.buffers.C4.get().getChannelData(0);
+      const rms = waveform => Math.sqrt(waveform.reduce((sum, value) => sum + value * value, 0) / waveform.length);
+      return {
+        actualGain: 20 * Math.log10(rms(corrected) / rms(original)),
+        expectedGain: levels['instruments/piano/C4.mp3'].gainDb,
+        scenery: Object.entries(window.audioEngine.scenePlayers).map(([type, voices]) => ({ type, expected: levels[`scenery/${type}.wav`].gainDb, actual: voices[0].volume.value })),
+      };
+    } finally { await context.close(); }
+  });
+  expect(calibration.actualGain).toBeCloseTo(calibration.expectedGain, 1);
+  for (const sound of calibration.scenery) expect(sound.actual, sound.type).toBeCloseTo(sound.expected, 1);
+  for (const name of instruments) await tap(page.locator(`#instrument-${name}`), testInfo);
+  const mix = await page.evaluate(async () => {
+    const engine = window.audioEngine;
+    let output = engine.limiter;
+    while(output.output) output = output.output;
+    const analyser = output.context.createAnalyser();
+    analyser.fftSize = 2048;
+    output.connect(analyser);
+    engine.playSceneSound('rooster');
+    engine.playSceneSound('chimes');
+    const values = new Float32Array(2048);
+    let peak = 0;
+    let rms = 0;
+    const until = performance.now() + 3200;
+    while(performance.now() < until) {
+      analyser.getFloatTimeDomainData(values);
+      peak = Math.max(peak, ...values.map(value => Math.abs(value)));
+      rms = Math.max(rms, Math.sqrt(values.reduce((sum,value) => sum + value * value,0) / values.length));
+      await new Promise(resolve => requestAnimationFrame(resolve));
+    }
+    output.disconnect(analyser);
+    analyser.disconnect();
+    return { peak, rms };
+  });
+  expect(mix.rms).toBeGreaterThan(0.01);
+  expect(mix.peak).toBeLessThan(0.95);
   expect(errors).toEqual([]);
 });

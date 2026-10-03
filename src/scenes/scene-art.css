@@ -20,6 +20,15 @@
 .scene .windmill { right: 25%; bottom: 27%; width: 155px; height: 170px; }
 .scene .bell { right: 5%; top: 44%; }
 .scene .owl { left: 5%; top: 44%; }
+.scene .rooster { left: 28%; bottom: 24%; }
+.scene .chimes { right: 5%; top: 44%; }
+.rooster .reacting { animation: roosterCrow 2.4s ease-in-out; }
+.chimes .reacting { animation: bellRock 2.4s ease-out; transform-origin: 50% 12%; }
+.is-tapped .rooster-wing { transform-origin: 61px 74px; animation: wingFlutter .17s ease-in-out 8 alternate; }
+.is-tapped .chime-tubes { transform-origin: 80px 37px; animation: bellRock 2.4s ease-out; }
+.rising-sun { animation: dawnRise 10s ease-out both; }
+@keyframes dawnRise { from { transform: translateY(80px); } to { transform: translateY(0); } }
+@keyframes roosterCrow { 0%,100% { transform: rotate(0); } 15%,55% { transform: rotate(-8deg) scaleY(1.08); } 35%,75% { transform: rotate(3deg); } }
 .scene .scene-turner { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; color: #4e685c; background: #fff9e9ee; border: 2px solid #ffffff; box-shadow: 0 4px 16px #27445a26; right: 20px; bottom: 20px; z-index: 60; transition: transform .2s; }
 .scene-turner:hover { transform: rotate(25deg); }
 .reacting { animation: objectNod 1.5s ease-in-out; }
@@ -83,6 +92,8 @@
   .scene .windmill { right: 5%; bottom: auto; top: 44%; width: 95px; height: 124px; }
   .scene .bell { right: 4%; top: 45%; }
   .scene .owl { left: 2%; top: 45%; }
+  .scene .rooster { left: 4%; bottom: 9%; }
+  .scene .chimes { right: 4%; top: 45%; }
   .scene .scene-turner { width: 46px; height: 46px; right: 12px; bottom: 12px; }
 }
 @media (max-height: 550px) and (orientation: landscape) {
@@ -103,6 +114,8 @@
   .scene .cow { left: 28%; bottom: 18%; }
   .scene .tractor { left: 67%; right: auto; bottom: 14%; }
   .scene .bird, .scene .owl { left: 28%; top: 43%; }
+  .scene .rooster { left: 28%; bottom: 18%; }
+  .scene .chimes { right: 28%; top: 43%; }
   .scene .bell { right: 28%; top: 43%; }
   .scene .faucet, .scene .frog { left: 22%; bottom: 14%; }
   .scene .windmill { right: 25%; top: auto; bottom: 21%; width: 95px; height: 95px; }

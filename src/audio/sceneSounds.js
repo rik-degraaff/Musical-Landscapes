@@ -1,10 +1,10 @@
-export const SCENE_SOUNDS = ['moo', 'tractor', 'water', 'bird', 'frog', 'windmill', 'bell', 'owl'];
+export const SCENE_SOUNDS = ['moo', 'tractor', 'water', 'bird', 'frog', 'windmill', 'bell', 'owl', 'rooster', 'chimes'];
 export const WATER_DROP_TIMES = [0.28, 0.93, 1.58];
 export const WATER_DROP_FALL = 0.28;
-export const WATER_DURATION = 1.85;
+export const WATER_DURATION = 2;
 
 export function createSceneSample(type, sampleRate = 44100) {
-  const duration = { moo: 1.5, tractor: 2.2, water: WATER_DURATION, bird: 1.1, frog: 1.2, windmill: 2, bell: 2.4, owl: 1.8 }[type];
+  const duration = { moo: 1.5, tractor: 2.2, bird: 1.1, frog: 1.2, windmill: 2, bell: 2.4, owl: 1.8, chimes: 2.4 }[type];
   if (!duration) throw new Error(`Unknown landscape sound: ${type}`);
   const samples = new Float32Array(Math.ceil(sampleRate * duration));
   let phase = 0;
@@ -31,14 +31,6 @@ export function createSceneSample(type, sampleRate = 44100) {
     } else if (type === 'tractor') {
       phase += 2 * Math.PI * (48 + 6 * Math.sin(time * 9)) / sampleRate;
       value = (Math.sin(phase) * 0.25 + Math.sin(phase * 2) * 0.12 + filteredNoise * 0.7) * (0.65 + 0.35 * Math.sin(time * 2 * Math.PI * 14));
-    } else if (type === 'water') {
-      for (const impact of WATER_DROP_TIMES) {
-        const drop = time - impact;
-        if (drop < 0 || drop > 0.18) continue;
-        const dropPhase = 2 * Math.PI * (680 * drop + 1200 * (1 - Math.exp(-drop * 35)) / 35);
-        const fade = Math.min(1, drop / 0.004, (0.18 - drop) / 0.025);
-        value += Math.sin(dropPhase) * Math.exp(-drop * 22) * fade * 0.32;
-      }
     } else if (type === 'frog') {
       const croak = time % 0.38;
       phase += 2 * Math.PI * (150 - croak * 110) / sampleRate;
@@ -46,6 +38,11 @@ export function createSceneSample(type, sampleRate = 44100) {
     } else if (type === 'windmill') {
       const clack = time % 0.24;
       value = filteredNoise * 0.3 + (Math.sin(time * 2 * Math.PI * 430) * 0.4 + noise * 0.25) * Math.exp(-clack * 65);
+    } else if (type === 'chimes') {
+      for (const [strike, frequency] of [[0, 880], [0.36, 1108.73], [0.72, 1318.51], [1.08, 1760]]) {
+        const elapsed = time - strike;
+        if (elapsed >= 0) value += (Math.sin(elapsed * 2 * Math.PI * frequency) + 0.25 * Math.sin(elapsed * 2 * Math.PI * frequency * 2.76)) * Math.exp(-elapsed * 4) * Math.min(1, elapsed / 0.003) * 0.3;
+      }
     } else if (type === 'bell') {
       value = [1, 2.76, 5.4, 8.93].reduce((sum, ratio, partial) => sum + Math.sin(time * 2 * Math.PI * 660 * ratio) * Math.exp(-time * (2 + partial)) / (partial + 2), 0);
     }

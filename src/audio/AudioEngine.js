@@ -1,7 +1,8 @@
 import * as Tone from 'tone';
 import { BPM, BAR, INSTRUMENTS, patterns, nearestBar, transposeEvents } from '../utils/music';
 import { createNoisePair } from '../utils/noise';
-import { createSceneSample, SCENE_SOUNDS } from './sceneSounds';
+import { SCENE_SOUNDS } from './sceneSounds';
+import audioLevels from './audioLevels.json';
 import { DRUM_NOTES, DRUM_SAMPLES, SAMPLE_LIBRARY, sampleUrls } from './sampleLibrary';
 
 const MIN_GAIN = -60;
@@ -52,11 +53,11 @@ export class AudioEngine {
       loads.push(this.createSampledInstrument(name));
     }
     await Promise.all([this.reverb.ready, ...loads]);
-    this.createSceneSounds();
+    await this.createSceneSounds();
     this.ready = true;
   }
 
-  createSampledInstrument(name) {
+  async createSampledInstrument(name) {
     const baseUrl = `${import.meta.env.BASE_URL}audio/instruments/`;
     const urls = name === 'drums' ? {
       C2: `drums/${DRUM_SAMPLES.kick.file}`,
@@ -67,9 +68,22 @@ export class AudioEngine {
       'C#2': `drums/${DRUM_SAMPLES.snare.file}`,
       'A#2': `drums/${DRUM_SAMPLES.hat.file}`,
     } : sampleUrls(name);
+    const buffers = {};
+    this.nodes[name].buffers = buffers;
+    await Promise.all(Object.entries(urls).map(async ([note, file]) => {
+      const buffer = new Tone.ToneAudioBuffer();
+      buffers[note] = buffer;
+      await buffer.load(`${baseUrl}${file}`);
+      const correction = Tone.dbToGain(audioLevels[`instruments/${file}`].gainDb);
+      const decoded = buffer.get();
+      for (let channel = 0; channel < decoded.numberOfChannels; channel++) {
+        const waveform = decoded.getChannelData(channel);
+        for (let index = 0; index < waveform.length; index++) waveform[index] *= correction;
+      }
+    }));
     return new Promise((resolve, reject) => {
       const sampler = new Tone.Sampler({
-        urls,
+        urls: buffers,
         baseUrl,
         attack: 0.002,
         release: name === 'drums' ? 0.08 : SAMPLE_LIBRARY[name].release,
@@ -81,17 +95,18 @@ export class AudioEngine {
     });
   }
 
-  createSceneSounds() {
+  async createSceneSounds() {
     this.sceneGain = new Tone.Volume(this.sceneVolume).connect(this.master);
     this.sceneBuffers = {};
     this.scenePlayers = {};
     this.sceneVoices = {};
-    for (const type of SCENE_SOUNDS) {
-      const buffer = new Tone.ToneAudioBuffer().fromArray(createSceneSample(type, Tone.getContext().sampleRate));
+    await Promise.all(SCENE_SOUNDS.map(async type => {
+      const buffer = new Tone.ToneAudioBuffer();
       this.sceneBuffers[type] = buffer;
-      this.scenePlayers[type] = Array.from({ length: 3 }, () => new Tone.Player({ url: buffer, fadeOut: 0.025 }).connect(this.sceneGain));
+      await buffer.load(`${import.meta.env.BASE_URL}audio/scenery/${type}.wav`);
+      this.scenePlayers[type] = Array.from({ length: 3 }, () => new Tone.Player({ url: buffer, fadeOut: 0.025, volume: audioLevels[`scenery/${type}.wav`].gainDb }).connect(this.sceneGain));
       this.sceneVoices[type] = 0;
-    }
+    }));
   }
 
   setSceneKey(root) {

@@ -2,6 +2,18 @@ import React from 'react';
 
 export function ObjectArt({ type }) {
   return <svg viewBox="0 0 160 140" className={`object-art art-${type}`} aria-hidden="true" fill="none" strokeLinecap="round" strokeLinejoin="round">
+    {type === 'rooster' && <>
+      <path d="M48 87Q2 69 20 31Q48 32 58 72Q22 43 31 20Q65 36 64 82" fill="#3c7977" stroke="#305e63" strokeWidth="4" />
+      <ellipse cx="78" cy="86" rx="36" ry="30" fill="#d6a267" /><path className="rooster-wing" d="M61 74Q100 68 97 100Q62 107 61 74Z" fill="#ac7258" />
+      <path d="M85 74Q92 62 90 44Q88 27 104 29Q123 31 119 53L106 88Z" fill="#f3ddb1" /><path d="M95 28Q89 12 99 13Q103 3 110 17Q124 5 124 24L117 35Z" fill="#c76d61" />
+      <path d="M118 44L140 50L120 58Z" fill="#ddb563" /><circle cx="110" cy="40" r="3" fill="#354c4b" /><path d="M110 59Q123 81 104 77Z" fill="#c76d61" />
+      <path d="M66 111v18m25-18v18m-27 0h-13m15 0h11m12 0h-12m12 0h13" stroke="#c79b57" strokeWidth="4" />
+    </>}
+    {type === 'chimes' && <>
+      <path d="M25 18H138M80 19v15" stroke="#827662" strokeWidth="6" /><path d="M49 39Q80 25 111 39" stroke="#b5976c" strokeWidth="8" />
+      <g className="chime-tubes">{[51,70,89,108].map((position,index) => <g key={position}><path d={`M${position} 40v${12 + index % 2 * 7}`} stroke="#837c67" strokeWidth="2" /><rect x={position-4} y={52 + index % 2 * 7} width="8" height={35 + index % 3 * 9} rx="3" fill="#adcbc7" stroke="#638b8a" strokeWidth="2" /></g>)}
+      <path d="M80 37v78" stroke="#837c67" strokeWidth="2" /><ellipse cx="80" cy="87" rx="11" ry="4" fill="#bf9271" /><path d="M72 116h16l-3 18h-10Z" fill="#d4a883" /></g>
+    </>}
     {type === 'moo' && <>
       <ellipse cx="79" cy="127" rx="57" ry="6" fill="#244f3633" /><path d="M37 89v31h12V93m49-4v31h12V89" stroke="#6b5550" strokeWidth="8" /><path d="M119 68q24 8 16 32" stroke="#6b5550" strokeWidth="5" />
       <path d="M30 58q-12 23 1 44h77q18-16 8-39q-38-17-86-5Z" fill="#ffefdc" stroke="#796757" strokeWidth="3" /><path d="M50 57q-10 23 11 24q21-4 20-23 M101 69q-29 8-12 29h20" fill="#595456" />

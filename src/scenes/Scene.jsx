@@ -3,6 +3,7 @@ import { FarmScene } from './FarmScene';
 import { GardenScene } from './GardenScene';
 import { PondScene } from './PondScene';
 import { NightScene } from './NightScene';
+import { DawnScene } from './DawnScene';
 import { RotateCw } from 'lucide-react';
 import { LandscapeArt } from './LandscapeArt';
 import { ObjectArt } from './ObjectArt';
@@ -14,6 +15,7 @@ export const SCENES = [
   { id:'garden', name:'Little Garden', root:'G', component:GardenScene },
   { id:'pond', name:'Pond Meadow', root:'F', component:PondScene },
   { id:'night', name:'Sleepy Night', root:'A', component:NightScene },
+  { id:'dawn', name:'First Light', root:'C', component:DawnScene },
 ];
 
 export function InteractiveObject({ sound, audio, label, className='' }) {
