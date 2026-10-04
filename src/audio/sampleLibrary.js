@@ -1,9 +1,12 @@
+import { midiNote } from '../utils/performance.js';
+
+const range = (start, count, existing) => [...new Set([...existing, ...Array.from({length:count},(_,index)=>midiNote(start+index))])];
 export const SAMPLE_LIBRARY = {
-  piano: { source: 'acoustic_grand_piano', notes: ['C3', 'E3', 'G#3', 'C4', 'E4', 'G#4', 'C5', 'E5', 'G#5', 'C6'], release: 0.65 },
-  guitar: { source: 'acoustic_guitar_nylon', notes: ['C3', 'E3', 'G#3', 'C4', 'E4', 'G#4', 'C5', 'E5'], release: 0.4 },
-  melody: { source: 'trumpet', notes: ['C4', 'E4', 'G#4', 'C5', 'E5', 'G#5', 'C6'], release: 0.15 },
-  marimba: { source: 'marimba', notes: ['C5', 'E5', 'G#5', 'C6', 'E6', 'G#6'], release: 0.35 },
-  flute: { source: 'flute', notes: ['C4', 'E4', 'G#4', 'C5', 'E5', 'G#5', 'C6'], release: 0.22 },
+  piano: { source: 'acoustic_grand_piano', notes: range(60,17,['C3','E3','G#3','G#5','C6']), release: 0.65 },
+  guitar: { source: 'acoustic_guitar_nylon', notes: range(40,28,['G#4','C5','E5']), release: 0.4 },
+  melody: { source: 'trumpet', notes: range(54,26,['G#5','C6']), release: 0.15 },
+  marimba: { source: 'marimba', notes: range(72,13,['E6','G#6']), release: 0.35 },
+  flute: { source: 'flute', notes: range(60,13,['E5','G#5','C6']), release: 0.22 },
 };
 
 export const DRUM_SAMPLES = {
@@ -12,9 +15,12 @@ export const DRUM_SAMPLES = {
   hat: { file: 'hat.flac', url: 'https://raw.githubusercontent.com/freepats/muldjordkit/main/samples/HihatClosed/10-HihatClosed.flac' },
   tom: { file: 'tom.flac', url: 'https://raw.githubusercontent.com/freepats/muldjordkit/main/samples/Tom1/10-Tom1.flac' },
   clap: { file: 'clap.mp3', url: 'https://cdn.freesound.org/previews/561/561119_12517458-hq.mp3' },
+  crash: { file:'crash.flac',url:'https://raw.githubusercontent.com/freepats/muldjordkit/main/samples/CrashL/1-CrashL.flac' },
+  ride: { file:'ride.flac',url:'https://raw.githubusercontent.com/freepats/muldjordkit/main/samples/RideL/10-RideL.flac' },
+  floorTom: { file:'floor-tom.flac',url:'https://raw.githubusercontent.com/freepats/muldjordkit/main/samples/Tom4/10-Tom4.flac' },
 };
 
-export const DRUM_NOTES = { kick: 'C2', snare: 'D2', hat: 'F#2', tom: 'G2', clap: 'D#2', rim: 'C#2', shaker: 'A#2' };
+export const DRUM_NOTES = { kick: 'C2', snare: 'D2', hat: 'F#2', tom: 'G2', clap: 'D#2', rim: 'C#2', shaker: 'A#2', crash:'C#3',ride:'D#3',floorTom:'F2' };
 
 export function sampleUrls(name) {
   const instrument = SAMPLE_LIBRARY[name];

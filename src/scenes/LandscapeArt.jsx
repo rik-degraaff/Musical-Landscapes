@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 function Tree({ x, y, size = 1, stretch = 1, color = '#397b59' }) {
   return <g transform={`translate(${x} ${y}) scale(${size * stretch} ${size})`}>
@@ -10,18 +10,24 @@ function Tree({ x, y, size = 1, stretch = 1, color = '#397b59' }) {
 }
 
 export function LandscapeArt({ scene }) {
+  const artRef=useRef(null);
   const [stretch, setStretch] = useState(() => 1440 * window.innerHeight / (900 * window.innerWidth));
   useEffect(() => {
-    const resize = () => setStretch(1440 * window.innerHeight / (900 * window.innerWidth));
-    window.addEventListener('resize', resize);
-    return () => window.removeEventListener('resize', resize);
+    const resize = () => {
+      const bounds=artRef.current.getBoundingClientRect();
+      setStretch(1440*bounds.height/(900*bounds.width));
+    };
+    const observer=new ResizeObserver(resize);
+    observer.observe(artRef.current);resize();
+    return () => observer.disconnect();
   }, []);
   const night = scene === 'night';
   const pond = scene === 'pond';
   const garden = scene === 'garden';
   const dawn = scene === 'dawn';
-  const palette = dawn ? ['#b8b6d5', '#f9c5a0', '#9eaaa1', '#829b7c', '#5c856a'] : night ? ['#232b4d', '#79768e', '#465c66', '#345b58', '#234b47'] : pond ? ['#9edbdc', '#f5eed0', '#8ab6a0', '#659d78', '#4d8965'] : garden ? ['#96d9e7', '#f9e9c9', '#a6c399', '#7fb27e', '#54946b'] : ['#8cd3ed', '#fff0ca', '#a4bf8a', '#85ad65', '#60914c'];
-  return <svg className="landscape-art" viewBox="0 0 1440 900" preserveAspectRatio="none" aria-hidden="true">
+  const dusk = scene === 'dusk';
+  const palette = dusk ? ['#6c88a0','#efb09a','#87978b','#617f72','#3e685d'] : dawn ? ['#b8b6d5', '#f9c5a0', '#9eaaa1', '#829b7c', '#5c856a'] : night ? ['#232b4d', '#79768e', '#465c66', '#345b58', '#234b47'] : pond ? ['#9edbdc', '#f5eed0', '#8ab6a0', '#659d78', '#4d8965'] : garden ? ['#96d9e7', '#f9e9c9', '#a6c399', '#7fb27e', '#54946b'] : ['#8cd3ed', '#fff0ca', '#a4bf8a', '#85ad65', '#60914c'];
+  return <svg ref={artRef} className="landscape-art" viewBox="0 0 1440 900" preserveAspectRatio="none" aria-hidden="true">
     <defs>
       <linearGradient id={`${scene}-sky`} x2="0" y2="1"><stop stopColor={palette[0]} /><stop offset="1" stopColor={palette[1]} /></linearGradient>
       <linearGradient id={`${scene}-ground`} x2=".3" y2="1"><stop stopColor={palette[3]} /><stop offset="1" stopColor={palette[4]} /></linearGradient>
@@ -33,7 +39,8 @@ export function LandscapeArt({ scene }) {
       <g transform={`translate(1170 159) scale(${stretch} 1)`}><circle r="62" fill="#f8edc3" /><circle cx="26" cy="-22" r="53" fill="#434562" /></g>
       {Array.from({ length: 42 }, (_, index) => <circle key={index} className="sky-star" cx={(index * 173 + 70) % 1400} cy={65 + (index * 67) % 310} r={index % 3 ? 1.7 : 3} fill="#fff5da" style={{ animationDelay: `${index % 5}s` }} />)}
     </> : <>
-      <g transform={`translate(${dawn ? 790 : 1180} ${dawn ? 356 : 156}) scale(${stretch} 1)`}><g className={dawn ? 'rising-sun' : undefined}><circle r={dawn ? 88 : 74} fill="#fff4ce" opacity=".45" /><circle r={dawn ? 63 : 52} fill={dawn ? '#ffe5a2' : '#ffd875'} /></g></g>
+      <g transform={`translate(${dusk ? 1050 : dawn ? 790 : 1180} ${dusk ? 355 : dawn ? 356 : 156}) scale(${stretch} 1)`}><g className={dusk ? 'setting-sun' : dawn ? 'rising-sun' : undefined}><circle r={dawn||dusk ? 88 : 74} fill="#fff4ce" opacity=".45" /><circle r={dawn||dusk ? 63 : 52} fill={dusk ? '#ffd4a2' : dawn ? '#ffe5a2' : '#ffd875'} /></g></g>
+      {dusk && <g fill="#fff6d8" opacity=".7"><circle cx="210" cy="105" r="2.5"/><circle cx="420" cy="78" r="2"/><circle cx="800" cy="118" r="2.5"/><circle cx="1250" cy="90" r="2"/></g>}
       <g className="scenery-cloud" fill="#fffdf3" opacity=".75"><g transform={`translate(104 184) scale(${stretch} 1)`}><path d="M0 0 C-23-19-5-49 20-45 C35-80 80-72 86-42 C120-51 141-19 121-1Z" /></g><g transform={`translate(710 116) scale(${stretch} 1)`}><path d="M0 0 C-24-15-7-44 16-37 C40-73 83-50 81-33 C117-42 137-16 116 0Z" /></g><g transform={`translate(1290 275) scale(${stretch} 1)`}><path d="M0 0 C-20-24 7-45 24-41 C41-71 81-66 90-32 C130-42 144-12 120 0Z" /></g></g>
       <g fill="none" stroke="#638b93" strokeWidth="3" strokeLinecap="round"><path d="M415 142q10-12 20 0q10-12 20 0 M476 170q8-10 16 0q8-10 16 0" /></g>
     </>}
@@ -58,6 +65,17 @@ export function LandscapeArt({ scene }) {
       <g stroke="#d9c8a6" strokeWidth="7" fill="none"><path d="M160 665H635M160 698H635" />{[180,260,340,420,500,580,630].map(position => <path key={position} d={`M${position} 640v89`} />)}</g>
       <Tree stretch={stretch} x={120} y={625} size={1.35} color="#507a6a" /><Tree stretch={stretch} x={1340} y={594} size={1.4} color="#728f79" />
       <g fill="#c9d6b4" opacity=".55">{Array.from({ length: 16 }, (_, index) => <ellipse key={index} cx={50 + index * 85} cy={760 + index % 3 * 35} rx="3" ry="2" />)}</g>
+    </>}
+    {dusk && <>
+      <path d="M0 669Q300 581 584 630T1440 604" stroke="#b7c5b0" strokeWidth="8" fill="none" opacity=".35"/>
+      <g transform={`translate(1100 512) scale(${stretch * .85} .85)`}>
+        <path d="M-84 0H84V111H-84Z" fill="#a59788"/><path d="M-104 4L0-66L104 4Z" fill="#56666a"/>
+        <rect x="-55" y="36" width="35" height="34" fill="#f1d19a" stroke="#6a7465" strokeWidth="5"/><path d="M26 111V41h34v70" fill="#62776d"/>
+        <path d="M-37 37v32m-16-16h31" stroke="#6a7465" strokeWidth="3"/>
+      </g>
+      <Tree stretch={stretch} x={100} y={625} size={1.5} color="#355c58"/><Tree stretch={stretch} x={1340} y={607} size={1.3} color="#456b62"/>
+      <g stroke="#345b4e" strokeWidth="4" fill="none">{Array.from({length:14},(_,index)=><path key={index} d={`M${90+index*95} 877q-15-32-5-${50+index%3*12}m5 50q12-24 24-30`}/>)}</g>
+      {Array.from({length:12},(_,index)=><circle key={index} className="firefly-light" cx={160+index*97} cy={685+(index*37)%150} r="2.5" fill="#f5db94" style={{animationDelay:`${index%4*.7}s`}}/>)}
     </>}
     {garden && <>
       <g transform={`translate(1040 441) scale(${stretch} 1)`}><rect x="-117" y="0" width="234" height="178" rx="5" fill="#f6dcae" /><path d="M-150 12L0-103L150 12Z" fill="#b76f66" /><path d="M-133 9L0-86L133 9" fill="none" stroke="#f4b394" strokeWidth="8" /><rect x="29" y="77" width="53" height="101" rx="24" fill="#68918c" /><circle cx="68" cy="132" r="4" fill="#f7d584" /><rect x="-84" y="47" width="62" height="62" rx="3" fill="#87bfcc" stroke="#fff6dc" strokeWidth="8" /><path d="M-53 49V108 M-82 78H-25" stroke="#fff6dc" strokeWidth="5" /><path d="M-100 118H-5L-13 140H-93Z" fill="#ba7366" /><g fill="#75935f"><circle cx="-82" cy="115" r="14" /><circle cx="-54" cy="114" r="17" /><circle cx="-28" cy="115" r="13" /></g></g>

@@ -2,7 +2,7 @@ export const BPM = 92;
 export const BEATS_PER_BAR = 4;
 export const BAR = '1m';
 
-export const DRUM_HITS = new Set(['kick', 'snare', 'hat', 'shaker', 'tom', 'clap', 'rim']);
+export const DRUM_HITS = new Set(['kick', 'snare', 'hat', 'shaker', 'tom', 'clap', 'rim', 'crash', 'ride', 'floorTom']);
 
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 export function note(root, semitones, octave) {

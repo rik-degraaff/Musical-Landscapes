@@ -4,6 +4,7 @@ import { createNoisePair } from '../utils/noise';
 import { SCENE_SOUNDS } from './sceneSounds';
 import audioLevels from './audioLevels.json';
 import { DRUM_NOTES, DRUM_SAMPLES, SAMPLE_LIBRARY, sampleUrls } from './sampleLibrary';
+import { createSustainLoop, MANUAL_RELEASE } from './envelopes';
 
 const MIN_GAIN = -60;
 const FADE_SECONDS = 0.045;
@@ -22,6 +23,8 @@ export class AudioEngine {
     this.nodes = {};
     this.root = 'C';
     this.sceneVolume = -4;
+    this.manualInstrument = null;
+    this.manualVoices = new Map();
   }
 
   async init() {
@@ -67,6 +70,9 @@ export class AudioEngine {
       'D#2': `drums/${DRUM_SAMPLES.clap.file}`,
       'C#2': `drums/${DRUM_SAMPLES.snare.file}`,
       'A#2': `drums/${DRUM_SAMPLES.hat.file}`,
+      'C#3': `drums/${DRUM_SAMPLES.crash.file}`,
+      'D#3': `drums/${DRUM_SAMPLES.ride.file}`,
+      F2: `drums/${DRUM_SAMPLES.floorTom.file}`,
     } : sampleUrls(name);
     const buffers = {};
     this.nodes[name].buffers = buffers;
@@ -79,6 +85,16 @@ export class AudioEngine {
       for (let channel = 0; channel < decoded.numberOfChannels; channel++) {
         const waveform = decoded.getChannelData(channel);
         for (let index = 0; index < waveform.length; index++) waveform[index] *= correction;
+      }
+      if (name === 'melody' || name === 'flute') {
+        const parts = /^([A-G]#?)(\d+)$/.exec(note);
+        const midi = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].indexOf(parts[1]) + (Number(parts[2]) + 1) * 12;
+        const channels = Array.from({length:decoded.numberOfChannels},(_,channel)=>decoded.getChannelData(channel));
+        const loop = createSustainLoop(channels, decoded.sampleRate, 440 * 2 ** ((midi - 69) / 12));
+        const sustain = Tone.getContext().rawContext.createBuffer(decoded.numberOfChannels, loop.waveforms[0].length, decoded.sampleRate);
+        loop.waveforms.forEach((waveform,channel)=>sustain.copyToChannel(waveform,channel));
+        this.nodes[name].sustainLoops ??= {};
+        this.nodes[name].sustainLoops[note] = { buffer:sustain, loopStart:loop.loopStart, loopEnd:loop.loopEnd };
       }
     }));
     return new Promise((resolve, reject) => {
@@ -119,13 +135,97 @@ export class AudioEngine {
     const transportWasPlaying = Tone.Transport.state === 'started' && this.barIndex > 0;
     this.active[name] = active;
     const node = this.nodes[name];
-    node.gain.volume.rampTo(active ? this.volumes[name] : MIN_GAIN, FADE_SECONDS);
+    node.gain.volume.rampTo(active || this.manualInstrument === name ? this.volumes[name] : MIN_GAIN, FADE_SECONDS);
     if (!active) {
       this.clearPendingEvents(name);
       node.synth.releaseAll();
     }
     this.ensureTransport();
-    if (active && transportWasPlaying) this.playPickup(name);
+    if (active && transportWasPlaying && this.manualInstrument !== name) this.playPickup(name);
+  }
+
+  setManualInstrument(name) {
+    if (!this.ready || name === this.manualInstrument) return;
+    this.stopManualVoices();
+    const previous = this.manualInstrument;
+    this.manualInstrument = name;
+    if (previous) this.nodes[previous].gain.volume.rampTo(this.active[previous] ? this.volumes[previous] : MIN_GAIN, FADE_SECONDS);
+    if (name) {
+      this.clearPendingEvents(name);
+      this.nodes[name].synth.releaseAll();
+      this.nodes[name].gain.volume.rampTo(this.volumes[name], FADE_SECONDS);
+    }
+    this.ensureTransport();
+  }
+
+  manualNoteOn(note, token, velocity = 0.65) {
+    const name = this.manualInstrument;
+    if (!this.ready || !name) return;
+    Tone.start().catch(console.error);
+    this.manualNoteOff(token, true);
+    if (name === 'drums') {
+      this.playEvent(name, { note, velocity }, Tone.immediate() + 0.015);
+      return;
+    }
+    const match = /^([A-G]#?)(\d+)$/.exec(note);
+    if (!match) return;
+    const pitch = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].indexOf(match[1]) + (Number(match[2]) + 1) * 12;
+    const candidates = Object.keys(this.nodes[name].buffers).map(value => {
+      const parts = /^([A-G]#?)(\d+)$/.exec(value);
+      return { note: value, midi: ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].indexOf(parts[1]) + (Number(parts[2]) + 1) * 12 };
+    });
+    candidates.sort((first, second) => Math.abs(first.midi - pitch) - Math.abs(second.midi - pitch));
+    const selected = candidates[0];
+    const context = Tone.getContext().rawContext;
+    const source = context.createBufferSource();
+    const envelope = context.createGain();
+    const loop = this.nodes[name].sustainLoops?.[selected.note];
+    source.buffer = loop?.buffer ?? this.nodes[name].buffers[selected.note].get();
+    source.playbackRate.value = 2 ** ((pitch - selected.midi) / 12);
+    if (name === 'melody' || name === 'flute') {
+      source.loop = true;
+      source.loopStart = loop.loopStart;
+      source.loopEnd = loop.loopEnd;
+    }
+    source.connect(envelope);
+    Tone.connect(envelope, this.nodes[name].gain);
+    const when = context.currentTime + 0.015;
+    envelope.gain.setValueAtTime(0, when);
+    envelope.gain.linearRampToValueAtTime(velocity, when + (name === 'flute' ? 0.035 : 0.006));
+    const voice = { source, envelope, note, name };
+    this.manualVoices.set(token, voice);
+    source.onended = () => {
+      source.disconnect(); envelope.disconnect();
+      if (this.manualVoices.get(token) === voice) this.manualVoices.delete(token);
+    };
+    source.start(when);
+  }
+
+  manualNoteOff(token, quick = false) {
+    const voice = this.manualVoices.get(token);
+    if (!voice) return;
+    this.manualVoices.delete(token);
+    const when = Tone.getContext().rawContext.currentTime;
+    voice.envelope.gain.cancelAndHoldAtTime(when);
+    const release = quick ? 0.04 : MANUAL_RELEASE[voice.name] ?? 0.08;
+    voice.envelope.gain.setTargetAtTime(0, when, release / 5);
+    voice.envelope.gain.cancelAndHoldAtTime(when + Math.max(0.005, release - 0.02));
+    voice.envelope.gain.linearRampToValueAtTime(0, when + release);
+    voice.source.stop(when + release + 0.005);
+  }
+
+  manualStrike(note, token, velocity = 0.65) {
+    this.manualNoteOn(note, token, velocity);
+    const voice = this.manualVoices.get(token);
+    if (voice) {
+      const when = Tone.getContext().rawContext.currentTime;
+      voice.envelope.gain.setTargetAtTime(0, when + 0.35, 0.35);
+      voice.source.stop(when + 2);
+    }
+  }
+
+  stopManualVoices() {
+    for (const token of [...this.manualVoices.keys()]) this.manualNoteOff(token, true);
   }
 
   playPickup(name) {
@@ -139,7 +239,7 @@ export class AudioEngine {
 
   ensureTransport() {
     if (!this.ready) return;
-    const anyActive = Object.values(this.active).some(Boolean);
+    const anyActive = Object.entries(this.active).some(([name, active]) => active && name !== this.manualInstrument);
     if (!anyActive) {
       this.clearPendingEvents();
       Tone.Transport.stop();
@@ -168,7 +268,7 @@ export class AudioEngine {
     // Transport timeline; derive that from the bar index instead.
     const barPosition = bar * Tone.Time(BAR).toSeconds();
     for (const name of instrumentNames) {
-      if (!this.active[name]) continue;
+      if (!this.active[name] || name === this.manualInstrument) continue;
       const energy = this.noise[name].energyAt(bar);
       const complexity = this.noise[name].complexityAt(bar);
       const selected = nearestBar(patterns[name], energy, complexity);
@@ -182,7 +282,7 @@ export class AudioEngine {
         let id;
         id = Tone.Transport.scheduleOnce(at => {
           this.pendingEvents.delete(id);
-          if (!this.active[name]) return;
+          if (!this.active[name] || name === this.manualInstrument) return;
           this.playEvent(name, event, at);
         }, barPosition + offset);
         this.pendingEvents.set(id, name);
@@ -194,7 +294,7 @@ export class AudioEngine {
     const velocity = event.velocity ?? 0.55;
     const sampler = this.nodes[name].synth;
     if (name === 'drums') {
-      const durations = { kick: 0.5, snare: 0.3, hat: 0.12, tom: 0.5, clap: 0.23, rim: 0.045, shaker: 0.045 };
+      const durations = { kick: 0.5, snare: 0.3, hat: 0.12, tom: 0.5, clap: 0.23, rim: 0.045, shaker: 0.045, crash:2.4,ride:1.4,floorTom:.9 };
       sampler.triggerAttackRelease(DRUM_NOTES[event.note], durations[event.note], time, velocity);
       return;
     }
@@ -235,11 +335,12 @@ export class AudioEngine {
     for (const name of instrumentNames) {
       if (volumes[name] == null || !this.nodes[name]) continue;
       this.volumes[name] = Number(volumes[name]);
-      this.nodes[name].gain.volume.rampTo(this.active[name] ? this.volumes[name] : MIN_GAIN, FADE_SECONDS);
+      this.nodes[name].gain.volume.rampTo(this.active[name] || name === this.manualInstrument ? this.volumes[name] : MIN_GAIN, FADE_SECONDS);
     }
   }
 
   dispose() {
+    this.stopManualVoices();
     this.clearPendingEvents();
     if (this.transportEvent !== null) Tone.Transport.clear(this.transportEvent);
     this.transportEvent = null;

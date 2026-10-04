@@ -22,6 +22,17 @@
 .scene .owl { left: 5%; top: 44%; }
 .scene .rooster { left: 28%; bottom: 24%; }
 .scene .chimes { right: 5%; top: 44%; }
+.scene .cricket { left:28%;bottom:17%; }
+.scene .airplane { left:65%;top:16%;width:155px;height:125px; }
+.cricket .reacting { animation:cricketHop 2.4s ease-in-out; }
+.airplane .reacting { animation:airplaneFlyby 3s ease-in-out; }
+.is-tapped .cricket-wing { transform-origin:60px 90px;animation:wingFlutter .08s ease-in-out 24 alternate; }
+.is-tapped .airplane-propeller { transform-origin:141px 88px;animation:propellerSpin .1s linear infinite; }
+.setting-sun { animation:duskSet 12s ease-out both; }
+@keyframes duskSet { from { transform:translateY(-35px); } to { transform:translateY(20px); } }
+@keyframes cricketHop { 0%,100% { transform:translateY(0); } 20%,60% { transform:translateY(-12px) rotate(-4deg); } 40%,80% { transform:translateY(0) rotate(3deg); } }
+@keyframes airplaneFlyby { 0%,100% { transform:translate(0,0) rotate(0); } 30% { transform:translate(45px,-20px) rotate(-9deg); } 65% { transform:translate(-25px,-12px) rotate(6deg); } }
+@keyframes propellerSpin { to { transform:rotateX(360deg); } }
 .rooster .reacting { animation: roosterCrow 2.4s ease-in-out; }
 .chimes .reacting { animation: bellRock 2.4s ease-out; transform-origin: 50% 12%; }
 .is-tapped .rooster-wing { transform-origin: 61px 74px; animation: wingFlutter .17s ease-in-out 8 alternate; }
@@ -94,6 +105,8 @@
   .scene .owl { left: 2%; top: 45%; }
   .scene .rooster { left: 4%; bottom: 9%; }
   .scene .chimes { right: 4%; top: 45%; }
+  .scene .cricket { left:4%;bottom:9%; }
+  .scene .airplane { left:56%;top:17%;width:108px;height:94px; }
   .scene .scene-turner { width: 46px; height: 46px; right: 12px; bottom: 12px; }
 }
 @media (max-height: 550px) and (orientation: landscape) {
@@ -116,6 +129,8 @@
   .scene .bird, .scene .owl { left: 28%; top: 43%; }
   .scene .rooster { left: 28%; bottom: 18%; }
   .scene .chimes { right: 28%; top: 43%; }
+  .scene .cricket { left:28%;bottom:14%; }
+  .scene .airplane { left:61%;top:20%;width:85px;height:65px; }
   .scene .bell { right: 28%; top: 43%; }
   .scene .faucet, .scene .frog { left: 22%; bottom: 14%; }
   .scene .windmill { right: 25%; top: auto; bottom: 21%; width: 95px; height: 95px; }

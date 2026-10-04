@@ -1,0 +1,6 @@
+.instrument-illustration { width:132px;height:104px;overflow:visible;display:block; }
+.illustration-guitar { width:105px;height:111px; }
+.illustration-flute,.illustration-melody { width:139px;height:105px; }
+.instrument.equipped-instrument .instrument-illustration { width:100px;height:80px; }
+.instrument.equipped-instrument .illustration-guitar { width:75px;height:88px; }
+@media(max-width:650px) { .instrument-illustration { width:107px;height:85px; }.illustration-guitar { width:80px;height:94px; }.illustration-flute,.illustration-melody { width:108px;height:86px; }.instrument.equipped-instrument .instrument-illustration { width:68px;height:55px; }.instrument.equipped-instrument .illustration-guitar { width:57px;height:67px; } }

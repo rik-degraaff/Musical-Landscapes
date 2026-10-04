@@ -4,6 +4,7 @@ import { GardenScene } from './GardenScene';
 import { PondScene } from './PondScene';
 import { NightScene } from './NightScene';
 import { DawnScene } from './DawnScene';
+import { DuskScene } from './DuskScene';
 import { RotateCw } from 'lucide-react';
 import { LandscapeArt } from './LandscapeArt';
 import { ObjectArt } from './ObjectArt';
@@ -14,6 +15,7 @@ export const SCENES = [
   { id:'farm', name:'Sunny Farm', root:'C', component:FarmScene },
   { id:'garden', name:'Little Garden', root:'G', component:GardenScene },
   { id:'pond', name:'Pond Meadow', root:'F', component:PondScene },
+  { id:'dusk', name:'Evening Meadow', root:'F', component:DuskScene },
   { id:'night', name:'Sleepy Night', root:'A', component:NightScene },
   { id:'dawn', name:'First Light', root:'C', component:DawnScene },
 ];

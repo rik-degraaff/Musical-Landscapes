@@ -2,6 +2,26 @@ import React from 'react';
 
 export function ObjectArt({ type }) {
   return <svg viewBox="0 0 160 140" className={`object-art art-${type}`} aria-hidden="true" fill="none" strokeLinecap="round" strokeLinejoin="round">
+    {type==='cricket' && <>
+      <ellipse cx="78" cy="123" rx="49" ry="5" fill="#1b403833"/>
+      <path d="M54 89L30 68L18 115m67-26l28-29l24 56M55 105l-7 20h-21m61-20l10 20h24" stroke="#586943" strokeWidth="6"/>
+      <ellipse cx="73" cy="92" rx="34" ry="20" fill="#89965d" stroke="#485f42" strokeWidth="3"/>
+      <path className="cricket-wing" d="M44 89q21-33 47-7L60 106Z" fill="#b6b579" stroke="#657447" strokeWidth="2"/>
+      <path d="M51 86l27 5m-23 3l16 5" stroke="#6d7d4c" strokeWidth="2"/>
+      <circle cx="106" cy="79" r="17" fill="#a3ad71" stroke="#526944" strokeWidth="3"/>
+      <circle cx="113" cy="74" r="4" fill="#28493d"/><circle cx="114" cy="73" r="1.3" fill="#eef3c9"/>
+      <path d="M110 62q12-36 27-36m-32 36q-5-32 9-45" stroke="#70814e" strokeWidth="2"/>
+    </>}
+    {type==='airplane' && <>
+      <path d="M65 65L37 23L57 22L91 63Z" fill="#dfb168" stroke="#9c7e54" strokeWidth="3"/>
+      <path d="M32 80L17 45L33 46L47 77Z" fill="#b86f62" stroke="#875b55" strokeWidth="3"/>
+      <path d="M21 81q67-27 113-1q15 10-1 20H42Z" fill="#f1ddad" stroke="#9a8464" strokeWidth="3"/>
+      <path d="M72 69q15-20 29 2Z" fill="#96bfbe" stroke="#5f8d8c" strokeWidth="3"/>
+      <path d="M64 88L48 124L65 125L102 92Z" fill="#dba966" stroke="#9c7e54" strokeWidth="3"/>
+      <path d="M118 78v23" stroke="#c67a64" strokeWidth="7"/>
+      <g className="airplane-propeller"><ellipse cx="141" cy="88" rx="4" ry="30" fill="#9baca1"/><circle cx="141" cy="88" r="6" fill="#657d77"/></g>
+      <path d="M34 84h27" stroke="#cc866c" strokeWidth="4"/>
+    </>}
     {type === 'rooster' && <>
       <path d="M48 87Q2 69 20 31Q48 32 58 72Q22 43 31 20Q65 36 64 82" fill="#3c7977" stroke="#305e63" strokeWidth="4" />
       <ellipse cx="78" cy="86" rx="36" ry="30" fill="#d6a267" /><path className="rooster-wing" d="M61 74Q100 68 97 100Q62 107 61 74Z" fill="#ac7258" />

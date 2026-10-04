@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import { INSTRUMENTS } from './utils/music';
 import { Instrument } from './components/Instrument';
 import { Mixer } from './components/Mixer';
@@ -6,6 +6,9 @@ import { StartScreen } from './components/StartScreen';
 import { Scene, SCENES } from './scenes/Scene';
 import { AudioEngine } from './audio/AudioEngine';
 import { SlidersHorizontal, X } from 'lucide-react';
+import { YoungMusician } from './components/YoungMusician';
+import { PerformancePanel } from './components/PerformancePanel';
+import { slidePosition } from './utils/performance';
 
 const initialInstruments = Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,v])=>[name,{...v,active:false}]));
 
@@ -22,6 +25,11 @@ export default function App() {
   const stateRef = useRef(instruments);
   const drag = useRef(null);
   const startInProgress = useRef(false);
+  const worldRef = useRef(null);
+  const equippedRef = useRef(null);
+  const [equipped,setEquipped] = useState(null);
+  const [dragging,setDragging] = useState(null);
+  const [nearChild,setNearChild] = useState(false);
 
   useEffect(()=>{ stateRef.current=instruments; },[instruments]);
   useEffect(()=>()=>audioRef.current?.dispose(),[]);
@@ -46,6 +54,7 @@ export default function App() {
 
   function toggle(name) {
     if(!started) return;
+    if(equippedRef.current===name) return;
     const next = !stateRef.current[name].active;
     const nextState = {...stateRef.current,[name]:{...stateRef.current[name],active:next}};
     stateRef.current=nextState; setInstruments(nextState);
@@ -90,29 +99,91 @@ export default function App() {
     const dx=e.clientX-d.startX,dy=e.clientY-d.startY;
     if(Math.hypot(dx,dy)>(e.pointerType==='touch'?12:7)) d.moved=true;
     if(!d.moved) return;
-    const x=Math.max(5,Math.min(95,(d.baseX+dx)/window.innerWidth*100));
-    const y=Math.max(15,Math.min(82,(d.baseY+dy)/window.innerHeight*100));
+    setDragging(name);
+    const world=worldRef.current.getBoundingClientRect();
+    const x=Math.max(5,Math.min(95,(d.baseX+dx-world.left)/world.width*100));
+    const y=Math.max(15,Math.min(90,(d.baseY+dy-world.top)/world.height*100));
+    const child=document.getElementById('young-musician').getBoundingClientRect();
+    setNearChild(e.clientX>=child.left-20&&e.clientX<=child.right+20&&e.clientY>=child.top-15&&e.clientY<=child.bottom+15);
     const nextState={...stateRef.current,[name]:{...stateRef.current[name],x,y}};
     stateRef.current=nextState; setInstruments(nextState);
   }
   function pointerUp(e,name) {
     const d=drag.current;
     if(!d || d.name!==name || d.id!==e.pointerId) return;
-    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
-    if(!d.moved) toggle(name);
+    if(d.moved) {
+      const child=document.getElementById('young-musician').getBoundingClientRect();
+      const dropped=e.clientX>=child.left-20&&e.clientX<=child.right+20&&e.clientY>=child.top-15&&e.clientY<=child.bottom+15;
+      if(dropped) equip(name);
+      else {
+        if(equippedRef.current===name) equip(null,false);
+        requestAnimationFrame(()=>settle(name));
+      }
+    } else toggle(name);
     drag.current=null;
+    setDragging(null);setNearChild(false);
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
   }
 
   function pointerCancel(e) {
-    if(drag.current?.id===e.pointerId) drag.current=null;
+    if(drag.current?.id===e.pointerId) { const name=drag.current.name;drag.current=null;setDragging(null);setNearChild(false);requestAnimationFrame(()=>settle(name)); }
   }
+
+  function equip(name, resetPrevious=true) {
+    if(!started) return;
+    const previous=equippedRef.current;
+    equippedRef.current=name;setEquipped(name);
+    audioRef.current.setManualInstrument(name);
+    if(previous&&previous!==name&&resetPrevious) {
+      const next={...stateRef.current,[previous]:{...stateRef.current[previous],x:INSTRUMENTS[previous].x,y:INSTRUMENTS[previous].y}};
+      stateRef.current=next;setInstruments(next);
+    }
+    requestAnimationFrame(()=>{if(name)attachToChild(name);if(previous&&previous!==name)settle(previous);});
+  }
+
+  function attachToChild(name) {
+    const world=worldRef.current.getBoundingClientRect();
+    const child=document.getElementById('young-musician').getBoundingClientRect();
+    const next={...stateRef.current,[name]:{...stateRef.current[name],x:(child.left+child.width/2-world.left)/world.width*100,y:(child.top+child.height*.65-world.top)/world.height*100}};
+    stateRef.current=next;setInstruments(next);
+  }
+
+  function settle(name) {
+    if(equippedRef.current===name) return;
+    const world=worldRef.current?.getBoundingClientRect();
+    const element=document.getElementById(`instrument-${name}`);
+    if(!world||!element)return;
+    const rect=element.getBoundingClientRect();
+    const obstacles=[...worldRef.current.querySelectorAll('.instrument,.interactive-object,#young-musician,.scene-turner')].filter(other=>other!==element).map(other=>{
+      const bounds=other.getBoundingClientRect();
+      const peer=other.id.startsWith('instrument-')?stateRef.current[other.id.slice(11)]:null;
+      return {x:peer?peer.x/100*world.width:bounds.left+bounds.width/2-world.left,y:peer?peer.y/100*world.height:bounds.top+bounds.height/2-world.top,width:bounds.width,height:bounds.height};
+    });
+    const point=slidePosition({x:stateRef.current[name].x/100*world.width,y:stateRef.current[name].y/100*world.height},rect,obstacles,{left:0,top:Math.min(65,world.height*.18),right:world.width,bottom:world.height-8},6);
+    const next={...stateRef.current,[name]:{...stateRef.current[name],x:point.x/world.width*100,y:point.y/world.height*100}};
+    stateRef.current=next;setInstruments(next);
+  }
+
+  useLayoutEffect(()=>{
+    const layout=()=>requestAnimationFrame(()=>{if(equippedRef.current)attachToChild(equippedRef.current);for(const name of Object.keys(INSTRUMENTS))settle(name);});
+    if(started)layout();
+    window.addEventListener('resize',layout);
+    return ()=>window.removeEventListener('resize',layout);
+  },[equipped,sceneIndex,started]);
 
   function rotateScene() {
     setSceneIndex(i=>{ const next=(i+1)%SCENES.length; audioRef.current?.setSceneKey(SCENES[next].root); return next; });
   }
 
-  return <main className="app-shell">
+  return <main className={`app-shell ${equipped?'manual-open':''}`}>
+    <div className="landscape-world" ref={worldRef}>
     <Scene sceneIndex={sceneIndex} audio={audioRef.current} onRotate={rotateScene}/>
+    {started&&<YoungMusician equipped={equipped?INSTRUMENTS[equipped].label:null} accepting={nearChild}/>}
+    <div className="instrument-layer">
+      {Object.entries(instruments).map(([name,i])=><Instrument key={name} name={name} label={i.label} x={i.x} y={i.y} active={i.active} equipped={equipped===name} sliding={dragging!==name} onEquip={()=>equip(name)} onToggle={toggle}
+        onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}/>) }
+    </div>
+    </div>
 
     <div className="top-bar">
       <div className="brand"><span>♪</span><strong>Musical Landscape</strong></div>
@@ -122,10 +193,7 @@ export default function App() {
 
     {started && mixer && <Mixer instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
 
-    <div className="instrument-layer">
-      {Object.entries(instruments).map(([name,i])=><Instrument key={name} name={name} label={i.label} x={i.x} y={i.y} active={i.active} onToggle={toggle}
-        onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}/>) }
-    </div>
+    {equipped&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} onClose={()=>equip(null)}/>}
 
     {started && <div className={`status-pill ${activeCount?'has-music':''}`} aria-live="polite">
       <span className="status-light"/>{activeCount ? `${activeCount} ${activeCount===1?'sound':'sounds'} making music` : 'Quiet landscape'}

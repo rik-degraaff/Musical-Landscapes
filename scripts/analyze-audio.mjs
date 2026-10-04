@@ -53,6 +53,7 @@ const files = [
   ...SCENE_SOUNDS.map(type => ({ file: `scenery/${type}.wav`, group: type, target: type === 'water' ? -26 : -23 })),
 ];
 const report = {};
+const previous = process.argv.includes('--preserve-existing') ? JSON.parse(readFileSync(path('src/audio/audioLevels.json'),'utf8')) : {};
 for (const { file, group, target } of files) {
   const samples = decode(path(`public/audio/${file}`));
   let peak = 0;
@@ -80,6 +81,7 @@ for (const { file, group, target } of files) {
   const peakDb = Math.max(db(peak), Number(stats.input_tp));
   const gainDb = Math.max(-24, Math.min(18, target - measured, -5 - peakDb));
   report[file] = { group, sha256: createHash('sha256').update(readFileSync(path(`public/audio/${file}`))).digest('hex'), duration: samples.length / rate, peakDb, rmsDb: db(Math.sqrt(energy / samples.length)), activeRmsDb, lufs: Number.isFinite(lufs) ? lufs : null, target, gainDb, correctedLufs: Number.isFinite(lufs) ? lufs + gainDb : null, correctedPeakDb: peakDb + gainDb };
+  if(previous[file]?.sha256 === report[file].sha256) report[file]=previous[file];
 }
 writeFileSync(path('src/audio/audioLevels.json'), `${JSON.stringify(report, (_, value) => typeof value === 'number' ? Math.round(value * 100) / 100 : value, 2)}\n`);
 console.table(files.map(({ file }) => ({ file, LUFS: report[file].lufs?.toFixed(1), RMS: report[file].rmsDb.toFixed(1), peak: report[file].peakDb.toFixed(1), gain: report[file].gainDb.toFixed(1) })));
