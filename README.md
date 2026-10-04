@@ -11,6 +11,12 @@ npm run dev
 
 Then open the Vite URL shown in the terminal.
 
+## Install as an app
+
+Deploy the production build to an HTTPS origin, then use the browser's install action (or Add to Home Screen on iOS). The app shell and bundled instrument/scenery audio are cached for offline use after the first successful load.
+
+Installed copies check for deployed changes while online. The service worker installs the new build and reloads the app automatically; while offline, the last cached version remains available and updates when the app reconnects.
+
 Run the phrase-library checks and production build with:
 
 ```bash
