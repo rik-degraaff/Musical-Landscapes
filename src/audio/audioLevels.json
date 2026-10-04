@@ -619,7 +619,7 @@
     "activeRmsDb": -17.76,
     "lufs": -20.5,
     "target": -23,
-    "gainDb": -2.5,
+    "gainDb": 0,
     "correctedLufs": -23,
     "correctedPeakDb": -8.17
   },
@@ -658,7 +658,7 @@
     "activeRmsDb": -11.98,
     "lufs": -13.43,
     "target": -23,
-    "gainDb": -9.57,
+    "gainDb": -12,
     "correctedLufs": -23,
     "correctedPeakDb": -15.36
   },
