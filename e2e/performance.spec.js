@@ -83,6 +83,62 @@ async function soundLevel(page,name,seconds=.25) {
   },{name,seconds});
 }
 
+test('outside-start swipes play crossed piano keys, marimba bars and guitar strings in both directions',async({page},testInfo)=>{
+  const errors=await start(page);
+  const session=await page.context().newCDPSession(page);
+  await page.evaluate(()=>{
+    window.swipeNotes=[];const engine=window.audioEngine;const original=engine.manualNoteOn;
+    engine.manualNoteOn=function(note,...args){window.swipeNotes.push(note);return original.call(this,note,...args);};
+  });
+  for(const name of ['piano','marimba','guitar']){
+    await equip(page,name);
+    await page.evaluate(()=>{window.swipeNotes=[];});
+    const area=await page.locator(name==='guitar'?'.guitar-stringboard':'.manual-keyboard').boundingBox();
+    const panel=await page.locator('.performance-panel').boundingBox();
+    const first=await page.locator(name==='guitar'?'.playable-string':'.natural-key').first().boundingBox();
+    const startPoint=name==='guitar'?{x:area.x+area.width*.55,y:panel.y+12}:{x:area.x-5,y:first.y+first.height*.85};
+    const last=await page.locator(name==='guitar'?'.playable-string':'.natural-key').last().boundingBox();
+    const endPoint=name==='guitar'?{x:startPoint.x,y:last.y+last.height/2}:{x:last.x+last.width/2,y:startPoint.y};
+    if(testInfo.project.use.hasTouch){
+      await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:8,...startPoint}]});
+      await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{id:8,...endPoint}]});
+    }else{
+      await page.mouse.move(startPoint.x,startPoint.y);await page.mouse.down();await page.mouse.move(endPoint.x,endPoint.y);
+    }
+    const expected=name==='guitar'?['E2','A2','D3','G3','B3','E4']:name==='piano'?['C4','D4','E4','F4','G4','A4','B4','C5','D5','E5']:['C5','D5','E5','F5','G5','A5','B5','C6'];
+    expect(await page.evaluate(()=>window.swipeNotes),`${name} fast sweep`).toEqual(expected);
+    if(testInfo.project.use.hasTouch){
+      await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{id:8,...startPoint}]});
+      await session.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});
+    }else{await page.mouse.move(startPoint.x,startPoint.y);await page.mouse.up();}
+    expect(await page.evaluate(()=>window.swipeNotes),`${name} reverse sweep`).toEqual([...expected,...expected.slice(0,-1).reverse()]);
+    await expect(page.locator('.swipe-pressed')).toHaveCount(0);
+    if(name==='piano')expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBe(0);
+    await page.getByRole('button',{name:'Put instrument down'}).click();
+  }
+  expect(errors).toEqual([]);
+});
+
+test('piano swipe respects black keys and releases notes when leaving the keyboard',async({page})=>{
+  const errors=await start(page);await equip(page,'piano');
+  await page.evaluate(()=>{
+    window.swipeNotes=[];const engine=window.audioEngine;const original=engine.manualNoteOn;
+    engine.manualNoteOn=function(note,...args){window.swipeNotes.push(note);return original.call(this,note,...args);};
+  });
+  const area=await page.locator('.manual-keyboard').boundingBox();
+  const sharp=await page.getByRole('button',{name:'Piano key C#4',exact:true}).boundingBox();
+  const startPoint={x:area.x-5,y:sharp.y+sharp.height*.45};
+  const endPoint={x:area.x+area.width-8,y:startPoint.y};
+  await page.mouse.move(startPoint.x,startPoint.y);await page.mouse.down();await page.mouse.move(endPoint.x,endPoint.y);
+  const expected=await page.evaluate(async()=> (await import('/src/utils/performance.js')).PIANO_NOTES);
+  expect(await page.evaluate(()=>window.swipeNotes)).toEqual(expected);
+  await page.mouse.move(endPoint.x,area.y-10);
+  expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBe(0);
+  await page.mouse.up();
+  await expect(page.locator('.swipe-pressed')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 test('recorded wind loops have continuous seams and piano note-off retains a soft tail',async({page})=>{
   const errors=await start(page);
   const loops=await page.evaluate(async()=>{

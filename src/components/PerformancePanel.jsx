@@ -3,14 +3,15 @@ import { ArrowUpFromLine, Wind } from 'lucide-react';
 import { INSTRUMENTS } from '../utils/music';
 import { PIANO_NOTES, FLUTE_NOTES, MARIMBA_NOTES, GUITAR_CHORDS, trumpetNote } from '../utils/performance';
 import './performance.css';
+import { useSwipeNotes } from './useSwipeNotes';
 
-function PressControl({ label, className='', onPress, onRelease=()=>{}, children, style }) {
+function PressControl({ label, className='', onPress, onRelease=()=>{}, children, style, swipeNote }) {
   const owners=useRef(new Set());
   const [pressed,setPressed]=useState(false);
   function down(token) { if(owners.current.has(token))return; owners.current.add(token);setPressed(true);onPress(token); }
   function up(token) { if(!owners.current.delete(token))return;onRelease(token);setPressed(owners.current.size>0); }
-  return <button type="button" aria-label={label} aria-pressed={pressed} className={`${className} ${pressed?'pressed':''}`} style={style}
-    onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);down(`pointer-${event.pointerId}`);}}
+  return <button type="button" aria-label={label} aria-pressed={pressed} data-swipe-note={swipeNote} className={`${className} ${pressed?'pressed':''}`} style={style}
+    onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();if(swipeNote!==undefined)return;event.currentTarget.setPointerCapture(event.pointerId);down(`pointer-${event.pointerId}`);}}
     onPointerUp={event=>up(`pointer-${event.pointerId}`)} onPointerCancel={event=>up(`pointer-${event.pointerId}`)} onLostPointerCapture={event=>up(`pointer-${event.pointerId}`)}
     onKeyDown={event=>{if(!event.repeat&&['Enter',' '].includes(event.key)){event.preventDefault();down(`key-${event.key}`);}}}
     onKeyUp={event=>{if(['Enter',' '].includes(event.key)){event.preventDefault();up(`key-${event.key}`);}}}
@@ -18,12 +19,14 @@ function PressControl({ label, className='', onPress, onRelease=()=>{}, children
 }
 
 function Keyboard({ audio, notes, kind }) {
+  const surface=useRef(null);
+  useSwipeNotes(surface,(note,token)=>kind==='marimba'?audio.manualStrike(note,`${note}-${token}`):audio.manualNoteOn(note,token),(_,token)=>{if(kind==='piano')audio.manualNoteOff(token);});
   let whiteIndex=-1;
   const whiteCount=notes.filter(note=>!note.includes('#')).length;
-  return <div className={`manual-keyboard ${kind}`} style={{'--white-count':whiteCount}}>
+  return <div ref={kind==='flute'?undefined:surface} className={`manual-keyboard ${kind}`} style={{'--white-count':whiteCount}}>
     {notes.map(note=>{
       const sharp=note.includes('#');if(!sharp)whiteIndex++;
-      return <PressControl key={note} label={`${kind==='marimba'?'Marimba bar':kind==='flute'?'Flute note':'Piano key'} ${note}`} className={`note-key ${sharp?'sharp-key':'natural-key'}`}
+      return <PressControl key={note} swipeNote={kind==='flute'?undefined:note} label={`${kind==='marimba'?'Marimba bar':kind==='flute'?'Flute note':'Piano key'} ${note}`} className={`note-key ${sharp?'sharp-key':'natural-key'}`}
         style={sharp?{left:`${(whiteIndex+.68)/whiteCount*100}%`,width:`${.64/whiteCount*100}%`}:{gridColumn:whiteIndex+1}}
         onPress={token=>kind==='marimba'?audio.manualStrike(note,`${note}-${token}`):audio.manualNoteOn(note,`${note}-${token}`)}
         onRelease={token=>{if(kind!=='marimba')audio.manualNoteOff(`${note}-${token}`);}}><span>{note}</span>{kind==='marimba'&&<i className="bar-bolt"/>}</PressControl>;
@@ -53,25 +56,21 @@ function Trumpet({ audio }) {
 
 function Guitar({ audio }) {
   const chordOwners=useRef(new Map());const chordRef=useRef('Open');const [chord,setChord]=useState('Open');
-  const strums=useRef(new Map());const lastStrike=useRef(new Map());
+  const surface=useRef(null);
+  useSwipeNotes(surface,index=>pluck(Number(index)));
   function choose(token,value) {
     if(value)chordOwners.current.set(token,value);else chordOwners.current.delete(token);
     const selected=[...chordOwners.current.values()].at(-1)??'Open';chordRef.current=selected;setChord(selected);
   }
   function pluck(index) {
     const note=GUITAR_CHORDS[chordRef.current][index];if(!note)return;
-    const now=performance.now();if(now-(lastStrike.current.get(index)??-100)<40)return;
-    lastStrike.current.set(index,now);audio.manualStrike(note,`string-${index}`,.7);
+    audio.manualStrike(note,`string-${index}`,.7);
   }
-  function position(event) { const rect=event.currentTarget.getBoundingClientRect();return Math.max(0,Math.min(5,(event.clientY-rect.top)/rect.height*6-.5)); }
   return <div className="manual-guitar">
     <div className="guitar-chords">{['C','G','Am','F'].map(value=><PressControl key={value} label={`Hold guitar chord ${value}`} className="chord-control" onPress={token=>choose(token,value)} onRelease={token=>choose(token,null)}>{value}</PressControl>)}<output>{chord}</output></div>
-    <div className="guitar-stringboard" role="group" aria-label="Guitar strings"
-      onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);const value=position(event);strums.current.set(event.pointerId,value);pluck(Math.round(value));}}
-      onPointerMove={event=>{const previous=strums.current.get(event.pointerId);if(previous===undefined)return;const value=position(event);const first=Math.round(previous),last=Math.round(value);if(first!==last){const direction=last>first?1:-1;for(let index=first+direction;direction>0?index<=last:index>=last;index+=direction)pluck(index);}strums.current.set(event.pointerId,value);}}
-      onPointerUp={event=>strums.current.delete(event.pointerId)} onPointerCancel={event=>strums.current.delete(event.pointerId)} onLostPointerCapture={event=>strums.current.delete(event.pointerId)}>
+    <div ref={surface} className="guitar-stringboard" role="group" aria-label="Guitar strings" onPointerDown={event=>event.preventDefault()}>
       <div className="guitar-soundhole"/>
-      {GUITAR_CHORDS[chord].map((note,index)=><button key={index} className="playable-string" aria-label={`Guitar string ${index+1}${note?` ${note}`:' muted'}`} style={{'--string-weight':`${3-index*.3}px`}} onKeyDown={event=>{if(!event.repeat&&[' ','Enter'].includes(event.key)){event.preventDefault();pluck(index);}}}><i/><span>{note??'Mute'}</span></button>)}
+      {GUITAR_CHORDS[chord].map((note,index)=><button key={index} data-swipe-note={index} className="playable-string" aria-label={`Guitar string ${index+1}${note?` ${note}`:' muted'}`} style={{'--string-weight':`${3-index*.3}px`}} onKeyDown={event=>{if(!event.repeat&&[' ','Enter'].includes(event.key)){event.preventDefault();pluck(index);}}}><i/><span>{note??'Mute'}</span></button>)}
     </div>
   </div>;
 }

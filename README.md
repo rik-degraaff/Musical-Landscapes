@@ -131,6 +131,8 @@ Drag any instrument onto the child to equip it. A large playable version opens a
 
 All play controls support simultaneous touch input. Focused note/valve/chord controls can also be held with Space or Enter. Focus a landscape instrument and press E to equip it without dragging. Guitar strings can be activated with Space or Enter. Dropped instruments slide away from other instruments, scene controls and objects; positions are rechecked when the scene or viewport changes.
 
+Piano, guitar and marimba also respond to swipes that begin outside playable keys, bars or strings. Pointer paths are sampled between motion events, so fast sweeps play every crossed target in either direction. Piano notes release when the finger leaves their key or the keyboard; marimba and guitar strikes retain their natural tails. Mouse hover alone never plays a note. Each finger owns its own swipe, and canceling a gesture, switching equipment or leaving the window clears its held notes and highlights.
+
 ## Environments
 
 1. **Sunny Farm** — cow and tractor

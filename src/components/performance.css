@@ -23,6 +23,8 @@
 .natural-key { grid-row:1;background:linear-gradient(#fcfcf1,#e5e8df);box-shadow:inset 0 -5px #b9c3b7;color:#42534d;height:100%; }
 .sharp-key { position:absolute;top:0;height:62%;background:linear-gradient(#364441,#172c28);box-shadow:inset 0 -5px #090f0e;z-index:2;color:#e7f0e6; }
 .note-key.pressed { background:#eac273;box-shadow:inset 0 -2px #b18c4f; }
+.note-key.swipe-pressed { background:#eac273;box-shadow:inset 0 -2px #b18c4f; }
+.playable-string.swipe-pressed i { background:#fff2a0;box-shadow:0 0 5px #f5cd66; }
 .marimba.manual-keyboard { border-color:#896952;background:#896952;border-bottom-width:24px; }
 .marimba .natural-key { background:linear-gradient(90deg,#be824e,#e3b475,#b27643);box-shadow:inset 0 -6px #835a37; }
 .marimba .sharp-key { background:linear-gradient(90deg,#875334,#b4774d,#6f452e);height:58%; }
