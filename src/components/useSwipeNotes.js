@@ -28,6 +28,9 @@ export function useSwipeNotes(surface, onEnter, onLeave) {
     }
     function down(event) {
       if (event.button !== 0) return;
+      if(document.querySelector('.settings-dialog'))return;
+      const menu=document.querySelector('.metronome-menu');
+      if(menu&&!menu.contains(event.target))return;
       const pointer = { x: event.clientX, y: event.clientY, note: null };
       pointers.set(event.pointerId, pointer);
       visit(pointer, pointer.x, pointer.y, event.pointerId);

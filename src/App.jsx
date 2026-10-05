@@ -12,6 +12,7 @@ import { slidePosition } from './utils/performance';
 import './components/controls.css';
 import { LandscapeGuard, requestLandscape } from './components/LandscapeGuard';
 import {loadSettings,SETTINGS_KEY} from './utils/settings';
+import {Metronome} from './components/Metronome';
 
 const initialInstruments = Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,v])=>[name,{...v,active:false}]));
 
@@ -22,6 +23,7 @@ export default function App() {
   const [error,setError] = useState(null);
   const [sceneIndex,setSceneIndex] = useState(0);
   const [mixer,setMixer] = useState(false);
+  const [metronomeOpen,setMetronomeOpen] = useState(false);
   const [settings,setSettings] = useState(()=>loadSettings(localStorage));
   const [sceneVolume,setSceneVolume] = useState(-4);
   const mixerTap = useRef(null);
@@ -93,6 +95,7 @@ export default function App() {
   }
 
   function activateMixer() {
+    setMetronomeOpen(false);
     if(mixer) {
       setMixer(false);
       mixerTap.current=null;
@@ -168,7 +171,7 @@ export default function App() {
     const artSize=node=>{const art=node.querySelector('.instrument-illustration')?.getBoundingClientRect();return art?.width?{width:art.width,height:art.height}:null;};
     const size=artSize(element)??rect;
     const insetX=(rect.width-size.width)/2,insetY=(rect.height-size.height)/2;
-    const others=[...worldRef.current.querySelectorAll('.instrument,.interactive-object,#young-musician,.celestial-control[data-settled="true"]'),...document.querySelectorAll('.mixer-button')];
+    const others=[...worldRef.current.querySelectorAll('.instrument,.interactive-object,#young-musician,.celestial-control[data-settled="true"]'),...document.querySelectorAll('.mixer-button,.metronome-mini')];
     const obstacles=others.filter(other=>other!==element).map(other=>{
       const bounds=other.getBoundingClientRect();
       const peer=other.id.startsWith('instrument-')?stateRef.current[other.id.slice(11)]:null;
@@ -206,6 +209,7 @@ export default function App() {
     </div>
 
     {started && mixer && <Mixer instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} settings={settings} onSettings={setSettings} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
+    {started&&<Metronome audio={audioRef.current} open={metronomeOpen} disabled={mixer} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}
 
     {equipped&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={SCENES[sceneIndex].root} options={settings.instruments[equipped]} settingsOpen={mixer} onClose={()=>equip(null)}/>}
 
