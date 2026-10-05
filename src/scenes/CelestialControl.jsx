@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { DAY_PHASES, nextDayPhase, celestialPosition } from '../utils/dayCycle';
 
-export function CelestialControl({ scene, onAdvance }) {
+export function useCelestialPhase(scene) {
   const [phase, setPhase] = useState(DAY_PHASES[scene]);
   const phaseRef = useRef(phase);
   useEffect(() => {
@@ -25,10 +25,11 @@ export function CelestialControl({ scene, onAdvance }) {
     frame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frame);
   }, [scene]);
+  return phase;
+}
+
+export function CelestialControl({ scene, phase, onAdvance }) {
   const position = celestialPosition(phase);
   return <button className={`celestial-control ${position.moon ? 'is-moon' : 'is-sun'}`} onClick={onAdvance} aria-label="Change landscape" title={position.moon ? 'Moon: change landscape' : 'Sun: change landscape'} style={{ left: `${position.x}%`, top: `max(36px, ${position.y}%)` }}>
-    <svg viewBox="0 0 80 80" aria-hidden="true" style={{ opacity: position.opacity }}>
-      {position.moon ? <path d="M57 8A32 32 0 1 0 70 57A31 31 0 0 1 57 8Z" fill="#f8edc3" /> : <><circle cx="40" cy="40" r="39" fill="#fff4ce" opacity=".4" /><circle cx="40" cy="40" r="28" fill={scene === 'dusk' ? '#ffd4a2' : '#ffd875'} /></>}
-    </svg>
   </button>;
 }

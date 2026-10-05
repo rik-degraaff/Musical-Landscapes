@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { celestialPosition } from '../utils/dayCycle';
 
 function Tree({ x, y, size = 1, stretch = 1, color = '#397b59' }) {
   return <g transform={`translate(${x} ${y}) scale(${size * stretch} ${size})`}>
@@ -9,7 +10,7 @@ function Tree({ x, y, size = 1, stretch = 1, color = '#397b59' }) {
   </g>;
 }
 
-export function LandscapeArt({ scene }) {
+export function LandscapeArt({ scene, phase }) {
   const artRef=useRef(null);
   const [stretch, setStretch] = useState(() => 1440 * window.innerHeight / (900 * window.innerWidth));
   useEffect(() => {
@@ -26,6 +27,10 @@ export function LandscapeArt({ scene }) {
   const garden = scene === 'garden';
   const dawn = scene === 'dawn';
   const dusk = scene === 'dusk';
+  const celestial = celestialPosition(phase);
+  const celestialX = celestial.x * 14.4;
+  const celestialY = Math.max(36 * 900 / (artRef.current?.getBoundingClientRect().height || window.innerHeight), celestial.y * 9);
+  const celestialRadius = 30 * 900 / (artRef.current?.getBoundingClientRect().height || window.innerHeight);
   const palette = dusk ? ['#6c88a0','#efb09a','#87978b','#617f72','#3e685d'] : dawn ? ['#b8b6d5', '#f9c5a0', '#9eaaa1', '#829b7c', '#5c856a'] : night ? ['#232b4d', '#79768e', '#465c66', '#345b58', '#234b47'] : pond ? ['#9edbdc', '#f5eed0', '#8ab6a0', '#659d78', '#4d8965'] : garden ? ['#96d9e7', '#f9e9c9', '#a6c399', '#7fb27e', '#54946b'] : ['#8cd3ed', '#fff0ca', '#a4bf8a', '#85ad65', '#60914c'];
   return <svg ref={artRef} className="landscape-art" viewBox="0 0 1440 900" preserveAspectRatio="none" aria-hidden="true">
     <defs>
@@ -35,6 +40,12 @@ export function LandscapeArt({ scene }) {
       <pattern id={`${scene}-grain`} width="37" height="31" patternUnits="userSpaceOnUse"><circle cx="8" cy="6" r=".8" fill="#fff" opacity=".12" /><circle cx="24" cy="20" r=".7" fill="#173d36" opacity=".1" /></pattern>
     </defs>
     <path fill={`url(#${scene}-sky)`} d="M0 0H1440V900H0Z" />
+    <g className={`celestial-art ${celestial.moon ? 'is-moon' : 'is-sun'}`} transform={`translate(${celestialX} ${celestialY})`} opacity={celestial.opacity}>
+      <g transform={`scale(${stretch} 1)`}>
+        <circle className="celestial-halo" r={celestialRadius * 1.18} fill={celestial.moon ? '#f8edc3' : '#fff4ce'} opacity=".24" />
+        {celestial.moon ? <g className="celestial-pulse"><path d={`M${celestialRadius * .52} ${-celestialRadius * .9} A${celestialRadius} ${celestialRadius} 0 1 0 ${celestialRadius * .74} ${celestialRadius * .55} A${celestialRadius * .78} ${celestialRadius * .78} 0 0 1 ${celestialRadius * .52} ${-celestialRadius * .9}Z`} fill="#f8edc3" /></g> : <g className="celestial-pulse"><circle r={celestialRadius} fill={dusk ? '#ffd4a2' : dawn ? '#ffe5a2' : '#ffd875'} /></g>}
+      </g>
+    </g>
     {night ? <>
       {Array.from({ length: 42 }, (_, index) => <circle key={index} className="sky-star" cx={(index * 173 + 70) % 1400} cy={65 + (index * 67) % 310} r={index % 3 ? 1.7 : 3} fill="#fff5da" style={{ animationDelay: `${index % 5}s` }} />)}
     </> : <>

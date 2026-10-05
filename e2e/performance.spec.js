@@ -315,8 +315,9 @@ test('sun travels along the arc before settling at midday and supports rapid sce
   await start(page);
   await page.emulateMedia({reducedMotion:'no-preference'});
   const control = page.locator('.celestial-control');
+  const tapCelestial = async () => { const bounds=await control.boundingBox();await page.mouse.click(bounds.x+bounds.width/2,bounds.y+bounds.height/2); };
   const startPoint = await control.boundingBox();
-  await control.click();
+  await tapCelestial();
   await page.waitForTimeout(250);
   const moving = await control.boundingBox();
   expect(moving.x).toBeGreaterThan(startPoint.x);
@@ -324,9 +325,7 @@ test('sun travels along the arc before settling at midday and supports rapid sce
   await page.waitForTimeout(1100);
   const settled = await control.boundingBox();
   expect(settled.x+settled.width/2).toBeCloseTo(page.viewportSize().width/2,0);
-  await page.evaluate(() => {
-    for (let index = 0; index < 5; index++) document.querySelector('.celestial-control').click();
-  });
+  for(let index=0;index<5;index++) await tapCelestial();
   await expect(page.locator('.scene-farm')).toBeVisible();
   await page.waitForTimeout(1100);
   await expect(control).toHaveClass(/is-sun/);
@@ -334,10 +333,30 @@ test('sun travels along the arc before settling at midday and supports rapid sce
   expect(wrapped.x).toBeCloseTo(startPoint.x,0);
 });
 
+test('tapping the sun over an instrument advances the scene without activating the instrument', async ({page}) => {
+  await start(page);
+  await page.emulateMedia({reducedMotion:'reduce'});
+  const bounds = await page.locator('.celestial-control').boundingBox();
+  const piano = page.locator('#instrument-piano');
+  await piano.evaluate((element, point) => { element.style.left = `${point.x / innerWidth * 100}%`; element.style.top = `${point.y / innerHeight * 100}%`; }, {x:bounds.x+bounds.width/2,y:bounds.y+bounds.height/2});
+  await page.mouse.click(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
+  await expect(page.locator('.scene-garden')).toBeVisible();
+  await expect(piano).toHaveAttribute('aria-pressed','false');
+});
+
 test('sun and moon advance the day, remain circular, and keep controls aligned through rotation and equip', async ({page}, testInfo) => {
   const errors = await start(page);
-  await page.emulateMedia({reducedMotion:'reduce'});
   const control = page.getByRole('button',{name:'Change landscape'});
+  await expect(page.locator('.celestial-control')).toHaveCSS('z-index','1');
+  await expect(page.locator('.instrument-layer')).toHaveCSS('z-index','40');
+  await expect(page.locator('.scene .interactive-object').first()).toHaveCSS('z-index','45');
+  const skyLayers = await page.locator('.landscape-art').evaluate(svg => {
+    const sun = svg.querySelector('.celestial-art');
+    const terrain = [...svg.querySelectorAll('path')].find(path => path.getAttribute('d')?.startsWith('M0 403'));
+    return {sunBeforeTerrain:Boolean(sun && terrain && (sun.compareDocumentPosition(terrain) & Node.DOCUMENT_POSITION_FOLLOWING)),pulse:getComputedStyle(svg.querySelector('.celestial-pulse')).animationName};
+  });
+  expect(skyLayers).toEqual({sunBeforeTerrain:true,pulse:'celestialPulse'});
+  await page.emulateMedia({reducedMotion:'reduce'});
   const positions = [];
   for (const scene of ['farm','garden','pond','dusk','night','dawn']) {
     await expect(page.locator(`.scene-${scene}`)).toBeVisible();
@@ -348,7 +367,7 @@ test('sun and moon advance the day, remain circular, and keep controls aligned t
     expect(bounds.x).toBeGreaterThanOrEqual(0);
     expect(bounds.y).toBeGreaterThanOrEqual(0);
     positions.push(bounds.x);
-    await control.click();
+    await page.mouse.click(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
   }
   expect(positions[0]).toBeLessThan(positions[1]);
   expect(positions[1]).toBeLessThan(positions[2]);

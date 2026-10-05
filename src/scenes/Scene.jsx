@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FarmScene } from './FarmScene';
 import { GardenScene } from './GardenScene';
 import { PondScene } from './PondScene';
 import { NightScene } from './NightScene';
 import { DawnScene } from './DawnScene';
 import { DuskScene } from './DuskScene';
-import { CelestialControl } from './CelestialControl';
+import { CelestialControl, useCelestialPhase } from './CelestialControl';
 import { LandscapeArt } from './LandscapeArt';
 import { ObjectArt } from './ObjectArt';
 import './scene-art.css';
@@ -44,12 +44,54 @@ export function InteractiveObject({ sound, audio, label, className='' }) {
 }
 
 export function Scene({ sceneIndex, audio, onRotate }) {
+  const sceneRef = useRef(null);
+  const advanceRef = useRef(onRotate);
+  const lastPointerAdvance = useRef(null);
+  advanceRef.current = onRotate;
   const scene = SCENES[sceneIndex];
   const SceneComponent = scene.component;
+  const phase = useCelestialPhase(scene.id);
   const sceneAudio = { playSceneSound: (type) => audio?.playSceneSound(type) };
-  return <div className={`scene scene-${scene.id}`}>
-    <LandscapeArt key={scene.id} scene={scene.id} />
+  useEffect(() => {
+    function handleCelestialTap(event) {
+      const sceneElement = sceneRef.current;
+      const world = sceneElement?.parentElement;
+      if (!world?.contains(event.target) || event.target.closest?.('.mixer,.performance-panel,.top-bar')) return;
+      const previous = lastPointerAdvance.current;
+      if (event.type === 'click' && previous && performance.now() - previous.time < 800 && Math.hypot(event.clientX - previous.x, event.clientY - previous.y) < 2) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        lastPointerAdvance.current = null;
+        return;
+      }
+      const control = sceneElement.querySelector('.celestial-control');
+      if (!control) return;
+      const bounds = control.getBoundingClientRect();
+      const x = event.clientX - (bounds.left + bounds.width / 2);
+      const y = event.clientY - (bounds.top + bounds.height / 2);
+      if ((event.type !== 'pointerdown' || event.isPrimary) && (event.target.closest?.('.celestial-control') || Math.hypot(x, y) <= bounds.width / 2)) {
+        if (event.type === 'pointerdown') {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          lastPointerAdvance.current = { x: event.clientX, y: event.clientY, time: performance.now() };
+          advanceRef.current();
+          return;
+        }
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        advanceRef.current();
+      }
+    }
+    document.addEventListener('pointerdown', handleCelestialTap, true);
+    document.addEventListener('click', handleCelestialTap, true);
+    return () => {
+      document.removeEventListener('pointerdown', handleCelestialTap, true);
+      document.removeEventListener('click', handleCelestialTap, true);
+    };
+  }, []);
+  return <div ref={sceneRef} className={`scene scene-${scene.id}`}>
+    <LandscapeArt key={scene.id} scene={scene.id} phase={phase} />
     <SceneComponent key={`${scene.id}-objects`} audio={sceneAudio} />
-    <CelestialControl scene={scene.id} onAdvance={onRotate} />
+    <CelestialControl scene={scene.id} phase={phase} />
   </div>;
 }
