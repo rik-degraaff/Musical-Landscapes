@@ -272,8 +272,113 @@ test('dropped instruments slide away from instruments and scenery targets',async
   const errors=await start(page);
   for(const target of ['#instrument-drums','.cow']) {
     const rect=await page.locator(target).boundingBox();await dragTo(page,'piano',{x:rect.x+rect.width/2,y:rect.y+rect.height/2});await page.waitForTimeout(450);
-    const piano=await page.locator('#instrument-piano').boundingBox();const obstacle=await page.locator(target).boundingBox();
+    const piano=await page.locator('#instrument-piano .instrument-illustration').boundingBox();const obstacle=await page.locator(target==='#instrument-drums'?'#instrument-drums .instrument-illustration':target).boundingBox();
     expect(piano.x+piano.width<=obstacle.x || piano.x>=obstacle.x+obstacle.width || piano.y+piano.height<=obstacle.y || piano.y>=obstacle.y+obstacle.height).toBe(true);
+  }
+  expect(errors).toEqual([]);
+});
+
+test('FarmJam suppresses browser gestures without blocking taps or mixer controls', async ({page}) => {
+  const errors = await start(page);
+  await expect(page).toHaveTitle('FarmJam');
+  await expect(page.locator('.brand,.scene-name,.status-pill,.scene-turner')).toHaveCount(0);
+  const result = await page.evaluate(() => {
+    const element = document.querySelector('#instrument-piano');
+    const types = ['contextmenu','gesturestart','gesturechange','gestureend','selectstart','dragstart','dblclick','wheel'];
+    let bubbled = 0;
+    document.addEventListener('contextmenu', () => bubbled++, {once:true});
+    const canceled = types.map(type => {
+      const event = type === 'wheel' ? new WheelEvent(type,{cancelable:true,bubbles:true,ctrlKey:true,deltaY:100}) : new Event(type,{cancelable:true,bubbles:true});
+      element.dispatchEvent(event);
+      return event.defaultPrevented;
+    });
+    const touch = new Event('touchmove',{cancelable:true,bubbles:true});
+    Object.defineProperty(touch,'touches',{value:[{},{}]});
+    element.dispatchEvent(touch);
+    const zoom = new KeyboardEvent('keydown',{key:'+',ctrlKey:true,cancelable:true,bubbles:true});
+    element.dispatchEvent(zoom);
+    return {canceled,bubbled,touch:touch.defaultPrevented,zoom:zoom.defaultPrevented};
+  });
+  expect(result).toEqual({canceled:Array(8).fill(true),bubbled:0,touch:true,zoom:true});
+  await page.mouse.wheel(0,600);
+  expect(await page.evaluate(() => ({x:scrollX,y:scrollY,scale:visualViewport.scale}))).toEqual({x:0,y:0,scale:1});
+  await page.locator('#instrument-piano').click();
+  await expect(page.locator('#instrument-piano')).toHaveAttribute('aria-pressed','true');
+  await page.getByRole('button',{name:'Open mixer'}).dblclick();
+  await expect(page.locator('.mixer')).toBeVisible();
+  await page.getByRole('slider',{name:'Piano volume',exact:true}).fill('-18');
+  await expect(page.getByRole('slider',{name:'Piano volume',exact:true})).toHaveValue('-18');
+  expect(errors).toEqual([]);
+});
+
+test('sun travels along the arc before settling at midday and supports rapid scene changes', async ({page}) => {
+  await start(page);
+  await page.emulateMedia({reducedMotion:'no-preference'});
+  const control = page.locator('.celestial-control');
+  const startPoint = await control.boundingBox();
+  await control.click();
+  await page.waitForTimeout(250);
+  const moving = await control.boundingBox();
+  expect(moving.x).toBeGreaterThan(startPoint.x);
+  expect(moving.y).toBeLessThan(startPoint.y);
+  await page.waitForTimeout(1100);
+  const settled = await control.boundingBox();
+  expect(settled.x+settled.width/2).toBeCloseTo(page.viewportSize().width/2,0);
+  await page.evaluate(() => {
+    for (let index = 0; index < 5; index++) document.querySelector('.celestial-control').click();
+  });
+  await expect(page.locator('.scene-farm')).toBeVisible();
+  await page.waitForTimeout(1100);
+  await expect(control).toHaveClass(/is-sun/);
+  const wrapped = await control.boundingBox();
+  expect(wrapped.x).toBeCloseTo(startPoint.x,0);
+});
+
+test('sun and moon advance the day, remain circular, and keep controls aligned through rotation and equip', async ({page}, testInfo) => {
+  const errors = await start(page);
+  await page.emulateMedia({reducedMotion:'reduce'});
+  const control = page.getByRole('button',{name:'Change landscape'});
+  const positions = [];
+  for (const scene of ['farm','garden','pond','dusk','night','dawn']) {
+    await expect(page.locator(`.scene-${scene}`)).toBeVisible();
+    await expect(control).toHaveClass(new RegExp(scene === 'night' ? 'is-moon' : 'is-sun'));
+    const bounds = await control.boundingBox();
+    expect(bounds.width).toBe(64);
+    expect(bounds.height).toBe(64);
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.y).toBeGreaterThanOrEqual(0);
+    positions.push(bounds.x);
+    await control.click();
+  }
+  expect(positions[0]).toBeLessThan(positions[1]);
+  expect(positions[1]).toBeLessThan(positions[2]);
+  expect(positions[2]).toBeLessThan(positions[3]);
+  expect(positions[5]).toBeLessThan(positions[0]);
+  await equip(page,'piano');
+  for (const viewport of [{width:393,height:851},{width:780,height:284},{width:1440,height:900}]) {
+    await page.setViewportSize(viewport);
+    await page.waitForTimeout(400);
+    const sky = await control.boundingBox();
+    const mixer = await page.locator('.mixer-button').boundingBox();
+    expect([sky.width,sky.height]).toEqual([64,64]);
+    expect([mixer.width,mixer.height]).toEqual([48,48]);
+    expect(mixer.x+mixer.width).toBe(viewport.width-12);
+    expect(mixer.y).toBe(12);
+    const icon = await page.locator('.mixer-button svg').boundingBox();
+    expect(Math.abs(icon.x+icon.width/2-mixer.x-mixer.width/2)).toBeLessThan(1);
+    expect(Math.abs(icon.y+icon.height/2-mixer.y-mixer.height/2)).toBeLessThan(1);
+    const world = await page.locator('.landscape-world').boundingBox();
+    const art = await page.locator('.equipped-instrument .instrument-illustration').boundingBox();
+    expect(art.y+art.height).toBeLessThanOrEqual(world.height+2);
+    const instruments = await page.locator('.instrument:not(.equipped-instrument) .instrument-illustration').all();
+    const drawings = await Promise.all(instruments.map(instrument => instrument.boundingBox()));
+    for (let first = 0; first < drawings.length; first++) {
+      for (let second = first + 1; second < drawings.length; second++) {
+        const one = drawings[first], two = drawings[second];
+        expect(one.x+one.width<=two.x+1 || two.x+two.width<=one.x+1 || one.y+one.height<=two.y+1 || two.y+two.height<=one.y+1, `art overlaps at ${viewport.width}: ${first},${second}`).toBe(true);
+      }
+    }
+    await page.screenshot({path:`test-results/${testInfo.project.name}-farmjam-${viewport.width}.png`});
   }
   expect(errors).toEqual([]);
 });

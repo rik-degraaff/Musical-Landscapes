@@ -1,4 +1,4 @@
-import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import { INSTRUMENTS } from './utils/music';
 import { Instrument } from './components/Instrument';
 import { Mixer } from './components/Mixer';
@@ -9,6 +9,7 @@ import { SlidersHorizontal, X } from 'lucide-react';
 import { YoungMusician } from './components/YoungMusician';
 import { PerformancePanel } from './components/PerformancePanel';
 import { slidePosition } from './utils/performance';
+import './components/controls.css';
 
 const initialInstruments = Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,v])=>[name,{...v,active:false}]));
 
@@ -33,8 +34,6 @@ export default function App() {
 
   useEffect(()=>{ stateRef.current=instruments; },[instruments]);
   useEffect(()=>()=>audioRef.current?.dispose(),[]);
-
-  const activeCount = useMemo(()=>Object.values(instruments).filter(x=>x.active).length,[instruments]);
 
   async function start() {
     if(startInProgress.current) return;
@@ -154,12 +153,17 @@ export default function App() {
     const element=document.getElementById(`instrument-${name}`);
     if(!world||!element)return;
     const rect=element.getBoundingClientRect();
-    const obstacles=[...worldRef.current.querySelectorAll('.instrument,.interactive-object,#young-musician,.scene-turner')].filter(other=>other!==element).map(other=>{
+    const artSize=node=>{const art=node.querySelector('.instrument-illustration')?.getBoundingClientRect();return art?.width?{width:art.width,height:art.height}:null;};
+    const size=artSize(element)??rect;
+    const insetX=(rect.width-size.width)/2,insetY=(rect.height-size.height)/2;
+    const others=[...worldRef.current.querySelectorAll('.instrument,.interactive-object,#young-musician,.celestial-control'),...document.querySelectorAll('.mixer-button')];
+    const obstacles=others.filter(other=>other!==element).map(other=>{
       const bounds=other.getBoundingClientRect();
       const peer=other.id.startsWith('instrument-')?stateRef.current[other.id.slice(11)]:null;
-      return {x:peer?peer.x/100*world.width:bounds.left+bounds.width/2-world.left,y:peer?peer.y/100*world.height:bounds.top+bounds.height/2-world.top,width:bounds.width,height:bounds.height};
+      const peerSize=peer?artSize(other)??bounds:bounds;
+      return {x:peer?peer.x/100*world.width:bounds.left+bounds.width/2-world.left,y:peer?peer.y/100*world.height:bounds.top+bounds.height/2-world.top,width:peerSize.width,height:peerSize.height};
     });
-    const point=slidePosition({x:stateRef.current[name].x/100*world.width,y:stateRef.current[name].y/100*world.height},rect,obstacles,{left:0,top:Math.min(65,world.height*.18),right:world.width,bottom:world.height-8},6);
+    const point=slidePosition({x:stateRef.current[name].x/100*world.width,y:stateRef.current[name].y/100*world.height},size,obstacles,{left:insetX,top:8+insetY,right:world.width-insetX,bottom:world.height-8-insetY},3);
     const next={...stateRef.current,[name]:{...stateRef.current[name],x:point.x/world.width*100,y:point.y/world.height*100}};
     stateRef.current=next;setInstruments(next);
   }
@@ -186,18 +190,12 @@ export default function App() {
     </div>
 
     <div className="top-bar">
-      <div className="brand"><span>♪</span><strong>Musical Landscape</strong></div>
-      {started && <div className="scene-name">{SCENES[sceneIndex].name}</div>}
-      {started && <button className="mixer-button" onClick={activateMixer} aria-expanded={mixer} aria-controls="landscape-mixer" aria-label={mixer?'Close mixer':'Open mixer'} title={mixer?'Close mixer':'Double-click or double-tap to open mixer'}>{mixer?<X size={19}/>:<SlidersHorizontal size={19}/>} <span>Mixer</span></button>}
+      {started && <button className="mixer-button" onClick={activateMixer} aria-expanded={mixer} aria-controls="landscape-mixer" aria-label={mixer?'Close mixer':'Open mixer'} title={mixer?'Close mixer':'Double-click or double-tap to open mixer'}>{mixer?<X size={22}/>:<SlidersHorizontal size={22}/>}</button>}
     </div>
 
     {started && mixer && <Mixer instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
 
     {equipped&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} onClose={()=>equip(null)}/>}
-
-    {started && <div className={`status-pill ${activeCount?'has-music':''}`} aria-live="polite">
-      <span className="status-light"/>{activeCount ? `${activeCount} ${activeCount===1?'sound':'sounds'} making music` : 'Quiet landscape'}
-    </div>}
 
     {!started && <StartScreen loading={loading} error={error} onStart={start}/>}
   </main>;

@@ -36,10 +36,8 @@ export function LandscapeArt({ scene }) {
     </defs>
     <path fill={`url(#${scene}-sky)`} d="M0 0H1440V900H0Z" />
     {night ? <>
-      <g transform={`translate(1170 159) scale(${stretch} 1)`}><circle r="62" fill="#f8edc3" /><circle cx="26" cy="-22" r="53" fill="#434562" /></g>
       {Array.from({ length: 42 }, (_, index) => <circle key={index} className="sky-star" cx={(index * 173 + 70) % 1400} cy={65 + (index * 67) % 310} r={index % 3 ? 1.7 : 3} fill="#fff5da" style={{ animationDelay: `${index % 5}s` }} />)}
     </> : <>
-      <g transform={`translate(${dusk ? 1050 : dawn ? 790 : 1180} ${dusk ? 355 : dawn ? 356 : 156}) scale(${stretch} 1)`}><g className={dusk ? 'setting-sun' : dawn ? 'rising-sun' : undefined}><circle r={dawn||dusk ? 88 : 74} fill="#fff4ce" opacity=".45" /><circle r={dawn||dusk ? 63 : 52} fill={dusk ? '#ffd4a2' : dawn ? '#ffe5a2' : '#ffd875'} /></g></g>
       {dusk && <g fill="#fff6d8" opacity=".7"><circle cx="210" cy="105" r="2.5"/><circle cx="420" cy="78" r="2"/><circle cx="800" cy="118" r="2.5"/><circle cx="1250" cy="90" r="2"/></g>}
       <g className="scenery-cloud" fill="#fffdf3" opacity=".75"><g transform={`translate(104 184) scale(${stretch} 1)`}><path d="M0 0 C-23-19-5-49 20-45 C35-80 80-72 86-42 C120-51 141-19 121-1Z" /></g><g transform={`translate(710 116) scale(${stretch} 1)`}><path d="M0 0 C-24-15-7-44 16-37 C40-73 83-50 81-33 C117-42 137-16 116 0Z" /></g><g transform={`translate(1290 275) scale(${stretch} 1)`}><path d="M0 0 C-20-24 7-45 24-41 C41-71 81-66 90-32 C130-42 144-12 120 0Z" /></g></g>
       <g fill="none" stroke="#638b93" strokeWidth="3" strokeLinecap="round"><path d="M415 142q10-12 20 0q10-12 20 0 M476 170q8-10 16 0q8-10 16 0" /></g>

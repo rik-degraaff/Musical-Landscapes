@@ -9,8 +9,8 @@ export default defineConfig({
 			registerType: 'autoUpdate',
 			includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
 			manifest: {
-				name: 'Musical Landscape',
-				short_name: 'Musical Landscape',
+				name: 'FarmJam',
+				short_name: 'FarmJam',
 				description: 'Make a tiny musical world. Tap, drag, and mix six playful instruments across changing landscapes.',
 				theme_color: '#9ed8ef',
 				background_color: '#9ed8ef',

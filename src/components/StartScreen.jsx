@@ -3,7 +3,7 @@ import { Play, LoaderCircle } from 'lucide-react';
 export function StartScreen({loading,error,onStart}) {
   return <div className="start-overlay">
     <div className="title-note">♪</div>
-    <h1>Musical<br/><span>Landscape</span></h1>
+    <h1>Farm<span>Jam</span></h1>
     {error && <p role="alert">{error}</p>}
     <button className="start-button" disabled={loading} onClick={onStart}>{loading?<LoaderCircle className="loading-icon" size={24}/>:<Play size={24} fill="currentColor"/>}{loading?'Loading sounds…':'Tap to play'}</button>
   </div>;

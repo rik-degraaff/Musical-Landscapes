@@ -5,7 +5,7 @@ import { PondScene } from './PondScene';
 import { NightScene } from './NightScene';
 import { DawnScene } from './DawnScene';
 import { DuskScene } from './DuskScene';
-import { RotateCw } from 'lucide-react';
+import { CelestialControl } from './CelestialControl';
 import { LandscapeArt } from './LandscapeArt';
 import { ObjectArt } from './ObjectArt';
 import './scene-art.css';
@@ -50,8 +50,6 @@ export function Scene({ sceneIndex, audio, onRotate }) {
   return <div className={`scene scene-${scene.id}`}>
     <LandscapeArt key={scene.id} scene={scene.id} />
     <SceneComponent key={`${scene.id}-objects`} audio={sceneAudio} />
-    <button className="scene-turner" onClick={onRotate} aria-label="Change landscape" title="Change landscape">
-      <RotateCw size={26} strokeWidth={2} />
-    </button>
+    <CelestialControl scene={scene.id} onAdvance={onRotate} />
   </div>;
 }

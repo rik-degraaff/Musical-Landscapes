@@ -1,6 +1,8 @@
-# Musical Landscape
+# FarmJam
 
-A touch-first React/Vite music toy for small children. Instruments can be dragged around the landscape and tapped on/off. The music is generated from a library of hand-written one-bar patterns rather than generated note-by-note.
+A touch-first React/Vite music toy for small children. Instruments can be dragged around the landscape and tapped on/off. Tap the sun or moon to move to the next landscape: morning, midday, afternoon, dusk, night, and dawn. The celestial body follows an animated arc, with reduced-motion support. The music is generated from a library of hand-written one-bar patterns rather than generated note-by-note.
+
+FarmJam suppresses in-page context menus, selection, native dragging, pinch zoom, and page scrolling while preserving multi-finger instrument playing. Browser chrome and operating-system gestures cannot be intercepted by a web app. The mixer remains scrollable with a mouse wheel.
 
 ## Run
 

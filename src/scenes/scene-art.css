@@ -2,8 +2,6 @@
 .app-shell .start-overlay { background: #edf4e5a6; backdrop-filter: blur(4px); }
 .app-shell .start-overlay h1 { font-size: 72px; line-height: 1; letter-spacing: 0; }
 .app-shell .start-button { display: flex; align-items: center; gap: 12px; margin-top: 30px; }
-.app-shell .mixer-button { display: flex; align-items: center; gap: 8px; border-radius: 8px; }
-.app-shell .brand { border-radius: 8px; }
 .app-shell .mixer { border-radius: 8px; }
 .loading-icon { animation: sailTurn 1s linear infinite; }
 .scene .interactive-object { width: 138px; height: 128px; padding: 0; border: 0; border-radius: 8px; background: transparent; z-index: 45; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
@@ -40,8 +38,6 @@
 .rising-sun { animation: dawnRise 10s ease-out both; }
 @keyframes dawnRise { from { transform: translateY(80px); } to { transform: translateY(0); } }
 @keyframes roosterCrow { 0%,100% { transform: rotate(0); } 15%,55% { transform: rotate(-8deg) scaleY(1.08); } 35%,75% { transform: rotate(3deg); } }
-.scene .scene-turner { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; color: #4e685c; background: #fff9e9ee; border: 2px solid #ffffff; box-shadow: 0 4px 16px #27445a26; right: 20px; bottom: 20px; z-index: 60; transition: transform .2s; }
-.scene-turner:hover { transform: rotate(25deg); }
 .reacting { animation: objectNod 1.5s ease-in-out; }
 .tractor .reacting { animation: tractorRide 2.2s ease-in-out; }
 .bird .reacting { animation: birdFlight 1.5s ease-in-out; }
@@ -107,19 +103,11 @@
   .scene .chimes { right: 4%; top: 45%; }
   .scene .cricket { left:4%;bottom:9%; }
   .scene .airplane { left:56%;top:17%;width:108px;height:94px; }
-  .scene .scene-turner { width: 46px; height: 46px; right: 12px; bottom: 12px; }
 }
 @media (max-height: 550px) and (orientation: landscape) {
-  .app-shell .top-bar { height: 50px; padding: 8px 12px; }
-  .app-shell .brand { font-size: 13px; padding: 6px 9px; }
-  .app-shell .brand span { font-size: 17px; }
-  .app-shell .scene-name { font-size: 11px; padding: 6px 10px; }
-  .app-shell .mixer-button { padding: 7px 10px; }
   .app-shell .instrument { width: 90px; height: 82px; }
   .app-shell .instrument-drawing { scale: .72; }
   .app-shell .instrument:hover .instrument-drawing { scale: .78; }
-  .app-shell .status-pill { font-size: 11px; padding: 7px 12px; bottom: 10px; }
-  .app-shell .mixer { top: 54px; bottom: 10px; overflow-y: auto; }
   .app-shell .start-overlay h1 { font-size: 40px; }
   .app-shell .title-note { font-size: 40px; margin-bottom: 12px; }
   .app-shell .start-button { font-size: 18px; padding: 12px 26px; margin-top: 15px; }
@@ -134,7 +122,6 @@
   .scene .bell { right: 28%; top: 43%; }
   .scene .faucet, .scene .frog { left: 22%; bottom: 14%; }
   .scene .windmill { right: 25%; top: auto; bottom: 21%; width: 95px; height: 95px; }
-  .scene .scene-turner { width: 42px; height: 42px; bottom: 12px; right: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .scene *, .scene *::before, .scene *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }

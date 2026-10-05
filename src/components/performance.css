@@ -9,7 +9,6 @@
 .instrument.sliding { transition:left .28s ease-out,top .28s ease-out; }
 .app-shell .instrument-drawing { position:absolute;left:50%;top:50%;width:145px;height:130px;translate:-50% -50%;transform-origin:50% 50%; }
 .instrument.equipped-instrument { z-index:55; }
-.manual-open .status-pill { bottom:calc(var(--performance-height) + 8px);font-size:11px;padding:5px 10px; }
 .performance-panel { position:absolute;bottom:0;left:0;right:0;height:var(--performance-height);z-index:65;background:#eef4ed;border-top:2px solid #b4c8ba;box-shadow:0 -7px 24px #264b4520; }
 .performance-panel header { height:42px;display:flex;align-items:center;justify-content:space-between;padding:6px 22px;border-bottom:1px solid #cbd9ce; }
 .performance-panel h2 { margin:0;font-size:17px; }
@@ -87,11 +86,10 @@
   .drum-pad { border-width:3px; }.drum-pad span { font-size:9px; }
 }
 @media(max-height:550px) and (orientation:landscape) {
-  .app-shell { --performance-height:140px; }.young-musician { width:45px;height:62px;top:54%; }.manual-open .top-bar { height:38px; }
+  .app-shell { --performance-height:140px; }.young-musician { width:45px;height:62px;top:54%; }
   .performance-panel header { height:27px; }.performance-panel h2 { font-size:12px; }.performance-surface { height:calc(100% - 27px);padding:4px 12px 8px; }
   .app-shell.manual-open .instrument { width:60px;height:48px; }.app-shell.manual-open .instrument-drawing { scale:.4; }.app-shell.manual-open .scene .interactive-object { width:52px;height:44px; }
   .app-shell.manual-open .young-musician { width:38px;height:52px; }
-  .manual-open .scene .scene-turner { width:30px;height:30px;bottom:3px; }.manual-open .status-pill { display:none; }
   .chord-control { min-height:30px; }.guitar-chords { gap:3px; }.manual-guitar { grid-template-columns:110px 1fr; }
   .valve-control span { height:25px; }.valve-control i { height:32px;width:9px; }.trumpet-register { top:-2px; }.trumpet-register button { font-size:9px;padding:2px 6px; }.trumpet-pitch { font-size:11px; }.note-key span { font-size:10px; }
 }
