@@ -98,7 +98,7 @@ test('outside-start swipes play crossed piano keys, marimba bars and guitar stri
     const area=await page.locator(name==='guitar'?'.guitar-stringboard':'.manual-keyboard').boundingBox();
     const panel=await page.locator('.performance-panel').boundingBox();
     const first=await page.locator(name==='guitar'?'.playable-string':'.natural-key').first().boundingBox();
-    const startPoint=name==='guitar'?{x:area.x+area.width*.55,y:panel.y+12}:{x:area.x-5,y:first.y+first.height*.85};
+    const startPoint=name==='guitar'?{x:area.x+area.width*.55,y:area.y-3}:{x:area.x-5,y:first.y+first.height*.85};
     const last=await page.locator(name==='guitar'?'.playable-string':'.natural-key').last().boundingBox();
     const endPoint=name==='guitar'?{x:startPoint.x,y:last.y+last.height/2}:{x:last.x+last.width/2,y:startPoint.y};
     if(testInfo.project.use.hasTouch){

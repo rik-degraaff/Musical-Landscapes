@@ -45,6 +45,34 @@ async function equipByKey(page,name) {
   await expect(page.locator(`.performance-${name}`)).toBeVisible();
 }
 
+test('manual bar buffers the bottom edge and keyboards use longer playable surfaces',async({page},testInfo)=>{
+  await start(page);
+  const lengths={};
+  for(const name of ['piano','marimba','guitar','flute','melody','drums']) {
+    await equipByKey(page,name);
+    const panel=await page.locator('.performance-panel').boundingBox();
+    const bar=await page.locator('.performance-panel header').boundingBox();
+    const surface=await page.locator('.performance-surface').boundingBox();
+    expect(bar.y+bar.height).toBeCloseTo(panel.y+panel.height,0);
+    expect(bar.height).toBeGreaterThanOrEqual(32);
+    expect(surface.y+surface.height).toBeLessThanOrEqual(bar.y+1);
+    if(name==='piano'||name==='marimba') {
+      const key=await page.locator('.natural-key').first().boundingBox();
+      lengths[name]=key.height;
+      expect(key.y+key.height).toBeLessThan(bar.y);
+      expect(key.height/surface.height).toBeGreaterThan(.8);
+    }
+    if(name==='guitar') {
+      const guitar=await page.locator('.guitar-stringboard').boundingBox();
+      expect(guitar.y-surface.y).toBeLessThanOrEqual(4);
+      expect(bar.y-guitar.y-guitar.height).toBeGreaterThanOrEqual(12);
+    }
+    await page.screenshot({path:`test-results/${testInfo.project.name}-bottom-bar-${name}.png`});
+    await page.getByRole('button',{name:'Put instrument down'}).click();
+  }
+  expect(lengths.marimba).toBeGreaterThanOrEqual(lengths.piano);
+});
+
 test('physical flute keys sound standard G4 and middle D5 without a breath control',async({page},testInfo)=>{
   await start(page);await equipByKey(page,'flute');
   expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBe(0);

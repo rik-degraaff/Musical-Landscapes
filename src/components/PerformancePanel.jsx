@@ -116,7 +116,6 @@ export function PerformancePanel({ name, audio, root, onClose }) {
     return ()=>{if(audio.manualInstrument===name)stop();window.removeEventListener('blur',stop);document.removeEventListener('visibilitychange',hidden);};
   },[audio]);
   return <section ref={panelRef} className={`performance-panel performance-${name}`} aria-label={`${INSTRUMENTS[name].label} play surface`}>
-    <header><h2>{INSTRUMENTS[name].label}</h2><output className="autoplay-notes">{autoplay?(cue?.notes??(cue?.note?[cue.note]:[])).join(' + '):''}</output><button className="return-instrument" aria-label="Put instrument down" title="Put instrument down" onClick={onClose}><ArrowUpFromLine size={20}/></button></header>
     <div className="performance-surface">
       {name==='piano'&&<Keyboard audio={audio} notes={PIANO_NOTES} kind="piano" autoplay={autoplay}/>}
       {name==='flute'&&<KeyFlute audio={audio} cue={cue} PressControl={PressControl}/>}
@@ -125,5 +124,6 @@ export function PerformancePanel({ name, audio, root, onClose }) {
       {name==='guitar'&&<Guitar audio={audio} cue={cue} root={root}/>}
       {name==='drums'&&<Drums audio={audio}/>}
     </div>
+    <header><h2>{INSTRUMENTS[name].label}</h2><output className="autoplay-notes">{autoplay?(cue?.notes??(cue?.note?[cue.note]:[])).join(' + '):''}</output><button className="return-instrument" aria-label="Put instrument down" title="Put instrument down" onClick={onClose}><ArrowUpFromLine size={20}/></button></header>
   </section>;
 }

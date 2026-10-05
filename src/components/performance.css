@@ -9,8 +9,8 @@
 .instrument.sliding { transition:left .28s ease-out,top .28s ease-out; }
 .app-shell .instrument-drawing { position:absolute;left:50%;top:50%;width:145px;height:130px;translate:-50% -50%;transform-origin:50% 50%; }
 .instrument.equipped-instrument { z-index:55; }
-.performance-panel { position:absolute;bottom:0;left:0;right:0;height:var(--performance-height);z-index:65;background:#eef4ed;border-top:2px solid #b4c8ba;box-shadow:0 -7px 24px #264b4520; }
-.performance-panel header { height:42px;display:flex;align-items:center;justify-content:space-between;padding:6px 22px;border-bottom:1px solid #cbd9ce; }
+.performance-panel { position:absolute;bottom:0;left:0;right:0;height:var(--performance-height);z-index:65;background:#eef4ed;border-top:2px solid #b4c8ba;box-shadow:0 -7px 24px #264b4520;display:flex;flex-direction:column; }
+.performance-panel header { height:calc(42px + env(safe-area-inset-bottom,0px));flex:none;display:flex;align-items:center;justify-content:space-between;padding:6px 22px calc(6px + env(safe-area-inset-bottom,0px));border-top:1px solid #cbd9ce; }
 .performance-panel h2 { margin:0;font-size:17px; }
 .autoplay-notes { font-size:11px;margin-left:auto;margin-right:8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0; }
 .guitar-string-row { display:flex;position:relative;min-height:0; }
@@ -18,7 +18,9 @@
 .guitar-string-row .playable-string { flex:1;min-width:0; }
 .manual-guitar .guitar-stringboard { border-radius:8px; }
 .return-instrument { width:32px;height:30px;display:grid;place-items:center;background:transparent;border:0;color:#46635b;cursor:pointer;border-radius:4px; }
-.performance-surface { height:calc(100% - 42px);max-width:1050px;margin:auto;padding:12px 18px 18px; }
+.performance-surface { flex:1;min-height:0;width:100%;max-width:1050px;margin:0 auto;padding:12px 18px 18px; }
+.performance-piano .performance-surface,.performance-marimba .performance-surface { padding-top:2px;padding-bottom:6px; }
+.performance-guitar .performance-surface { padding-top:4px;padding-bottom:26px; }
 .performance-panel button { font:inherit;touch-action:none;cursor:pointer;-webkit-tap-highlight-color:transparent; }
 .performance-panel button:focus-visible { outline:3px solid #db765e;outline-offset:2px; }
 .boehm-flute { height:100%;display:grid;grid-template-rows:28px minmax(0,1fr);gap:4px; }
@@ -58,7 +60,7 @@
 .note-key.pressed { background:#eac273;box-shadow:inset 0 -2px #b18c4f; }
 .note-key.swipe-pressed { background:#eac273;box-shadow:inset 0 -2px #b18c4f; }
 .playable-string.swipe-pressed i { background:#fff2a0;box-shadow:0 0 5px #f5cd66; }
-.marimba.manual-keyboard { border-color:#896952;background:#896952;border-bottom-width:24px; }
+.marimba.manual-keyboard { border-color:#896952;background:#896952;border-top-width:8px;border-bottom-width:8px; }
 .marimba .natural-key { background:linear-gradient(90deg,#be824e,#e3b475,#b27643);box-shadow:inset 0 -6px #835a37; }
 .marimba .sharp-key { background:linear-gradient(90deg,#875334,#b4774d,#6f452e);height:58%; }
 .bar-bolt { position:absolute;top:36%;height:6px;width:6px;border-radius:50%;background:#5b4c3c; }
@@ -108,8 +110,8 @@
   .app-shell .instrument-drawing { width:124px;height:112px;scale:.95; }
   .app-shell .instrument:hover .instrument-drawing,.app-shell .instrument:active .instrument-drawing { scale:.98; }
   .app-shell { --performance-height:245px; }.young-musician { width:70px;height:95px;top:53%; }
-  .performance-panel header { padding:5px 12px;height:36px; }.performance-panel h2 { font-size:14px; }
-  .performance-surface { height:calc(100% - 36px);padding:10px 8px 12px; }.manual-keyboard { border-width:5px;gap:1px; }.note-key span { font-size:9px; }
+  .performance-panel header { padding:5px 12px calc(5px + env(safe-area-inset-bottom,0px));height:calc(36px + env(safe-area-inset-bottom,0px)); }.performance-panel h2 { font-size:14px; }
+  .performance-surface { padding:10px 8px 12px; }.manual-keyboard { border-width:5px;gap:1px; }.note-key span { font-size:9px; }
   .flute.manual-keyboard { gap:2px;padding:18px 3px; }.manual-guitar { grid-template-columns:86px 1fr;gap:7px; }.guitar-chords { gap:5px; }.chord-control { min-height:48px; }
   .guitar-stringboard { border-width:4px; }.guitar-soundhole { border-width:5px;left:19%; }
   .trumpet-valve-controls { gap:5px;width:38%;left:26%;top:8%; }.valve-control span { height:41px; }.valve-control i { height:66px; }
@@ -118,7 +120,11 @@
 }
 @media(max-height:550px) and (orientation:landscape) {
   .app-shell { --performance-height:140px; }.young-musician { width:45px;height:62px;top:54%; }
-  .performance-panel header { height:27px; }.performance-panel h2 { font-size:12px; }.performance-surface { height:calc(100% - 27px);padding:4px 12px 8px; }
+  .performance-panel header { height:calc(32px + env(safe-area-inset-bottom,0px));padding-top:1px;padding-bottom:calc(1px + env(safe-area-inset-bottom,0px)); }.performance-panel h2 { font-size:12px; }.performance-surface { padding:4px 12px 8px; }
+  .performance-piano .performance-surface,.performance-marimba .performance-surface { padding-top:0;padding-bottom:3px; }
+  .performance-piano .manual-keyboard { border-top-width:8px;border-bottom-width:5px; }
+  .performance-marimba .manual-keyboard { border-top-width:5px;border-bottom-width:4px; }
+  .performance-guitar .performance-surface { padding-top:0;padding-bottom:12px; }
   .app-shell.manual-open .instrument { width:60px;height:48px; }.app-shell.manual-open .instrument-drawing { scale:.4; }.app-shell.manual-open .scene .interactive-object { width:52px;height:44px; }
   .app-shell.manual-open .instrument:hover .instrument-drawing,.app-shell.manual-open .instrument:active .instrument-drawing { scale:.4; }
   .app-shell.manual-open .young-musician { width:38px;height:52px; }
