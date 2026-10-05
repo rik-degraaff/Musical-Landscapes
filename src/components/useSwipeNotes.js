@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { flashInput } from './inputFeedback';
 
 export function useSwipeNotes(surface, onEnter, onLeave) {
   const callbacks = useRef({ onEnter, onLeave });
@@ -19,6 +20,7 @@ export function useSwipeNotes(surface, onEnter, onLeave) {
       }
       pointer.note = next;
       if (next) {
+        flashInput(next);
         next.setAttribute(`data-pointer-${id}`, '');
         next.classList.add('swipe-pressed');
         callbacks.current.onEnter(next.dataset.swipeNote, `swipe-${id}`);

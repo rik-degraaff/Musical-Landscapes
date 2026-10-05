@@ -13,9 +13,10 @@ export const GUITAR_CHORDS = {
   F: ['F2','C3','F3','A3','C4','F4'],
 };
 const valveOffsets = [0, -2, -1, -3, -3, -5, -4, -6];
+export const TRUMPET_REGISTERS = ['C4','G4','C5','E5','G5','C6','E6'];
 export function trumpetNote(valves, partial) {
   const mask = valves.reduce((value, pressed, index) => value | (pressed ? 1 << index : 0), 0);
-  return midiNote([60,67,72,76,79][partial] + valveOffsets[mask]);
+  return midiNote([60,67,72,76,79,84,88][partial] + valveOffsets[mask]);
 }
 
 export function slidePosition(point, size, obstacles, bounds, gap = 10) {

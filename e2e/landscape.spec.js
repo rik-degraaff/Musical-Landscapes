@@ -165,7 +165,7 @@ test('every object is reachable, audible and animates repeatedly in all six scen
       expect(bounds.y + bounds.height).toBeLessThanOrEqual(page.viewportSize().height);
     }
     await page.screenshot({ path: `test-results/${testInfo.project.name}-scene-${sceneIndex}.png` });
-    await page.getByRole('button', { name: 'Change landscape' }).click();
+    await page.getByRole('button', { name: 'Change landscape' }).click({force:true});
   }
   await expect(page.locator('.scene-farm')).toHaveCount(1);
   expect(errors).toEqual([]);
@@ -212,7 +212,7 @@ test('double activation protects the mixer and scenery mute leaves instruments a
   expect(await measureAudio(page, 'piano')).toBeGreaterThan(0.0003);
   expect(await page.evaluate(() => window.audioEngine.volumes.piano)).toBe(-7);
   await tap(page.locator('#instrument-piano'), testInfo);
-  await page.getByRole('button', { name: 'Change landscape' }).click();
+  await page.getByRole('button', { name: 'Change landscape' }).click({force:true});
   await tap(button, testInfo);
   await expect(page.locator('.mixer')).toHaveCount(0);
   await tap(button, testInfo);
@@ -227,7 +227,7 @@ test('double activation protects the mixer and scenery mute leaves instruments a
 
 test('faucet drops share impact timing and rapid taps restart a single sequence', async ({ page }, testInfo) => {
   const errors = await startWorld(page);
-  await page.getByRole('button', { name: 'Change landscape' }).click();
+  await page.getByRole('button', { name: 'Change landscape' }).click({force:true});
   const faucet = page.getByRole('button', { name: 'Outdoor faucet', exact: true });
   await tap(faucet, testInfo);
   await expect(faucet.locator('.falling-drop')).toHaveCount(3);

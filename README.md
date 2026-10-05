@@ -4,6 +4,8 @@ A touch-first React/Vite music toy for small children. Instruments can be dragge
 
 FarmJam suppresses in-page context menus, selection, native dragging, pinch zoom, and page scrolling while preserving multi-finger instrument playing. Browser chrome and operating-system gestures cannot be intercepted by a web app. The mixer remains scrollable with a mouse wheel.
 
+Equipped instruments have an autoplay switch. Already-active instruments start autoplay automatically when equipped; inactive instruments start in manual mode. Autoplay uses the same transport, noise-selected phrases, scene-key transposition, timing, and velocities as an active unequipped instrument. Keys, drum pads, trumpet registers/valves/breath, and guitar strings light up with the actual notes. Guitar fret values and an expanded keyboard range allow the demonstrated notes to be replayed manually. Interacting with the equipped instrument stops autoplay until the switch is enabled again. Brief hits fade over 420 ms so fast marimba strikes and swipes remain visible.
+
 ## Run
 
 ```bash

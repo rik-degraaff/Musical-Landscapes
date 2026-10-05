@@ -24,6 +24,9 @@ export class AudioEngine {
     this.root = 'C';
     this.sceneVolume = -4;
     this.manualInstrument = null;
+    this.manualAutoplay = false;
+    this.manualAutoplayVersion = 0;
+    this.onManualAutoplayEvent = null;
     this.manualVoices = new Map();
   }
 
@@ -146,6 +149,7 @@ export class AudioEngine {
 
   setManualInstrument(name) {
     if (!this.ready || name === this.manualInstrument) return;
+    this.setManualAutoplay(false);
     this.stopManualVoices();
     const previous = this.manualInstrument;
     this.manualInstrument = name;
@@ -155,10 +159,12 @@ export class AudioEngine {
       this.nodes[name].synth.releaseAll();
       this.nodes[name].gain.volume.rampTo(this.volumes[name], FADE_SECONDS);
     }
+    if (name && this.active[name]) this.setManualAutoplay(true);
     this.ensureTransport();
   }
 
   manualNoteOn(note, token, velocity = 0.65) {
+    if (this.manualAutoplay) this.setManualAutoplay(false);
     const name = this.manualInstrument;
     if (!this.ready || !name) return;
     Tone.start().catch(console.error);
@@ -239,7 +245,7 @@ export class AudioEngine {
 
   ensureTransport() {
     if (!this.ready) return;
-    const anyActive = Object.entries(this.active).some(([name, active]) => active && name !== this.manualInstrument);
+    const anyActive = this.manualAutoplay || Object.entries(this.active).some(([name, active]) => active && name !== this.manualInstrument);
     if (!anyActive) {
       this.clearPendingEvents();
       Tone.Transport.stop();
@@ -261,6 +267,28 @@ export class AudioEngine {
     }
   }
 
+  setManualAutoplay(enabled) {
+    const next = Boolean(enabled && this.manualInstrument && this.ready);
+    if (next === this.manualAutoplay) return;
+    this.manualAutoplay = next;
+    this.manualAutoplayVersion++;
+    const name = this.manualInstrument;
+    if (name) {
+      this.clearPendingEvents(name);
+      this.nodes[name].synth.releaseAll();
+    }
+    this.onManualAutoplayEvent?.(null);
+    if (next) {
+      this.stopManualVoices();
+      Tone.start().catch(console.error);
+    }
+    this.ensureTransport();
+  }
+
+  shouldSchedule(name) {
+    return name === this.manualInstrument ? this.manualAutoplay : this.active[name];
+  }
+
   scheduleBar(time) {
     const bar = this.barIndex++;
     // `scheduleBar` is driven by the Transport, so its recurring callback's
@@ -268,7 +296,7 @@ export class AudioEngine {
     // Transport timeline; derive that from the bar index instead.
     const barPosition = bar * Tone.Time(BAR).toSeconds();
     for (const name of instrumentNames) {
-      if (!this.active[name] || name === this.manualInstrument) continue;
+      if (!this.shouldSchedule(name)) continue;
       const energy = this.noise[name].energyAt(bar);
       const complexity = this.noise[name].complexityAt(bar);
       const selected = nearestBar(patterns[name], energy, complexity);
@@ -282,7 +310,7 @@ export class AudioEngine {
         let id;
         id = Tone.Transport.scheduleOnce(at => {
           this.pendingEvents.delete(id);
-          if (!this.active[name] || name === this.manualInstrument) return;
+          if (!this.shouldSchedule(name)) return;
           this.playEvent(name, event, at);
         }, barPosition + offset);
         this.pendingEvents.set(id, name);
@@ -291,6 +319,12 @@ export class AudioEngine {
   }
 
   playEvent(name, event, time) {
+    if (name === this.manualInstrument && this.manualAutoplay) {
+      const version = this.manualAutoplayVersion;
+      Tone.Draw.schedule(() => {
+        if (this.manualAutoplay && version === this.manualAutoplayVersion && name === this.manualInstrument) this.onManualAutoplayEvent?.({...event, duration:Tone.Time(event.dur??'16n').toSeconds()});
+      }, time);
+    }
     const velocity = event.velocity ?? 0.55;
     const sampler = this.nodes[name].synth;
     if (name === 'drums') {
@@ -340,6 +374,9 @@ export class AudioEngine {
   }
 
   dispose() {
+    this.manualAutoplay = false;
+    this.manualAutoplayVersion++;
+    this.onManualAutoplayEvent = null;
     this.stopManualVoices();
     this.clearPendingEvents();
     if (this.transportEvent !== null) Tone.Transport.clear(this.transportEvent);
