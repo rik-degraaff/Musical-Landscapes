@@ -6,6 +6,7 @@ import {trumpetInput} from '../utils/autoplay';
 export function Flute({audio,cue,PressControl,options}) {
   const owners=useRef(new Map());
   const registerRef=useRef(0);
+  const registerPointer=useRef(null);
   const [register,setRegister]=useState(0);
   const [pitch,setPitch]=useState(null);
   const demo=cue?.note?fluteInput(cue.note):null;
@@ -22,11 +23,29 @@ export function Flute({audio,cue,PressControl,options}) {
     if(down)owners.current.get(key).add(token);else owners.current.get(key).delete(token);
     update();
   }
+  function selectRegister(value) {
+    registerRef.current=Math.max(0,Math.min(2,value));setRegister(registerRef.current);update();
+  }
+  function moveRegister(event) {
+    const bounds=event.currentTarget.getBoundingClientRect();
+    selectRegister(2-Math.min(2,Math.max(0,Math.floor((event.clientY-bounds.top)/bounds.height*3))));
+  }
+  function releaseRegister(event) {if(registerPointer.current===event.pointerId)registerPointer.current=null;}
   return <div className="boehm-flute">
-    <div className="flute-register" role="group" aria-label="Flute air register">{['Low','Middle','High'].map((label,index)=><button key={label} aria-pressed={register===index} onClick={()=>{registerRef.current=index;setRegister(index);update();}}>{label}</button>)}<output hidden={!options.playbackNotes} aria-label="Flute pitch">{cue?.note??pitch??'—'}</output></div>
     <div className="flute-mechanism" role="group" aria-label="Boehm flute keys">
       <div className="flute-tube-art" aria-hidden="true"/>
+      <div className={`flute-headjoint ${demo?'is-demo':''}`} role="slider" tabIndex={0} aria-label="Flute pitch register" aria-orientation="vertical" aria-valuemin={0} aria-valuemax={2} aria-valuenow={register} aria-valuetext={['Low','Middle','High'][register]} title="Pitch register: slide up for higher notes"
+        onPointerDown={event=>{if(event.button!==0||registerPointer.current!==null)return;event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);registerPointer.current=event.pointerId;moveRegister(event);}}
+        onPointerMove={event=>{if(registerPointer.current===event.pointerId)moveRegister(event);}}
+        onPointerUp={releaseRegister} onPointerCancel={releaseRegister} onLostPointerCapture={releaseRegister}
+        onKeyDown={event=>{if(['ArrowUp','ArrowDown','Home','End'].includes(event.key)){event.preventDefault();selectRegister(event.key==='Home'?0:event.key==='End'?2:registerRef.current+(event.key==='ArrowUp'?1:-1));}}}>
+        {[2,1,0].map(value=><span className={`flute-register-level ${register===value?'is-selected':''}`} key={value} aria-hidden="true"><i/>{options.noteLabels&&<small>{['Low','Middle','High'][value]}</small>}</span>)}
+        <i className="flute-air-position" style={{top:`${(2-register+.5)/3*100}%`}} aria-hidden="true"/>
+      </div>
+      <div className="flute-key-rod" aria-hidden="true"/>
+      <div className="flute-footjoint" aria-hidden="true"/>
       {FLUTE_KEYS.map(([key,label])=><PressControl key={key} label={`Flute key ${label}`} className={`flute-physical-key flute-key-${key}`} demoPressed={Boolean(demo?.keys.includes(key))} onPress={token=>change(key,token,true)} onRelease={token=>change(key,token,false)}><span hidden={!options.noteLabels}>{label}</span><i aria-hidden="true"/></PressControl>)}
+      <output className="flute-pitch" hidden={!options.playbackNotes} aria-label="Flute pitch">{cue?.note??pitch??'—'}</output>
     </div>
   </div>;
 }

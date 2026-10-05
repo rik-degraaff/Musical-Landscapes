@@ -91,9 +91,12 @@ test('physical flute keys sound standard G4 and middle D5 without a breath contr
   await expect(page.locator('.flute-physical-key.pressed')).toHaveCount(5);
   await expect(page.getByLabel('Flute pitch',{exact:true})).toHaveText('G4');
   await page.screenshot({path:`test-results/${testInfo.project.name}-physical-flute.png`});
+  const headjoint=await page.getByRole('slider',{name:'Flute pitch register'}).boundingBox();
+  await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[...g4,{id:10,x:headjoint.x+headjoint.width/2,y:headjoint.y+headjoint.height/2}]});
+  expect(await page.evaluate(()=>window.audioEngine.manualVoices.get('flute-keys')?.note)).toBe('G5');
   await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBe(0);
-  await page.getByRole('group',{name:'Flute air register'}).getByRole('button',{name:'Middle',exact:true}).click();
+  await expect(page.getByRole('slider',{name:'Flute pitch register'})).toHaveAttribute('aria-valuetext','Middle');
   const d5=await touches(['B thumb','Left middle','Left ring','Right index','Right middle','Right ring']);
   await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:d5});
   expect(await page.evaluate(()=>({size:window.audioEngine.manualVoices.size,note:window.audioEngine.manualVoices.get('flute-keys')?.note}))).toEqual({size:1,note:'D5'});
