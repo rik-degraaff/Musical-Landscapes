@@ -4,6 +4,8 @@ const instruments = ['piano', 'drums', 'guitar', 'melody', 'marimba', 'flute'];
 const objects = [['Cow', 'Tractor'], ['Outdoor faucet', 'Bird'], ['Frog', 'Windmill'], ['Cricket','Airplane'], ['Little bell', 'Night owl'], ['Rooster', 'Wind chimes']];
 
 test('all bundled recordings decode and a failed sample load can be retried', async ({ page }, testInfo) => {
+  const viewport=page.viewportSize();
+  if(viewport.height>viewport.width)await page.setViewportSize({width:viewport.height,height:viewport.width});
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/audio/instruments/piano/C3.mp3', route => route.fulfill({ status: 404, body: 'Missing sample' }));
@@ -44,6 +46,8 @@ test('all bundled recordings decode and a failed sample load can be retried', as
 });
 
 async function startWorld(page) {
+  const viewport=page.viewportSize();
+  if(viewport.height>viewport.width)await page.setViewportSize({width:viewport.height,height:viewport.width});
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');

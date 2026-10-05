@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 async function start(page) {
+  const viewport=page.viewportSize();
+  if(viewport.height>viewport.width)await page.setViewportSize({width:viewport.height,height:viewport.width});
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.goto('/');
   await page.evaluate(async()=>{
@@ -52,7 +54,7 @@ test('piano chords release and wind notes sustain while the world continues',asy
   const errors=await start(page);
   await page.locator('#instrument-drums').click();
   await equip(page,'piano');
-  await expect(page.getByRole('button',{name:/Piano key/})).toHaveCount(17);
+  await expect(page.getByRole('button',{name:/Piano key/})).toHaveCount(34);
   const key=page.getByRole('button',{name:'Piano key C4',exact:true});
   await key.focus();await page.keyboard.down('Space');
   expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBe(1);
@@ -64,7 +66,7 @@ test('piano chords release and wind notes sustain while the world continues',asy
   await expect(page.locator('.scene-garden')).toHaveCount(1);
   await page.getByRole('button',{name:'Put instrument down'}).click();
   await equip(page,'flute');
-  const note=page.getByRole('button',{name:'Flute note C4',exact:true});
+  const note=page.getByRole('button',{name:'Blow flute',exact:true});
   await note.focus();await page.keyboard.down('Space');await page.waitForTimeout(3400);
   expect(await page.evaluate(()=>[...window.audioEngine.manualVoices.values()][0].source.loop)).toBe(true);
   await page.keyboard.up('Space');
@@ -105,7 +107,7 @@ test('outside-start swipes play crossed piano keys, marimba bars and guitar stri
     }else{
       await page.mouse.move(startPoint.x,startPoint.y);await page.mouse.down();await page.mouse.move(endPoint.x,endPoint.y);
     }
-    const expected=name==='guitar'?['E2','A2','D3','G3','B3','E4']:name==='piano'?['C4','D4','E4','F4','G4','A4','B4','C5','D5','E5']:['C5','D5','E5','F5','G5','A5','B5','C6'];
+    const expected=name==='guitar'?['E2','A2','D3','G3','B3','E4']:await page.evaluate(async name=>{const music=await import('/src/utils/performance.js');return (name==='piano'?music.PIANO_NOTES:music.MARIMBA_NOTES).filter(note=>!note.includes('#'));},name);
     expect(await page.evaluate(()=>window.swipeNotes),`${name} fast sweep`).toEqual(expected);
     if(testInfo.project.use.hasTouch){
       await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{id:8,...startPoint}]});
@@ -263,7 +265,7 @@ test('piano multitouch, all drum hits and chromatic marimba produce sampled audi
     await page.getByRole('button',{name:label,exact:true}).click();expect(await soundLevel(page,'drums',.12),label).toBeGreaterThan(.0001);
   }
   await page.getByRole('button',{name:'Put instrument down'}).click();await equip(page,'marimba');
-  const bars=page.getByRole('button',{name:/Marimba bar/});await expect(bars).toHaveCount(13);
+  const bars=page.getByRole('button',{name:/Marimba bar/});await expect(bars).toHaveCount(22);
   for(let index=0;index<13;index++){await bars.nth(index).focus();await page.keyboard.press('Space');expect(await soundLevel(page,'marimba',.08)).toBeGreaterThan(.0001);}
   expect(errors).toEqual([]);
 });
@@ -374,7 +376,7 @@ test('sun and moon advance the day, remain circular, and keep controls aligned t
   expect(positions[2]).toBeLessThan(positions[3]);
   expect(positions[5]).toBeLessThan(positions[0]);
   await equip(page,'piano');
-  for (const viewport of [{width:393,height:851},{width:780,height:284},{width:1440,height:900}]) {
+  for (const viewport of [{width:851,height:393},{width:780,height:284},{width:1440,height:900}]) {
     await page.setViewportSize(viewport);
     await page.waitForTimeout(400);
     const sky = await control.boundingBox();
@@ -418,14 +420,14 @@ test('equipped autoplay uses normal selected phrases and manual input takes over
       return original.call(this,name,event,time);
     };
   });
-  const targets={piano:'Piano key C4',flute:'Flute note C4',marimba:'Marimba bar C5',melody:'Blow trumpet',guitar:'Guitar string 1 E2',drums:'Snare'};
+  const targets={piano:'Piano key C4',flute:'Blow flute',marimba:'Marimba bar C5',melody:'Blow trumpet',guitar:'Guitar string 1 E2',drums:'Snare'};
   for(const name of Object.keys(targets)){
     await equip(page,name);
     await page.evaluate(()=>window.autoEvents=[]);
-    const toggle=page.getByRole('switch',{name:'Autoplay equipped instrument'});
-    await expect(toggle).toHaveAttribute('aria-checked','false');
+    const toggle=page.locator(`#instrument-${name}`);
+    await expect(toggle).toHaveAttribute('aria-pressed','false');
     await toggle.click();
-    await expect(toggle).toHaveAttribute('aria-checked','true');
+    await expect(toggle).toHaveAttribute('aria-pressed','true');
     await expect.poll(()=>page.evaluate(()=>window.autoEvents.length)).toBeGreaterThan(0);
     await expect(page.locator('.autoplay-notes')).not.toBeEmpty();
     const events=await page.evaluate(()=>window.autoEvents);
@@ -434,12 +436,12 @@ test('equipped autoplay uses normal selected phrases and manual input takes over
     await page.screenshot({path:`test-results/${testInfo.project.name}-autoplay-${name}.png`});
     const target=page.getByRole('button',{name:targets[name],exact:true});
     await target.focus();await page.keyboard.down('Space');
-    await expect(toggle).toHaveAttribute('aria-checked','false');
+    await expect(toggle).toHaveAttribute('aria-pressed','false');
     expect(await page.evaluate(()=>window.audioEngine.manualAutoplay)).toBe(false);
     if(['piano','flute','melody'].includes(name))expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBeGreaterThan(0);
     await page.keyboard.up('Space');
-    await toggle.click();await expect(toggle).toHaveAttribute('aria-checked','true');
-    await toggle.click();await expect(toggle).toHaveAttribute('aria-checked','false');
+    await toggle.click();await expect(toggle).toHaveAttribute('aria-pressed','true');
+    await toggle.click();await expect(toggle).toHaveAttribute('aria-pressed','false');
     await page.getByRole('button',{name:'Put instrument down'}).click();
     expect(await page.evaluate(()=>window.audioEngine.manualAutoplay)).toBe(false);
   }
@@ -468,15 +470,15 @@ test('active instruments autoplay automatically on equip and stay manual after t
   await page.locator('#instrument-marimba').click();
   await expect(page.locator('#instrument-marimba')).toHaveAttribute('aria-pressed','true');
   await equip(page,'marimba');
-  const toggle=page.getByRole('switch',{name:'Autoplay equipped instrument'});
-  await expect(toggle).toHaveAttribute('aria-checked','true');
+  const toggle=page.locator('#instrument-marimba');
+  await expect(toggle).toHaveAttribute('aria-pressed','true');
   expect(await page.evaluate(()=>window.audioEngine.manualAutoplay)).toBe(true);
   await expect(page.locator('.autoplay-notes')).not.toBeEmpty();
   await page.getByRole('button',{name:'Marimba bar C5',exact:true}).click();
-  await expect(toggle).toHaveAttribute('aria-checked','false');
+  await expect(toggle).toHaveAttribute('aria-pressed','false');
   await page.waitForTimeout(3000);
   expect(await page.evaluate(()=>window.audioEngine.manualAutoplay)).toBe(false);
-  await toggle.click();await expect(toggle).toHaveAttribute('aria-checked','true');
+  await toggle.click();await expect(toggle).toHaveAttribute('aria-pressed','true');
   await page.getByRole('button',{name:'Put instrument down'}).click();
   expect(await page.evaluate(()=>window.audioEngine.active.marimba)).toBe(true);
   expect(await page.evaluate(()=>window.audioEngine.manualAutoplay)).toBe(false);
@@ -504,7 +506,7 @@ test('equipped autoplay shares the transport with other instruments and follows 
       return original.call(this,name,event,time);
     };
   });
-  const toggle=page.getByRole('switch',{name:'Autoplay equipped instrument'});
+  const toggle=page.locator('#instrument-piano');
   await toggle.click();
   await expect.poll(()=>page.evaluate(()=>window.phraseChecks.length)).toBeGreaterThan(0);
   expect(await soundLevel(page,'piano')).toBeGreaterThan(.0001);
@@ -515,7 +517,7 @@ test('equipped autoplay shares the transport with other instruments and follows 
   const checks=await page.evaluate(()=>window.phraseChecks);
   for(const check of checks)expect(check.expected).toContainEqual(check.event);
   await page.getByRole('button',{name:'Piano key C4',exact:true}).click();
-  await expect(toggle).toHaveAttribute('aria-checked','false');
+  await expect(toggle).toHaveAttribute('aria-pressed','false');
   expect(await page.evaluate(()=>window.audioEngine.active.drums)).toBe(true);
   expect(await soundLevel(page,'drums',1.4)).toBeGreaterThan(.0001);
 });

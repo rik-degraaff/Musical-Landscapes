@@ -32,6 +32,15 @@ export function guitarInputs(notes) {
   return best??[];
 }
 
+export function matchingGuitarChord(notes, chords) {
+  const pitches=[...new Set(notes.map(note=>noteMidi(note)%12))];
+  if(pitches.length<2)return null;
+  return Object.keys(chords).filter(name=>name!=='Open').find(name=>{
+    const chordPitches=new Set(chords[name].filter(Boolean).map(note=>noteMidi(note)%12));
+    return pitches.every(pitch=>chordPitches.has(pitch));
+  })??null;
+}
+
 const pitchClasses = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
 export function trumpetInput(note) {

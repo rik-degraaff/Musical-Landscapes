@@ -24,7 +24,7 @@ export class AudioEngine {
     this.root = 'C';
     this.sceneVolume = -4;
     this.manualInstrument = null;
-    this.manualAutoplay = false;
+    this.onActiveChange = null;
     this.manualAutoplayVersion = 0;
     this.onManualAutoplayEvent = null;
     this.manualVoices = new Map();
@@ -136,7 +136,13 @@ export class AudioEngine {
     if (!this.ready || !this.nodes[name]) return;
     Tone.start().catch(console.error);
     const transportWasPlaying = Tone.Transport.state === 'started' && this.barIndex > 0;
+    if (this.active[name] === active) return;
     this.active[name] = active;
+    this.onActiveChange?.(name, active);
+    if (name === this.manualInstrument) {
+      this.manualAutoplayVersion++;
+      this.onManualAutoplayEvent?.(null);
+    }
     const node = this.nodes[name];
     node.gain.volume.rampTo(active || this.manualInstrument === name ? this.volumes[name] : MIN_GAIN, FADE_SECONDS);
     if (!active) {
@@ -144,23 +150,23 @@ export class AudioEngine {
       node.synth.releaseAll();
     }
     this.ensureTransport();
-    if (active && transportWasPlaying && this.manualInstrument !== name) this.playPickup(name);
+    if (active && transportWasPlaying) this.playPickup(name);
   }
 
   setManualInstrument(name) {
     if (!this.ready || name === this.manualInstrument) return;
-    this.setManualAutoplay(false);
     this.stopManualVoices();
     const previous = this.manualInstrument;
     this.manualInstrument = name;
     if (previous) this.nodes[previous].gain.volume.rampTo(this.active[previous] ? this.volumes[previous] : MIN_GAIN, FADE_SECONDS);
     if (name) {
-      this.clearPendingEvents(name);
-      this.nodes[name].synth.releaseAll();
       this.nodes[name].gain.volume.rampTo(this.volumes[name], FADE_SECONDS);
     }
-    if (name && this.active[name]) this.setManualAutoplay(true);
     this.ensureTransport();
+  }
+
+  get manualAutoplay() {
+    return Boolean(this.manualInstrument && this.active[this.manualInstrument]);
   }
 
   manualNoteOn(note, token, velocity = 0.65) {
@@ -168,6 +174,14 @@ export class AudioEngine {
     const name = this.manualInstrument;
     if (!this.ready || !name) return;
     Tone.start().catch(console.error);
+    if (name === 'flute' || name === 'melody') {
+      const current=this.manualVoices.get(token);
+      if(current?.note===note) {
+        current.envelope.gain.setTargetAtTime(velocity,Tone.getContext().rawContext.currentTime,.025);
+        return;
+      }
+      for(const owner of [...this.manualVoices.keys()])this.manualNoteOff(owner,true);
+    }
     this.manualNoteOff(token, true);
     if (name === 'drums') {
       this.playEvent(name, { note, velocity }, Tone.immediate() + 0.015);
@@ -245,7 +259,7 @@ export class AudioEngine {
 
   ensureTransport() {
     if (!this.ready) return;
-    const anyActive = this.manualAutoplay || Object.entries(this.active).some(([name, active]) => active && name !== this.manualInstrument);
+    const anyActive = Object.values(this.active).some(Boolean);
     if (!anyActive) {
       this.clearPendingEvents();
       Tone.Transport.stop();
@@ -268,25 +282,14 @@ export class AudioEngine {
   }
 
   setManualAutoplay(enabled) {
-    const next = Boolean(enabled && this.manualInstrument && this.ready);
-    if (next === this.manualAutoplay) return;
-    this.manualAutoplay = next;
-    this.manualAutoplayVersion++;
     const name = this.manualInstrument;
-    if (name) {
-      this.clearPendingEvents(name);
-      this.nodes[name].synth.releaseAll();
-    }
-    this.onManualAutoplayEvent?.(null);
-    if (next) {
-      this.stopManualVoices();
-      Tone.start().catch(console.error);
-    }
-    this.ensureTransport();
+    if (!name) return;
+    if (enabled) this.stopManualVoices();
+    this.setInstrumentActive(name, Boolean(enabled));
   }
 
   shouldSchedule(name) {
-    return name === this.manualInstrument ? this.manualAutoplay : this.active[name];
+    return this.active[name];
   }
 
   scheduleBar(time) {
@@ -374,7 +377,7 @@ export class AudioEngine {
   }
 
   dispose() {
-    this.manualAutoplay = false;
+    this.onActiveChange = null;
     this.manualAutoplayVersion++;
     this.onManualAutoplayEvent = null;
     this.stopManualVoices();

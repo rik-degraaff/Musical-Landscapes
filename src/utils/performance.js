@@ -2,9 +2,9 @@ const pitches = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 export function midiNote(value) {
   return `${pitches[value % 12]}${Math.floor(value / 12) - 1}`;
 }
-export const PIANO_NOTES = Array.from({ length: 17 }, (_, index) => midiNote(60 + index));
-export const FLUTE_NOTES = Array.from({ length: 13 }, (_, index) => midiNote(60 + index));
-export const MARIMBA_NOTES = Array.from({ length: 13 }, (_, index) => midiNote(72 + index));
+export const PIANO_NOTES = Array.from({ length: 34 }, (_, index) => midiNote(48 + index));
+export const FLUTE_NOTES = Array.from({ length: 26 }, (_, index) => midiNote(60 + index));
+export const MARIMBA_NOTES = Array.from({ length: 22 }, (_, index) => midiNote(72 + index));
 export const GUITAR_CHORDS = {
   Open: ['E2','A2','D3','G3','B3','E4'],
   C: [null,'C3','E3','G3','C4','E4'],
@@ -13,10 +13,23 @@ export const GUITAR_CHORDS = {
   F: ['F2','C3','F3','A3','C4','F4'],
 };
 const valveOffsets = [0, -2, -1, -3, -3, -5, -4, -6];
-export const TRUMPET_REGISTERS = ['C4','G4','C5','E5','G5','C6','E6'];
+export const TRUMPET_REGISTERS = ['C4','G4','C5','E5','G5','C6'];
 export function trumpetNote(valves, partial) {
   const mask = valves.reduce((value, pressed, index) => value | (pressed ? 1 << index : 0), 0);
-  return midiNote([60,67,72,76,79,84,88][partial] + valveOffsets[mask]);
+  return midiNote([60,67,72,76,79,84][partial] + valveOffsets[mask]);
+}
+
+export function guitarChords(root) {
+  const shift=pitches.indexOf(root);
+  return Object.fromEntries(Object.entries(GUITAR_CHORDS).map(([name,notes])=>{
+    const match=/^([A-G])([m]?)$/.exec(name);
+    const label=match?`${pitches[(pitches.indexOf(match[1])+shift)%12]}${match[2]}`:name;
+    return [label,notes.map(note=>{
+      if(!note||name==='Open')return note;
+      const parts=/^([A-G]#?)(\d+)$/.exec(note);
+      return midiNote(pitches.indexOf(parts[1])+(Number(parts[2])+1)*12+shift);
+    })];
+  }));
 }
 
 export function slidePosition(point, size, obstacles, bounds, gap = 10) {

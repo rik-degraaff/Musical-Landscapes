@@ -4,7 +4,13 @@ A touch-first React/Vite music toy for small children. Instruments can be dragge
 
 FarmJam suppresses in-page context menus, selection, native dragging, pinch zoom, and page scrolling while preserving multi-finger instrument playing. Browser chrome and operating-system gestures cannot be intercepted by a web app. The mixer remains scrollable with a mouse wheel.
 
-Equipped instruments have an autoplay switch. Already-active instruments start autoplay automatically when equipped; inactive instruments start in manual mode. Autoplay uses the same transport, noise-selected phrases, scene-key transposition, timing, and velocities as an active unequipped instrument. Keys, drum pads, trumpet registers/valves/breath, and guitar strings light up with the actual notes. Guitar fret values and an expanded keyboard range allow the demonstrated notes to be replayed manually. Interacting with the equipped instrument stops autoplay until the switch is enabled again. Brief hits fade over 420 ms so fast marimba strikes and swipes remain visible.
+Equipped and unequipped instruments use the same active playback state. Tap an instrument to toggle music, including while it is equipped. Playing its manual controls stops that instrument's automatic phrase; tap its drawing to resume. Equipping or putting down an active instrument preserves sounding notes, queued events, and the transport position. Putting down a playing instrument leaves it active.
+
+All controls are ready to display phrase playback before music starts. Piano always shows C3-A5 (34 chromatic notes), marimba C5-A6 (22), and flute C4-C#6 (26); these bounded ranges cover all authored phrases in every scene key. Guitar chord buttons and voicings follow the scene key immediately; open strings retain standard tuning. Playback displays chord names where applicable, string/fret positions, note keys, drum pads, and wind controls. Brief hits fade over 420 ms.
+
+Flute is monophonic: select a fingering preset, then hold its breath control; changing presets while blowing crossfades to the new sampled pitch. These are simplified fingering presets, not a full Boehm key-mechanism simulator. Trumpet uses three valves and six concert-pitch harmonic registers (C4, G4, C5, E5, G5, C6), matching the sample pitches rather than written B-flat trumpet notation. Both winds have adjustable breath strength, sustain loops, and release on breath-up. Strength changes do not restart the sample attack; wind note changes crossfade without allowing chords.
+
+Gameplay is landscape-only. The installed PWA declares landscape orientation, and the app requests a Screen Orientation lock. Browsers that require fullscreen can use the portrait-screen rotation button to request fullscreen and retry the lock. Some browsers, including iOS Safari, do not permit web apps to force device orientation; there the rotate-device guard blocks portrait gameplay until the device is turned.
 
 ## Run
 

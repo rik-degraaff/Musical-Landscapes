@@ -10,6 +10,7 @@ import { YoungMusician } from './components/YoungMusician';
 import { PerformancePanel } from './components/PerformancePanel';
 import { slidePosition } from './utils/performance';
 import './components/controls.css';
+import { LandscapeGuard, requestLandscape } from './components/LandscapeGuard';
 
 const initialInstruments = Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,v])=>[name,{...v,active:false}]));
 
@@ -37,11 +38,16 @@ export default function App() {
 
   async function start() {
     if(startInProgress.current) return;
+    requestLandscape();
     startInProgress.current=true;
     setLoading(true); setError(null);
     try {
       if(!audioRef.current) {
         audioRef.current = new AudioEngine();
+        audioRef.current.onActiveChange=(name,active)=>{
+          const next={...stateRef.current,[name]:{...stateRef.current[name],active}};
+          stateRef.current=next;setInstruments(next);
+        };
       }
       await audioRef.current.init();
       audioRef.current.setSceneKey(SCENES[sceneIndex].root);
@@ -53,7 +59,6 @@ export default function App() {
 
   function toggle(name) {
     if(!started) return;
-    if(equippedRef.current===name) return;
     const next = !stateRef.current[name].active;
     const nextState = {...stateRef.current,[name]:{...stateRef.current[name],active:next}};
     stateRef.current=nextState; setInstruments(nextState);
@@ -195,8 +200,9 @@ export default function App() {
 
     {started && mixer && <Mixer instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
 
-    {equipped&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} onClose={()=>equip(null)}/>}
+    {equipped&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={SCENES[sceneIndex].root} onClose={()=>equip(null)}/>}
 
     {!started && <StartScreen loading={loading} error={error} onStart={start}/>}
+    <LandscapeGuard/>
   </main>;
 }

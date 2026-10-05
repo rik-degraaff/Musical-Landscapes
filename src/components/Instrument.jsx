@@ -26,7 +26,7 @@ export function Instrument({
       tabIndex={0}
       aria-label={label}
       aria-pressed={active}
-      title={equipped?'Drag away to put down':label}
+      title={equipped?'Tap to toggle music; drag away to put down':label}
       onKeyDown={event => {
         if(!event.repeat&&event.key.toLowerCase()==='e'){event.preventDefault();onEquip();return;}
         if (!event.repeat && (event.key === 'Enter' || event.key === ' ')) {
