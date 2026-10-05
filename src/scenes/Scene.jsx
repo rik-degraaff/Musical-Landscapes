@@ -43,14 +43,14 @@ export function InteractiveObject({ sound, audio, label, className='' }) {
   </button>;
 }
 
-export function Scene({ sceneIndex, audio, onRotate }) {
+export function Scene({ sceneIndex, audio, onRotate, onCelestialSettled }) {
   const sceneRef = useRef(null);
   const advanceRef = useRef(onRotate);
   const lastPointerAdvance = useRef(null);
   advanceRef.current = onRotate;
   const scene = SCENES[sceneIndex];
   const SceneComponent = scene.component;
-  const phase = useCelestialPhase(scene.id);
+  const {phase,settled} = useCelestialPhase(scene.id,onCelestialSettled);
   const sceneAudio = { playSceneSound: (type) => audio?.playSceneSound(type) };
   useEffect(() => {
     function handleCelestialTap(event) {
@@ -92,6 +92,6 @@ export function Scene({ sceneIndex, audio, onRotate }) {
   return <div ref={sceneRef} className={`scene scene-${scene.id}`}>
     <LandscapeArt key={scene.id} scene={scene.id} phase={phase} />
     <SceneComponent key={`${scene.id}-objects`} audio={sceneAudio} />
-    <CelestialControl scene={scene.id} phase={phase} />
+    <CelestialControl scene={scene.id} phase={phase} settled={settled} />
   </div>;
 }

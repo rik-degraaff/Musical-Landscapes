@@ -161,7 +161,7 @@ export default function App() {
     const artSize=node=>{const art=node.querySelector('.instrument-illustration')?.getBoundingClientRect();return art?.width?{width:art.width,height:art.height}:null;};
     const size=artSize(element)??rect;
     const insetX=(rect.width-size.width)/2,insetY=(rect.height-size.height)/2;
-    const others=[...worldRef.current.querySelectorAll('.instrument,.interactive-object,#young-musician,.celestial-control'),...document.querySelectorAll('.mixer-button')];
+    const others=[...worldRef.current.querySelectorAll('.instrument,.interactive-object,#young-musician,.celestial-control[data-settled="true"]'),...document.querySelectorAll('.mixer-button')];
     const obstacles=others.filter(other=>other!==element).map(other=>{
       const bounds=other.getBoundingClientRect();
       const peer=other.id.startsWith('instrument-')?stateRef.current[other.id.slice(11)]:null;
@@ -186,7 +186,7 @@ export default function App() {
 
   return <main className={`app-shell ${equipped?'manual-open':''}`}>
     <div className="landscape-world" ref={worldRef}>
-    <Scene sceneIndex={sceneIndex} audio={audioRef.current} onRotate={rotateScene}/>
+    <Scene sceneIndex={sceneIndex} audio={audioRef.current} onRotate={rotateScene} onCelestialSettled={()=>{if(started)for(const name of Object.keys(INSTRUMENTS))settle(name);}}/>
     {started&&<YoungMusician equipped={equipped?INSTRUMENTS[equipped].label:null} accepting={nearChild}/>}
     <div className="instrument-layer">
       {Object.entries(instruments).map(([name,i])=><Instrument key={name} name={name} label={i.label} x={i.x} y={i.y} active={i.active} equipped={equipped===name} sliding={dragging!==name} onEquip={()=>equip(name)} onToggle={toggle}

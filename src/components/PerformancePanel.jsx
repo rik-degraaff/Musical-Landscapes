@@ -1,20 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUpFromLine, Wind } from 'lucide-react';
+import { ArrowUpFromLine } from 'lucide-react';
 import { INSTRUMENTS } from '../utils/music';
-import { PIANO_NOTES, FLUTE_NOTES, MARIMBA_NOTES, trumpetNote } from '../utils/performance';
+import { PIANO_NOTES, MARIMBA_NOTES } from '../utils/performance';
 import './performance.css';
 import { useSwipeNotes } from './useSwipeNotes';
 import { flashInput } from './inputFeedback';
-import { guitarInputs, noteMidi, trumpetInput, matchingGuitarChord } from '../utils/autoplay';
-import { midiNote, TRUMPET_REGISTERS, guitarChords } from '../utils/performance';
+import { guitarInputs, noteMidi, matchingGuitarChord } from '../utils/autoplay';
+import { midiNote, guitarChords } from '../utils/performance';
+import {Flute as KeyFlute,Trumpet as LipTrumpet} from './WindControls';
 
-function PressControl({ label, className='', onPress, onRelease=()=>{}, children, style, swipeNote }) {
+function PressControl({ label, className='', onPress, onRelease=()=>{}, children, style, swipeNote, demoPressed=false }) {
   const owners=useRef(new Set());
   const [pressed,setPressed]=useState(false);
   const buttonRef=useRef(null);
   function down(token) { if(owners.current.has(token))return;flashInput(buttonRef.current); owners.current.add(token);setPressed(true);onPress(token); }
   function up(token) { if(!owners.current.delete(token))return;onRelease(token);setPressed(owners.current.size>0); }
-  return <button ref={buttonRef} type="button" aria-label={label} aria-pressed={pressed} data-swipe-note={swipeNote} className={`${className} ${pressed?'pressed':''}`} style={style}
+  return <button ref={buttonRef} type="button" aria-label={label} aria-pressed={pressed||demoPressed} data-swipe-note={swipeNote} className={`${className} ${pressed||demoPressed?'pressed':''}`} style={style}
     onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();if(swipeNote!==undefined)return;event.currentTarget.setPointerCapture(event.pointerId);down(`pointer-${event.pointerId}`);}}
     onPointerUp={event=>up(`pointer-${event.pointerId}`)} onPointerCancel={event=>up(`pointer-${event.pointerId}`)} onLostPointerCapture={event=>up(`pointer-${event.pointerId}`)}
     onKeyDown={event=>{if(!event.repeat&&['Enter',' '].includes(event.key)){event.preventDefault();down(`key-${event.key}`);}}}
@@ -35,49 +36,6 @@ function Keyboard({ audio, notes, kind }) {
         onPress={token=>kind==='marimba'?audio.manualStrike(note,`${note}-${token}`):audio.manualNoteOn(note,`${note}-${token}`)}
         onRelease={token=>{if(kind!=='marimba')audio.manualNoteOff(`${note}-${token}`);}}><span>{note}</span>{kind==='marimba'&&<i className="bar-bolt"/>}</PressControl>;
     })}
-  </div>;
-}
-
-function Flute({audio,cue}) {
-  const selected=useRef('C4');
-  const breath=useRef(new Set());
-  const strength=useRef(.6);
-  const [note,setNote]=useState('C4');
-  const [pressure,setPressure]=useState(.6);
-  useEffect(()=>{if(cue?.note){selected.current=cue.note;setNote(cue.note);}},[cue]);
-  function update() {
-    if(breath.current.size)audio.manualNoteOn(selected.current,'flute-breath',strength.current);
-    else audio.manualNoteOff('flute-breath');
-  }
-  return <div className="manual-flute">
-    <div className="flute-breath-controls"><PressControl label="Blow flute" className="flute-breath" onPress={token=>{breath.current.add(token);update();}} onRelease={token=>{breath.current.delete(token);update();}}><Wind size={26}/></PressControl><label>Breath<input type="range" aria-label="Flute breath strength" min="0.2" max="0.9" step="0.01" value={pressure} onChange={event=>{strength.current=Number(event.target.value);setPressure(strength.current);update();}}/></label><output>{cue?.note??note}</output></div>
-    <div className="flute-fingerings" role="group" aria-label="Flute fingering presets">{FLUTE_NOTES.map(value=><button key={value} className="flute-note" aria-label={`Flute fingering ${value}`} aria-pressed={value===note} onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();selected.current=value;setNote(value);update();}} onKeyDown={event=>{if(!event.repeat&&[' ','Enter'].includes(event.key)){event.preventDefault();selected.current=value;setNote(value);update();}}}>{value}</button>)}</div>
-  </div>;
-}
-
-function Trumpet({ audio, cue }) {
-  const valves=useRef([new Set(),new Set(),new Set()]);
-  const breath=useRef(new Set());
-  const register=useRef(0);
-  const [fingering,setFingering]=useState([false,false,false]);
-  const [partial,setPartial]=useState(0);
-  const strength=useRef(.6);
-  const [pressure,setPressure]=useState(.6);
-  const demo=cue?.note?trumpetInput(cue.note):null;
-  useEffect(()=>{if(cue?.note){const input=trumpetInput(cue.note);if(input){register.current=input.partial;setPartial(input.partial);}}},[cue]);
-  function update() {
-    const pressed=valves.current.map(owners=>owners.size>0);setFingering(pressed);
-    if(breath.current.size)audio.manualNoteOn(trumpetNote(pressed,register.current),'trumpet-breath',strength.current);
-    else audio.manualNoteOff('trumpet-breath');
-  }
-  return <div className="manual-trumpet">
-    <svg className="trumpet-body-art" viewBox="0 0 900 190" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="manual-brass" x2="0" y2="1"><stop stopColor="#fff2a5"/><stop offset=".5" stopColor="#dfb550"/><stop offset="1" stopColor="#a87e32"/></linearGradient></defs><path d="M58 110H620q65 0 120-63v117q-55-43-120-43H58Z" fill="url(#manual-brass)" stroke="#a37c34" strokeWidth="5"/><ellipse cx="740" cy="105" rx="30" ry="61" fill="#7d6136" stroke="#f4d775" strokeWidth="9"/><path d="M250 110v48h350q40 0 40-38" stroke="#e9c76e" strokeWidth="17" fill="none"/><path d="M65 102H23v28h42" fill="#bdc6bf" stroke="#89958d" strokeWidth="4"/></svg>
-    <div className="trumpet-register" role="group" aria-label="Trumpet register">{TRUMPET_REGISTERS.map((note,index)=><button key={note} aria-pressed={partial===index} onClick={()=>{register.current=index;setPartial(index);update();}}>{note}</button>)}</div>
-    <div className="trumpet-valve-controls">{[0,1,2].map(index=><PressControl key={index} label={`Trumpet valve ${index+1}`} className="valve-control" onPress={token=>{valves.current[index].add(token);update();}} onRelease={token=>{valves.current[index].delete(token);update();}}><span>{index+1}</span><i/></PressControl>)}</div>
-    <PressControl label="Blow trumpet" className="trumpet-breath" onPress={token=>{breath.current.add(token);update();}} onRelease={token=>{breath.current.delete(token);update();}}><Wind size={28}/></PressControl>
-    <output className="trumpet-pitch" aria-live="polite">{cue?.note??trumpetNote(fingering,partial)}</output>
-    <label className="trumpet-pressure">Breath<input type="range" aria-label="Trumpet breath strength" min="0.2" max="0.9" step="0.01" value={pressure} onChange={event=>{strength.current=Number(event.target.value);setPressure(strength.current);update();}}/></label>
-    {demo&&<output className="fingering-cue">{demo.label}</output>}
   </div>;
 }
 
@@ -128,16 +86,17 @@ export function PerformancePanel({ name, audio, root, onClose }) {
   const [autoplay,setAutoplay]=useState(()=>audio.manualAutoplay);
   const [cue,setCue]=useState(null);
   const panelRef=useRef(null);
+  const cueTimer=useRef(null);
   function stopAutoplay() { audio.setManualAutoplay(false);setAutoplay(false);setCue(null); }
   useEffect(()=>{
-    audio.onManualAutoplayEvent=event=>{setCue(event);if(!event)setAutoplay(audio.manualAutoplay);};
+    audio.onManualAutoplayEvent=event=>{window.clearTimeout(cueTimer.current);setCue(event);setAutoplay(audio.manualAutoplay);if(event)cueTimer.current=window.setTimeout(()=>setCue(null),Math.max(30,event.duration*1000));};
     const cancel=event=>{
       const surface=panelRef.current?.querySelector('.performance-surface');
       if(surface?.contains(event.target)) stopAutoplay();
     };
     window.addEventListener('pointerdown',cancel,true);
     window.addEventListener('keydown',cancel,true);
-    return ()=>{audio.onManualAutoplayEvent=null;window.removeEventListener('pointerdown',cancel,true);window.removeEventListener('keydown',cancel,true);};
+    return ()=>{window.clearTimeout(cueTimer.current);audio.onManualAutoplayEvent=null;window.removeEventListener('pointerdown',cancel,true);window.removeEventListener('keydown',cancel,true);};
   },[audio]);
   useEffect(()=>{
     if(!panelRef.current)return;
@@ -146,21 +105,8 @@ export function PerformancePanel({ name, audio, root, onClose }) {
       return;
     }
     const notes=cue.notes??[cue.note];
-    if(name==='flute') {
-      const fingering=[...panelRef.current.querySelectorAll('.flute-note')].find(button=>button.getAttribute('aria-label')===`Flute fingering ${cue.note}`);
-      flashInput(fingering,cue.duration*1000,'autoplay-hit');
-      flashInput(panelRef.current.querySelector('.flute-breath'),cue.duration*1000,'autoplay-hit');
-    }
     for(const button of panelRef.current.querySelectorAll('.note-key,.drum-pad')) {
-      if(notes.some(note=>button.getAttribute('aria-label')?.endsWith(` ${note}`))||button.classList.contains(`pad-${cue.note}`))flashInput(button,['piano','flute'].includes(name)?cue.duration*1000:0,'autoplay-hit');
-    }
-    if(name==='melody') {
-      const input=trumpetInput(cue.note);
-      if(input) {
-        flashInput(panelRef.current.querySelectorAll('.trumpet-register button')[input.partial],cue.duration*1000,'autoplay-hit');
-        input.valves?.forEach((value,index)=>{if(value)flashInput(panelRef.current.querySelectorAll('.valve-control')[index],cue.duration*1000,'autoplay-hit');});
-        flashInput(panelRef.current.querySelector('.trumpet-breath'),cue.duration*1000,'autoplay-hit');
-      }
+      if(notes.some(note=>button.getAttribute('aria-label')?.endsWith(` ${note}`))||button.classList.contains(`pad-${cue.note}`))flashInput(button,name==='piano'?cue.duration*1000:0,'autoplay-hit');
     }
     if(name==='guitar')guitarInputs(notes).forEach(input=>flashInput(panelRef.current.querySelectorAll('.playable-string')[input.string],0,'autoplay-hit'));
   },[cue,name]);
@@ -173,9 +119,9 @@ export function PerformancePanel({ name, audio, root, onClose }) {
     <header><h2>{INSTRUMENTS[name].label}</h2><output className="autoplay-notes">{autoplay?(cue?.notes??(cue?.note?[cue.note]:[])).join(' + '):''}</output><button className="return-instrument" aria-label="Put instrument down" title="Put instrument down" onClick={onClose}><ArrowUpFromLine size={20}/></button></header>
     <div className="performance-surface">
       {name==='piano'&&<Keyboard audio={audio} notes={PIANO_NOTES} kind="piano" autoplay={autoplay}/>}
-      {name==='flute'&&<Flute audio={audio} cue={cue}/>}
+      {name==='flute'&&<KeyFlute audio={audio} cue={cue} PressControl={PressControl}/>}
       {name==='marimba'&&<Keyboard audio={audio} notes={MARIMBA_NOTES} kind="marimba" autoplay={autoplay}/>}
-      {name==='melody'&&<Trumpet audio={audio} cue={cue}/>}
+      {name==='melody'&&<LipTrumpet audio={audio} cue={cue} PressControl={PressControl}/>}
       {name==='guitar'&&<Guitar audio={audio} cue={cue} root={root}/>}
       {name==='drums'&&<Drums audio={audio}/>}
     </div>

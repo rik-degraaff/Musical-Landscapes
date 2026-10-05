@@ -66,9 +66,9 @@ test('piano chords release and wind notes sustain while the world continues',asy
   await expect(page.locator('.scene-garden')).toHaveCount(1);
   await page.getByRole('button',{name:'Put instrument down'}).click();
   await equip(page,'flute');
-  const note=page.getByRole('button',{name:'Blow flute',exact:true});
+  const note=page.getByRole('button',{name:'Flute key D-sharp pinky',exact:true});
   await note.focus();await page.keyboard.down('Space');await page.waitForTimeout(3400);
-  expect(await page.evaluate(()=>[...window.audioEngine.manualVoices.values()][0].source.loop)).toBe(true);
+  expect(await page.evaluate(()=>({note:window.audioEngine.manualVoices.get('flute-keys')?.note,loop:window.audioEngine.manualVoices.get('flute-keys')?.source.loop}))).toEqual({note:'C#5',loop:true});
   await page.keyboard.up('Space');
   expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBe(0);
   expect(errors).toEqual([]);
@@ -188,10 +188,13 @@ test('dusk cricket and airplane remain playable with an equipped instrument',asy
   await page.keyboard.down('Space');expect(await soundLevel(page,'piano')).toBeGreaterThan(.001);await page.keyboard.up('Space');
   await page.screenshot({path:`test-results/${testInfo.project.name}-dusk-manual.png`});
   await page.getByRole('button',{name:'Put instrument down'}).click();
+  await expect(page.locator('.celestial-control')).toHaveAttribute('data-settled','true');
   await page.getByRole('button',{name:'Change landscape'}).click({force:true});
   await expect(page.locator('.scene-night')).toBeVisible();
+  await expect(page.locator('.celestial-control')).toHaveAttribute('data-settled','true');
   await page.getByRole('button',{name:'Change landscape'}).click({force:true});
   await expect(page.locator('.scene-dawn')).toBeVisible();
+  await expect(page.locator('.celestial-control')).toHaveAttribute('data-settled','true');
   await page.getByRole('button',{name:'Change landscape'}).click({force:true});
   await expect(page.locator('.scene-farm')).toBeVisible();
   expect(errors).toEqual([]);
@@ -225,29 +228,43 @@ test('multitouch guitar chords and crossing all strings play their correct notes
   expect(errors).toEqual([]);
 });
 
-test('trumpet valves and five registers change a held breath across the playable range',async({page})=>{
+test('trumpet six harmonic columns and valves change held lips across the playable range',async({page},testInfo)=>{
   const errors=await start(page);await equip(page,'melody');
   const session=await page.context().newCDPSession(page);
-  const breath=await page.getByRole('button',{name:'Blow trumpet',exact:true}).boundingBox();
-  const held={id:1,x:breath.x+breath.width/2,y:breath.y+breath.height/2};
+  const slider=page.getByRole('slider',{name:'Trumpet embouchure',exact:true});
+  const bounds=await slider.boundingBox();
+  const registers=['C4','G4','C5','E5','G5','C6'];
+  await expect(slider.locator('.lip-segment')).toHaveText(registers);
+  let held={id:1,x:bounds.x+bounds.width*.5/6,y:bounds.y+bounds.height/2};
   const valveRects=await Promise.all([1,2,3].map(index=>page.getByRole('button',{name:`Trumpet valve ${index}`,exact:true}).boundingBox()));
   await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[held]});
-  for(const register of ['C4','G4','C5','E5','G5']){
-    await page.getByRole('group',{name:'Trumpet register'}).getByRole('button',{name:register,exact:true}).click();
+  for(const [partial,register] of registers.entries()){
+    held={...held,x:bounds.x+bounds.width*(partial+.5)/6};
+    await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[held]});
+    await expect(slider).toHaveAttribute('aria-valuetext',register);
+    expect(await page.evaluate(()=>window.audioEngine.manualVoices.get('trumpet-lips')?.note)).toBe(register);
     for(let mask=0;mask<8;mask++){
-      await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-      const touchPoints=[held,...valveRects.flatMap((rect,index)=>mask&(1<<index)?[{id:index+2,x:rect.x+rect.width/2,y:rect.y+rect.height*.2}]:[])];
-      await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints});
-      const expected=await page.evaluate(async({mask,register})=>{
-        const {trumpetNote}=await import('/src/utils/performance.js');return trumpetNote([0,1,2].map(index=>Boolean(mask&(1<<index))),['C4','G4','C5','E5','G5'].indexOf(register));
-      },{mask,register});
+      const fingers=valveRects.flatMap((rect,index)=>mask&(1<<index)?[{id:index+2,x:rect.x+rect.width/2,y:rect.y+rect.height/2}]:[]);
+      if(fingers.length)await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[held,...fingers]});
+      const expected=await page.evaluate(async({mask,partial})=>{
+        const {trumpetNote}=await import('/src/utils/performance.js');return trumpetNote([0,1,2].map(index=>Boolean(mask&(1<<index))),partial);
+      },{mask,partial});
       await expect(page.locator('.trumpet-pitch')).toHaveText(expected);
-      expect(await page.evaluate(()=>window.audioEngine.manualVoices.get('trumpet-breath').note)).toBe(expected);
+      expect(await page.evaluate(()=>({size:window.audioEngine.manualVoices.size,note:window.audioEngine.manualVoices.get('trumpet-lips')?.note}))).toEqual({size:1,note:expected});
+      if(fingers.length)await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:fingers});
+      expect(await page.evaluate(()=>window.audioEngine.manualVoices.get('trumpet-lips')?.note)).toBe(register);
     }
   }
   expect(await soundLevel(page,'melody')).toBeGreaterThan(.001);
+  await page.screenshot({path:`test-results/${testInfo.project.name}-trumpet-harmonic-columns.png`});
   await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBe(0);
+  await expect(page.locator('.lip-indicator')).toHaveCount(0);
+  for(let index=0;index<registers.length;index++){
+    const column=await slider.locator('.lip-segment').nth(index).boundingBox();
+    expect(Math.abs(column.x+column.width/2-(bounds.x+bounds.width*(index+.5)/6))).toBeLessThan(2);
+    expect(Math.abs(column.width-bounds.width/6)).toBeLessThan(2);
+  }
   expect(errors).toEqual([]);
 });
 
@@ -420,7 +437,7 @@ test('equipped autoplay uses normal selected phrases and manual input takes over
       return original.call(this,name,event,time);
     };
   });
-  const targets={piano:'Piano key C4',flute:'Blow flute',marimba:'Marimba bar C5',melody:'Blow trumpet',guitar:'Guitar string 1 E2',drums:'Snare'};
+  const targets={piano:'Piano key C4',flute:'Flute key D-sharp pinky',marimba:'Marimba bar C5',melody:'Trumpet embouchure',guitar:'Guitar string 1 E2',drums:'Snare'};
   for(const name of Object.keys(targets)){
     await equip(page,name);
     await page.evaluate(()=>window.autoEvents=[]);
@@ -433,12 +450,23 @@ test('equipped autoplay uses normal selected phrases and manual input takes over
     const events=await page.evaluate(()=>window.autoEvents);
     for(const played of events)expect(played.expected).toContainEqual(played.event);
     expect(await page.evaluate(()=>window.audioEngine.manualAutoplay)).toBe(true);
+    if(name==='melody'){
+      const positions=new Set();
+      await expect.poll(async()=>{
+        const position=await page.locator('.lip-indicator.is-demo').evaluateAll(indicators=>indicators[0]?.style.left);
+        if(position)positions.add(position);
+        return positions.size;
+      },{timeout:15000}).toBeGreaterThan(1);
+      await expect.poll(()=>page.locator('.valve-control.pressed').count(),{timeout:15000}).toBeGreaterThan(0);
+      expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBe(0);
+    }
     await page.screenshot({path:`test-results/${testInfo.project.name}-autoplay-${name}.png`});
-    const target=page.getByRole('button',{name:targets[name],exact:true});
+    const target=page.getByRole(name==='melody'?'slider':'button',{name:targets[name],exact:true});
     await target.focus();await page.keyboard.down('Space');
     await expect(toggle).toHaveAttribute('aria-pressed','false');
     expect(await page.evaluate(()=>window.audioEngine.manualAutoplay)).toBe(false);
     if(['piano','flute','melody'].includes(name))expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBeGreaterThan(0);
+    if(name==='melody')await expect(page.locator('.lip-indicator.is-demo')).toHaveCount(0);
     await page.keyboard.up('Space');
     await toggle.click();await expect(toggle).toHaveAttribute('aria-pressed','true');
     await toggle.click();await expect(toggle).toHaveAttribute('aria-pressed','false');

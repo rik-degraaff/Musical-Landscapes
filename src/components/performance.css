@@ -17,22 +17,39 @@
 .guitar-string-row input { width:38px;min-width:38px;font:inherit;font-size:11px;border:0;background:#f0d4a8;z-index:2; }
 .guitar-string-row .playable-string { flex:1;min-width:0; }
 .manual-guitar .guitar-stringboard { border-radius:8px; }
-.fingering-cue { position:absolute;left:25%;bottom:0;display:flex;gap:4px;align-items:center;font-size:11px; }
-.manual-flute { height:100%;display:grid;grid-template-columns:150px 1fr;gap:20px; }
-.flute-breath-controls { display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:0; }
-.flute-breath { width:70px;height:64px;border:2px solid #739d91;border-radius:8px;background:#dae9e2;color:#446257;display:grid;place-items:center; }
-.flute-breath.pressed { background:#ebd294; }
-.flute-breath-controls label { font-size:12px;max-width:100%; }
-.flute-breath-controls input { width:100%;accent-color:#648777; }
-.flute-fingerings { display:grid;grid-template-columns:repeat(13,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:5px;min-height:0;align-items:center;background:linear-gradient(#dbe8e1,#a8c5b8);border:5px solid #89a99b;border-radius:8px;padding:10px; }
-.flute-note { display:grid;place-items:center;border:2px solid #6f9387;border-radius:50%;aspect-ratio:1;max-height:100%;width:100%;padding:0;background:radial-gradient(circle at 35% 25%,#fff,#bacfc4);color:#355e4c;font-size:11px!important; }
-.flute-note[aria-pressed=true] { background:#e6c279; }
-.trumpet-pressure { position:absolute;bottom:0;right:0;font-size:11px;display:flex;align-items:center;gap:5px;max-width:26%; }
-.trumpet-pressure input { width:80px;max-width:60%;accent-color:#8b955a; }
 .return-instrument { width:32px;height:30px;display:grid;place-items:center;background:transparent;border:0;color:#46635b;cursor:pointer;border-radius:4px; }
 .performance-surface { height:calc(100% - 42px);max-width:1050px;margin:auto;padding:12px 18px 18px; }
 .performance-panel button { font:inherit;touch-action:none;cursor:pointer;-webkit-tap-highlight-color:transparent; }
 .performance-panel button:focus-visible { outline:3px solid #db765e;outline-offset:2px; }
+.boehm-flute { height:100%;display:grid;grid-template-rows:28px minmax(0,1fr);gap:4px; }
+.flute-register { display:flex;align-items:center;gap:6px; }
+.flute-register button { padding:3px 12px;border:1px solid #739d91;border-radius:4px;background:#dce9e1;color:#355e4c;font-size:12px; }
+.flute-register button[aria-pressed=true] { background:#ebc679; }
+.flute-register output { margin-left:auto;font-size:14px;min-width:45px;text-align:right; }
+.flute-mechanism { position:relative;display:grid;grid-template-columns:repeat(9,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:9px 12px;padding:8px 12px;min-height:0; }
+.flute-tube-art { position:absolute;left:0;right:0;top:43%;height:26%;border:3px solid #7d9991;border-radius:14px;background:linear-gradient(#f0f7ee,#a5c2b6 45%,#6f9386 50%,#cbded2);box-shadow:0 4px 7px #355e4c33;pointer-events:none; }
+.flute-physical-key { position:relative;display:grid;place-items:center;border:2px solid #77998c;border-radius:50%;background:radial-gradient(ellipse at 30% 25%,#f9fcf3,#b4ccbd 70%,#678f7c);color:#335c46;padding:5px 2px;box-shadow:0 4px #577c66;min-width:0;max-width:90px;width:100%;justify-self:center; }
+.flute-physical-key span { position:relative;font-size:10px;z-index:1;text-align:center;line-height:1.1;pointer-events:none; }
+.flute-physical-key i { position:absolute;left:45%;top:50%;height:65%;width:8px;background:#8ba699;z-index:-1; }
+.flute-physical-key.pressed { translate:0 3px;background:#ebc679;box-shadow:0 1px #577c66; }
+.flute-key-T { grid-column:1;grid-row:2; }.flute-key-Bb { grid-column:2;grid-row:2; }
+.flute-key-L1 { grid-column:1;grid-row:1; }.flute-key-L2 { grid-column:2;grid-row:1; }.flute-key-L3 { grid-column:3;grid-row:1; }.flute-key-Gs { grid-column:3;grid-row:2; }
+.flute-key-R1 { grid-column:5;grid-row:1; }.flute-key-R2 { grid-column:6;grid-row:1; }.flute-key-R3 { grid-column:7;grid-row:1; }.flute-key-Eb { grid-column:8;grid-row:1; }
+.flute-key-Cs { grid-column:6;grid-row:2; }.flute-key-C { grid-column:7;grid-row:2; }.flute-key-B { grid-column:8;grid-row:2; }
+.flute-key-BbLever { grid-column:4;grid-row:1; }.flute-key-DTrill { grid-column:4;grid-row:2; }.flute-key-DsTrill { grid-column:5;grid-row:2; }
+.flute-key-Gizmo { grid-column:9;grid-row:2; }
+.trumpet-embouchure { position:absolute;left:0;top:12%;height:73%;width:25%;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border:2px solid #819d91;border-radius:8px;background:#d4e2d9;touch-action:none;cursor:crosshair;overflow:hidden; }
+.lip-segment { display:flex;align-items:flex-end;justify-content:center;padding:0 0 10px;border-right:1px solid #819d91;font-size:10px;color:#355e4c;pointer-events:none; }
+.lip-segment:last-of-type { border-right:0; }
+.trumpet-embouchure.is-blowing { background:linear-gradient(#efe0a8,#cee2d5); }
+.lip-indicator { position:absolute;top:40%;width:12px;height:12px;translate:-50% -50%;border:2px solid #fff5c8;border-radius:50%;background:#b46842;box-shadow:0 0 0 3px #b4684233;pointer-events:none; }
+.lip-indicator.is-demo { animation:lipQuiver .14s ease-in-out infinite alternate; }
+@keyframes lipQuiver { from { transform:translate(-1px,.5px); } to { transform:translate(1px,-.5px); } }
+.trumpet-embouchure:focus-visible { outline:3px solid #db765e;outline-offset:2px; }
+@media(max-height:550px) and (orientation:landscape) {
+  .boehm-flute { grid-template-rows:22px minmax(0,1fr);gap:2px; }.flute-register button { padding:1px 10px;font-size:10px; }.flute-mechanism { padding:3px 8px;gap:5px 9px; }.flute-physical-key span { font-size:8px; }.lip-segment { font-size:8px;padding-bottom:4px; }
+}
+@media(prefers-reduced-motion:reduce) { .lip-indicator.is-demo { animation:none; } }
 .manual-keyboard { height:100%;position:relative;display:grid;grid-template-columns:repeat(var(--white-count),minmax(0,1fr));gap:2px;border:8px solid #465751;border-top-width:15px;background:#465751;border-radius:6px; }
 .note-key { border:0;border-radius:0 0 5px 5px;position:relative;display:flex;align-items:flex-end;justify-content:center;padding:10px 0;min-width:0; }
 .note-key span { font-size:12px;pointer-events:none; }
@@ -52,16 +69,11 @@
 .flute .pressed { background:#e6c279;box-shadow:0 2px #8a774e; }
 .manual-trumpet { height:100%;position:relative; }
 .trumpet-body-art { position:absolute;width:100%;height:100%;bottom:-5px;pointer-events:none; }
-.trumpet-register { display:flex;gap:4px;position:absolute;right:0;top:0; }
-.trumpet-register button { border:1px solid #9b986e;border-radius:4px;background:#fff8de;font-size:12px;padding:5px 9px; }
-.trumpet-register button[aria-pressed=true] { background:#e7bd65; }
 .trumpet-valve-controls { position:absolute;left:30%;top:5%;width:30%;height:75%;display:flex;gap:12px; }
 .valve-control { flex:1;border:0;position:relative;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:0;color:#4c583f; }
 .valve-control span { display:grid;place-items:center;width:100%;height:48px;max-width:62px;background:linear-gradient(#f2f1dd,#a3b5aa);border:3px solid #879b90;border-radius:50%;z-index:1; }
 .valve-control i { width:14px;height:70px;background:#a9b9aa;box-shadow:inset -4px 0 #819789; }
 .valve-control.pressed span { transform:translateY(15px);background:#d8b66e; }
-.trumpet-breath { position:absolute;left:0;top:24%;height:58%;width:21%;border:3px solid #8faba3;border-radius:8px;background:#d4e2d9;color:#486459;display:grid;place-items:center; }
-.trumpet-breath.pressed { background:#ebd294; }
 .trumpet-pitch { position:absolute;bottom:0;left:3%;font-size:14px;color:#41675b; }
 .manual-guitar { height:100%;display:grid;grid-template-columns:150px 1fr;gap:18px; }
 .guitar-chords { display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:center; }
@@ -100,18 +112,17 @@
   .performance-surface { height:calc(100% - 36px);padding:10px 8px 12px; }.manual-keyboard { border-width:5px;gap:1px; }.note-key span { font-size:9px; }
   .flute.manual-keyboard { gap:2px;padding:18px 3px; }.manual-guitar { grid-template-columns:86px 1fr;gap:7px; }.guitar-chords { gap:5px; }.chord-control { min-height:48px; }
   .guitar-stringboard { border-width:4px; }.guitar-soundhole { border-width:5px;left:19%; }
-  .trumpet-valve-controls { gap:5px;width:38%;left:26%;top:8%; }.trumpet-register button { padding:4px 6px;font-size:10px; }.valve-control span { height:41px; }.valve-control i { height:66px; }
+  .trumpet-valve-controls { gap:5px;width:38%;left:26%;top:8%; }.valve-control span { height:41px; }.valve-control i { height:66px; }
   .drum-pad { border-width:3px; }.drum-pad span { font-size:9px; }
   .sharp-key span { font-size:7px; }
 }
 @media(max-height:550px) and (orientation:landscape) {
-  .manual-flute { grid-template-columns:90px 1fr;gap:12px; }.flute-breath-controls { gap:2px; }.flute-breath { width:48px;height:34px; }.flute-breath-controls label,.flute-breath-controls output { font-size:10px; }.flute-fingerings { padding:4px;gap:3px; }.flute-note { width:min(100%,38px);justify-self:center;font-size:9px!important; }
   .app-shell { --performance-height:140px; }.young-musician { width:45px;height:62px;top:54%; }
   .performance-panel header { height:27px; }.performance-panel h2 { font-size:12px; }.performance-surface { height:calc(100% - 27px);padding:4px 12px 8px; }
   .app-shell.manual-open .instrument { width:60px;height:48px; }.app-shell.manual-open .instrument-drawing { scale:.4; }.app-shell.manual-open .scene .interactive-object { width:52px;height:44px; }
   .app-shell.manual-open .instrument:hover .instrument-drawing,.app-shell.manual-open .instrument:active .instrument-drawing { scale:.4; }
   .app-shell.manual-open .young-musician { width:38px;height:52px; }
   .chord-control { min-height:30px; }.guitar-chords { gap:3px; }.manual-guitar { grid-template-columns:110px 1fr; }
-  .valve-control span { height:25px; }.valve-control i { height:32px;width:9px; }.trumpet-register { top:-2px; }.trumpet-register button { font-size:9px;padding:2px 6px; }.trumpet-pitch { font-size:11px; }.note-key span { font-size:10px; }
+  .valve-control span { height:25px; }.valve-control i { height:32px;width:9px; }.trumpet-pitch { font-size:11px; }.note-key span { font-size:10px; }
 }
 @media(prefers-reduced-motion:reduce) { .young-musician.equipped { animation:none; }.instrument.sliding { transition:none; } }

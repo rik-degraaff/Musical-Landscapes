@@ -169,7 +169,7 @@ export class AudioEngine {
     return Boolean(this.manualInstrument && this.active[this.manualInstrument]);
   }
 
-  manualNoteOn(note, token, velocity = 0.65) {
+  manualNoteOn(note, token, velocity = 0.65, legato = false) {
     if (this.manualAutoplay) this.setManualAutoplay(false);
     const name = this.manualInstrument;
     if (!this.ready || !name) return;
@@ -212,13 +212,13 @@ export class AudioEngine {
     const when = context.currentTime + 0.015;
     envelope.gain.setValueAtTime(0, when);
     envelope.gain.linearRampToValueAtTime(velocity, when + (name === 'flute' ? 0.035 : 0.006));
-    const voice = { source, envelope, note, name };
+    const voice = { source, envelope, note, name, rate:source.playbackRate.value };
     this.manualVoices.set(token, voice);
     source.onended = () => {
       source.disconnect(); envelope.disconnect();
       if (this.manualVoices.get(token) === voice) this.manualVoices.delete(token);
     };
-    source.start(when);
+    source.start(when,legato && loop ? loop.loopStart : 0);
   }
 
   manualNoteOff(token, quick = false) {
@@ -232,6 +232,11 @@ export class AudioEngine {
     voice.envelope.gain.cancelAndHoldAtTime(when + Math.max(0.005, release - 0.02));
     voice.envelope.gain.linearRampToValueAtTime(0, when + release);
     voice.source.stop(when + release + 0.005);
+  }
+
+  setManualPitchBend(token, cents) {
+    const voice=this.manualVoices.get(token);
+    if(voice)voice.source.playbackRate.setTargetAtTime(voice.rate*2**(Math.max(-30,Math.min(30,cents))/1200),Tone.getContext().rawContext.currentTime,.025);
   }
 
   manualStrike(note, token, velocity = 0.65) {
