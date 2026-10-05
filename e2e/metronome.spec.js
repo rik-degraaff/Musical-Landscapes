@@ -72,8 +72,9 @@ test('tick sound toggles independently and notes stay beat-aligned after changin
   const count=await page.evaluate(()=>window.ticks.length);await page.waitForTimeout(750);expect(await page.evaluate(()=>window.ticks.length)).toBe(count);
   await page.getByRole('slider',{name:'Metronome tempo weight'}).focus();await page.keyboard.press('End');await page.keyboard.press('Escape');
   await page.locator('#instrument-piano').click();await expect.poll(()=>page.evaluate(()=>window.notes.length)).toBeGreaterThan(2);
-  const times=await page.evaluate(()=>window.notes.map(value=>value.time));
-  expect(times[1]-times[0]).toBeCloseTo(2*60/208,2);expect(times[2]-times[1]).toBeCloseTo(2*60/208,2);
+  await expect.poll(()=>page.evaluate(()=>window.notes.filter(value=>value.event.time==='0:0:0').length)).toBeGreaterThan(2);
+  const starts=await page.evaluate(()=>window.notes.filter(value=>value.event.time==='0:0:0').map(value=>value.time));
+  expect(starts.at(-1)-starts.at(-2)).toBeCloseTo(4*60/208,2);
 });
 
 test('touch cancel releases the tempo hold without disabling active instruments',async({page})=>{
@@ -88,4 +89,63 @@ test('touch cancel releases the tempo hold without disabling active instruments'
   await session.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});
   expect(await page.evaluate(()=>({held:window.audioEngine.tempoHeld,active:window.audioEngine.active.drums}))).toEqual({held:false,active:true});
   await expect.poll(()=>page.evaluate(()=>window.testTone.Transport.state)).toBe('started');
+});
+
+test('silent metronome keeps swinging compact and enlarged and sound is a switch mounted on its base',async({page},testInfo)=>{
+  await start(page);
+  expect(await page.evaluate(()=>Object.values(window.audioEngine.active).some(Boolean))).toBe(false);
+  expect(await page.evaluate(()=>window.audioEngine.metronomeSound)).toBe(false);
+  const first=await page.evaluate(()=>window.audioEngine.beatIndex);
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.beatIndex)).toBeGreaterThan(first+1);
+  const mini=page.getByRole('button',{name:'Open metronome'});
+  await expect(mini).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  await mini.click();
+  const menu=page.getByRole('dialog',{name:'Metronome',exact:true});
+  await expect(menu).toHaveCSS('background-color','rgba(0, 0, 0, 0)');await expect(menu).toHaveCSS('border-top-width','0px');
+  await expect(menu.locator('header')).toHaveCount(0);
+  const before=await page.evaluate(()=>window.audioEngine.beatIndex);
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.beatIndex)).toBeGreaterThan(before+1);
+  const sound=page.getByRole('switch',{name:'Metronome sound'});
+  const body=await page.locator('.metronome-mechanism').boundingBox();const toggle=await sound.boundingBox();
+  expect(toggle.y).toBeGreaterThan(body.y+body.height*.85);expect(toggle.y+toggle.height).toBeLessThanOrEqual(body.y+body.height+1);
+  await sound.click();await sound.click();
+  const offBeat=await page.evaluate(()=>window.audioEngine.beatIndex);
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.beatIndex)).toBeGreaterThan(offBeat+1);
+  await page.screenshot({path:`test-results/${testInfo.project.name}-physical-metronome.png`});
+  await page.keyboard.press('Escape');
+  const closedBeat=await page.evaluate(()=>window.audioEngine.beatIndex);
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.beatIndex)).toBeGreaterThan(closedBeat+1);
+  expect(await page.evaluate(()=>window.testTone.Transport.state)).toBe('started');
+  await page.locator('#instrument-piano').click();await page.locator('#instrument-piano').click();
+  expect(await page.evaluate(()=>Object.values(window.audioEngine.active).some(Boolean))).toBe(false);
+  const inactiveBeat=await page.evaluate(()=>window.audioEngine.beatIndex);
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.beatIndex)).toBeGreaterThan(inactiveBeat+1);
+  await mini.click();
+  const weight=page.getByRole('slider',{name:'Metronome tempo weight'});
+  await weight.focus();await page.keyboard.down('ArrowDown');
+  expect(await page.evaluate(()=>window.testTone.Transport.state)).toBe('paused');
+  await page.keyboard.up('ArrowDown');
+  await expect.poll(()=>page.evaluate(()=>window.testTone.Transport.state)).toBe('started');
+});
+
+test('pendulum crosses both sides without beat UI callbacks and resumes after a tempo hold',async({page})=>{
+  await start(page);
+  await page.evaluate(()=>{window.audioEngine.onMetronomeBeat=null;});
+  async function bothSides(selector) {
+    const range=await page.locator(selector).evaluate(async element=>{
+      let min=Infinity,max=-Infinity;
+      const until=performance.now()+1600;
+      while(performance.now()<until){const angle=parseFloat(getComputedStyle(element).rotate);min=Math.min(min,angle);max=Math.max(max,angle);await new Promise(resolve=>requestAnimationFrame(resolve));}
+      return {min,max};
+    });
+    expect(range.min).toBeLessThan(-8);expect(range.max).toBeGreaterThan(8);
+  }
+  await bothSides('.mini-pendulum');
+  await page.getByRole('button',{name:'Open metronome'}).click();
+  await bothSides('.metronome-rail');
+  const weight=page.getByRole('slider',{name:'Metronome tempo weight'});
+  await weight.focus();await page.keyboard.down('ArrowDown');
+  await expect(page.locator('.metronome-rail')).toHaveCSS('rotate','0deg');
+  await page.keyboard.up('ArrowDown');await bothSides('.metronome-rail');
+  await page.keyboard.press('Escape');await bothSides('.mini-pendulum');
 });

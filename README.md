@@ -8,7 +8,7 @@ Equipped and unequipped instruments use the same active playback state. Tap an i
 
 The manual panel's instrument name, current notes, and put-down control sit below the playable surface, leaving a bottom-edge buffer that includes the device safe-area inset. Guitar sits slightly higher, and piano and marimba use longer keys within the same panel height.
 
-A compact mechanical metronome stays at the bottom left, moving above the performance panel when an instrument is equipped. Tap it to expand its controls. Drag the weight up for slower tempo or down for faster tempo (40-208 BPM, initially 92). Holding the weight pauses the shared transport and mutes instrument output without changing active states; release or touch cancellation resumes at the new global tempo. The weight supports arrow keys and Home/End as well. A separate sound switch enables beat clicks, accented every fourth beat, even without active instruments. Pendulum motion follows the transport beats. Tempo changes use musical-tick event positions so queued phrases remain beat-aligned.
+A compact mechanical metronome stays at the bottom left, moving above the performance panel when an instrument is equipped. Tap it to enlarge the metronome itself, without a surrounding panel. Drag the weight up for slower tempo or down for faster tempo (40-208 BPM, initially 92). Holding the weight pauses the shared transport and mutes instrument output without changing active states; release or touch cancellation resumes at the new global tempo. The weight supports arrow keys and Home/End as well. A physical sliding switch mounted on the metronome's base enables beat clicks, accented every fourth beat. After audio starts, the clock and pendulum keep going whether sound is off, all instruments are off, or the metronome is enlarged. Only actively adjusting tempo pauses them. Tempo changes use musical-tick event positions so queued phrases remain beat-aligned.
 
 Tapping outside either the expanded metronome or hamburger settings dismisses it; the dismissal tap does not trigger the control underneath. Escape also closes either menu. Metronome sound continues independently after its menu closes.
 
@@ -137,7 +137,7 @@ The downloader parses the soundfont data without executing remote JavaScript, ex
 - Tapping an instrument ramps its gain in over ~45 ms.
 - Tapping it again ramps it to -60 dB immediately and releases sustained voices.
 - Transport events check the instrument's current active state before playing, so inactive instruments do not continue making notes.
-- If all instruments are off, the transport stops and resets.
+- With all instruments off, the transport keeps running for the silent metronome; instruments rejoin the ongoing musical timeline when enabled.
 - Interactive scene sounds respond immediately, independently of the musical transport. Three voices per object support overlapping taps without cutting off other objects.
 - Audio unlock begins inside the Play gesture, and subsequent instrument/object gestures resume audio after a browser suspension.
 - Bar downbeats use the transport callback's audio timestamp directly; later notes use transport positions. Drum labels map to explicit sampler pitches and hit-specific durations.

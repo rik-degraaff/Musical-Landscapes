@@ -77,6 +77,7 @@ export class AudioEngine {
     await Promise.all([this.reverb.ready, ...loads]);
     await this.createSceneSounds();
     this.ready = true;
+    this.ensureTransport();
   }
 
   async createSampledInstrument(name) {
@@ -282,15 +283,6 @@ export class AudioEngine {
   ensureTransport() {
     if (!this.ready) return;
     if(this.tempoHeld)return;
-    const anyActive = this.metronomeSound || Object.values(this.active).some(Boolean);
-    if (!anyActive) {
-      this.clearPendingEvents();
-      Tone.Transport.stop();
-      Tone.Transport.position = 0;
-      this.barIndex = 0;
-      this.beatIndex = 0;
-      return;
-    }
     if (this.transportEvent === null) {
       this.transportEvent = Tone.Transport.scheduleRepeat(time => this.scheduleBar(time), BAR);
     }
@@ -309,6 +301,10 @@ export class AudioEngine {
     this.tempo=Math.max(40,Math.min(208,Math.round(Number(value)||BPM)));
     if(this.ready)Tone.Transport.bpm.value=this.tempo;
     return this.tempo;
+  }
+
+  getMetronomePhase() {
+    return Tone.Transport.getTicksAtTime(Tone.immediate()) / Tone.Transport.PPQ;
   }
 
   setMetronomeSound(enabled) {

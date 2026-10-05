@@ -2,20 +2,23 @@
 .manual-open .metronome-widget:not(.is-open) { bottom:calc(var(--performance-height) + 12px); }
 .metronome-widget.is-open { position:fixed;bottom:12px;z-index:110; }
 .metronome-widget button { cursor:pointer;color:#355e4c;font:inherit;touch-action:none; }
-.metronome-mini { position:relative;width:46px;height:62px;background:#f5f4e5e8;border:1px solid #fff;border-radius:6px;padding:2px 5px 14px;box-shadow:0 3px 12px #27445a33; }
+.metronome-mini { position:relative;width:46px;height:62px;background:transparent;border:0;padding:0;filter:drop-shadow(0 3px 3px #27445a33); }
 .metronome-body { width:100%;height:100%;display:block;pointer-events:none; }
-.metronome-mini span { position:absolute;bottom:1px;left:0;right:0;text-align:center;font-size:10px;line-height:12px; }
-.mini-pendulum { position:absolute;left:50%;top:10px;width:2px;height:28px;background:#526d58;transform-origin:50% 100%;transition:rotate .1s;pointer-events:none; }
+.metronome-mini span { position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:9px;line-height:10px;color:#493e30; }
+.mini-pendulum { position:absolute;left:50%;top:8px;width:2px;height:39px;background:#526d58;transform-origin:50% 100%;pointer-events:none; }
 .mini-pendulum::before { content:"";position:absolute;top:8px;left:-3px;width:8px;height:6px;background:#b78842;border:1px solid #624d40; }
-.metronome-menu { width:170px;height:min(270px,calc(100dvh - 24px));padding:8px 12px;display:flex;flex-direction:column;background:#f5f8f2;border:1px solid #afc7b9;border-radius:8px;box-shadow:0 6px 25px #16382b55; }
-.metronome-menu header { display:flex;align-items:center;justify-content:space-between;height:28px;flex:none;font-size:13px; }
-.metronome-menu header button { width:26px;height:26px;padding:0;border:0;background:transparent;display:grid;place-items:center; }
-.metronome-mechanism { position:relative;min-height:0;flex:1;max-width:125px;width:100%;align-self:center;margin:5px 0; }
-.metronome-rail { position:absolute;left:50%;top:16%;height:52%;width:32px;translate:-50% 0;transform-origin:50% 138%;transition:rotate .12s ease-out; }
+.metronome-menu { position:relative;width:min(180px,calc((100dvh - 24px) * .714));height:min(252px,calc(100dvh - 24px));padding:0;background:transparent;border:0;filter:drop-shadow(0 5px 7px #16382b55); }
+.metronome-mechanism { position:absolute;inset:0; }
+.metronome-rail { position:absolute;left:50%;top:16%;height:46%;width:32px;translate:-50% 0;transform-origin:50% 138%; }
 .metronome-needle { position:absolute;left:50%;top:-8%;bottom:-43%;width:3px;background:#526d58;translate:-50% 0;pointer-events:none; }
 .metronome-weight { position:absolute;left:50%;translate:-50% -50%;width:36px;height:26px;padding:0;border:2px solid #624d40;background:linear-gradient(#f1ce86,#b68544);border-radius:4px;box-shadow:0 2px 4px #46332933; }
 .metronome-weight span { display:block;border-top:2px solid #624d4055;border-bottom:2px solid #624d4055;height:8px;margin:0 4px;pointer-events:none; }
-.metronome-sound { height:30px;flex:none;display:flex;align-items:center;justify-content:center;gap:10px;border:1px solid #afc7b9;border-radius:4px;background:#dce9df;font-size:12px!important; }
+.metronome-tempo { position:absolute;top:84%;left:0;right:0;text-align:center;font-size:12px;color:#473b2b;pointer-events:none; }
+.metronome-sound { position:absolute;left:28%;width:44%;top:91%;height:8%;min-height:22px;translate:0 -10%;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 4px;border:1px solid #243f31;border-radius:4px;background:#3f5949;color:#fff5db!important;box-shadow:inset 0 2px 3px #14291f66; }
+.metronome-switch-track { position:relative;display:block;width:26px;height:12px;border:1px solid #b5bd9a;border-radius:3px;background:#253d30; }
+.metronome-switch-track i { position:absolute;left:1px;top:1px;width:10px;height:8px;background:#d6c58b;border-radius:1px;box-shadow:1px 0 2px #0005; }
+.metronome-sound[aria-checked=true] .metronome-switch-track i { left:13px;background:#f0cf79; }
 .metronome-widget :focus-visible { outline:3px solid #bd714b;outline-offset:2px; }
 .metronome-widget.is-held .metronome-weight { background:#f3d998; }
+.metronome-widget.is-held .metronome-rail { transition:none; }
 @media(prefers-reduced-motion:reduce) { .mini-pendulum,.metronome-rail { transition:none; } }
