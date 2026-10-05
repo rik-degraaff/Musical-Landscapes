@@ -96,9 +96,8 @@ test('outside-start swipes play crossed piano keys, marimba bars and guitar stri
     await equip(page,name);
     await page.evaluate(()=>{window.swipeNotes=[];});
     const area=await page.locator(name==='guitar'?'.guitar-stringboard':'.manual-keyboard').boundingBox();
-    const panel=await page.locator('.performance-panel').boundingBox();
     const first=await page.locator(name==='guitar'?'.playable-string':'.natural-key').first().boundingBox();
-    const startPoint=name==='guitar'?{x:area.x+area.width*.55,y:area.y-3}:{x:area.x-5,y:first.y+first.height*.85};
+    const startPoint=name==='guitar'?{x:area.x+area.width*.82,y:area.y-5}:{x:area.x-5,y:first.y+first.height*.85};
     const last=await page.locator(name==='guitar'?'.playable-string':'.natural-key').last().boundingBox();
     const endPoint=name==='guitar'?{x:startPoint.x,y:last.y+last.height/2}:{x:last.x+last.width/2,y:startPoint.y};
     if(testInfo.project.use.hasTouch){
@@ -202,34 +201,56 @@ test('dusk cricket and airplane remain playable with an equipped instrument',asy
 
 test('multitouch guitar chords and crossing all strings play their correct notes',async({page})=>{
   const errors=await start(page);await equip(page,'guitar');
+  const shapes=await page.evaluate(async()=>{
+    const {GUITAR_LIBRARY,OPEN_STRINGS}=await import('/src/utils/guitar.js');
+    return {chords:GUITAR_LIBRARY.C.chords,open:OPEN_STRINGS};
+  });
+  const expectStrings=async notes=>{
+    for(const [index,note] of notes.entries())await expect(page.locator('.playable-string').nth(index)).toHaveAttribute('aria-label',`Guitar string ${index+1}${note?` ${note}`:' muted'}`);
+  };
   await page.evaluate(()=>{
     window.playedNotes=[];const engine=window.audioEngine;const original=engine.manualNoteOn;
     engine.manualNoteOn=function(note,...args){window.playedNotes.push(note);return original.call(this,note,...args);};
   });
   const session=await page.context().newCDPSession(page);
   const chord=await page.getByRole('button',{name:'Hold guitar chord C',exact:true}).boundingBox();
-  const strings=await page.getByRole('group',{name:'Guitar strings',exact:true}).boundingBox();
+  const strings=await page.locator('.guitar-stringboard').boundingBox();
   const chordTouch={id:1,x:chord.x+chord.width/2,y:chord.y+chord.height/2};
-  const stringTouch={id:2,x:strings.x+strings.width*.55,y:strings.y+strings.height/12};
+  const stringTouch={id:2,x:strings.x+strings.width*.82,y:strings.y+strings.height/12};
   await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[chordTouch]});
+  const expected=shapes.chords.find(value=>value.name==='C').notes;
+  await expectStrings(expected);
   await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[chordTouch,stringTouch]});
   for(let index=1;index<=5;index++)await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[chordTouch,{...stringTouch,y:strings.y+strings.height*(index+.5)/6}]});
   await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[chordTouch]});
   const notes=await page.evaluate(()=>window.playedNotes);
-  expect(notes).toEqual(expect.arrayContaining(['C3','E3','G3','C4','E4']));expect(notes).not.toContain('E2');
+  expect(notes).toEqual(expected.filter(note=>note!==null));
+  if(!expected.includes('E2'))expect(notes).not.toContain('E2');
   expect(await soundLevel(page,'guitar')).toBeGreaterThan(.001);
   await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-  await expect(page.locator('.guitar-chords output')).toHaveText('Open');
-  await page.getByRole('button',{name:'Guitar string 1 E2',exact:true}).click();
+  await expectStrings(shapes.open);
+  await expect(page.locator('.neck-chord-name')).toHaveCount(0);
+  const openString=page.getByRole('button',{name:'Guitar string 1 E2',exact:true});
+  const openStringBounds=await openString.boundingBox();
+  await openString.click({position:{x:openStringBounds.width*.82,y:openStringBounds.height/2}});
   expect((await page.evaluate(()=>window.playedNotes)).at(-1)).toBe('E2');
   for(const value of ['G','Am','F']){
-    const button=page.getByRole('button',{name:`Hold guitar chord ${value}`,exact:true});await button.focus();await page.keyboard.down('Space');await expect(page.locator('.guitar-chords output')).toHaveText(value);await page.keyboard.up('Space');await expect(page.locator('.guitar-chords output')).toHaveText('Open');
+    const button=page.getByRole('button',{name:`Hold guitar chord ${value}`,exact:true});await button.focus();await page.keyboard.down('Space');
+    await expect(page.locator('.neck-chord-name')).toHaveText(value);
+    await expectStrings(shapes.chords.find(chord=>chord.name===value).notes);
+    await page.keyboard.up('Space');await expectStrings(shapes.open);
+    await expect(page.locator('.neck-chord-name')).toHaveCount(0);
   }
   expect(errors).toEqual([]);
 });
 
 test('trumpet six harmonic columns and valves change held lips across the playable range',async({page},testInfo)=>{
   const errors=await start(page);await equip(page,'melody');
+  await page.getByRole('button',{name:'Open settings'}).dblclick();
+  await page.getByRole('tab',{name:'Display',exact:true}).click();
+  await page.getByRole('combobox',{name:'Configure instrument'}).selectOption('melody');
+  await page.getByLabel('Show note and control labels').check();
+  await page.locator('.mixer-head').getByRole('button',{name:'Close settings'}).click();
   const session=await page.context().newCDPSession(page);
   const slider=page.getByRole('slider',{name:'Trumpet embouchure',exact:true});
   const bounds=await slider.boundingBox();
@@ -323,7 +344,7 @@ test('FarmJam suppresses browser gestures without blocking taps or mixer control
   expect(await page.evaluate(() => ({x:scrollX,y:scrollY,scale:visualViewport.scale}))).toEqual({x:0,y:0,scale:1});
   await page.locator('#instrument-piano').click();
   await expect(page.locator('#instrument-piano')).toHaveAttribute('aria-pressed','true');
-  await page.getByRole('button',{name:'Open mixer'}).dblclick();
+  await page.getByRole('button',{name:'Open settings'}).dblclick();
   await expect(page.locator('.mixer')).toBeVisible();
   await page.getByRole('slider',{name:'Piano volume',exact:true}).fill('-18');
   await expect(page.getByRole('slider',{name:'Piano volume',exact:true})).toHaveValue('-18');
@@ -437,7 +458,7 @@ test('equipped autoplay uses normal selected phrases and manual input takes over
       return original.call(this,name,event,time);
     };
   });
-  const targets={piano:'Piano key C4',flute:'Flute key D-sharp pinky',marimba:'Marimba bar C5',melody:'Trumpet embouchure',guitar:'Guitar string 1 E2',drums:'Snare'};
+  const targets={piano:'Piano key C4',flute:'Flute key D-sharp pinky',marimba:'Marimba bar C5',melody:'Trumpet embouchure',guitar:null,drums:'Snare'};
   for(const name of Object.keys(targets)){
     await equip(page,name);
     await page.evaluate(()=>window.autoEvents=[]);
@@ -448,7 +469,12 @@ test('equipped autoplay uses normal selected phrases and manual input takes over
     await expect.poll(()=>page.evaluate(()=>window.autoEvents.length)).toBeGreaterThan(0);
     await expect(page.locator('.autoplay-notes')).not.toBeEmpty();
     const events=await page.evaluate(()=>window.autoEvents);
-    for(const played of events)expect(played.expected).toContainEqual(played.event);
+    for(const played of events){
+      if(played.name==='guitar'){
+        const {chord,fingering,...event}=played.event;
+        expect(played.expected).toContainEqual(event);
+      }else expect(played.expected).toContainEqual(played.event);
+    }
     expect(await page.evaluate(()=>window.audioEngine.manualAutoplay)).toBe(true);
     if(name==='melody'){
       const positions=new Set();
@@ -461,7 +487,7 @@ test('equipped autoplay uses normal selected phrases and manual input takes over
       expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBe(0);
     }
     await page.screenshot({path:`test-results/${testInfo.project.name}-autoplay-${name}.png`});
-    const target=page.getByRole(name==='melody'?'slider':'button',{name:targets[name],exact:true});
+    const target=name==='guitar'?page.locator('.playable-string').first():page.getByRole(name==='melody'?'slider':'button',{name:targets[name],exact:true});
     await target.focus();await page.keyboard.down('Space');
     await expect(toggle).toHaveAttribute('aria-pressed','false');
     expect(await page.evaluate(()=>window.audioEngine.manualAutoplay)).toBe(false);

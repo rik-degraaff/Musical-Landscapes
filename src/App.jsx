@@ -5,12 +5,13 @@ import { Mixer } from './components/Mixer';
 import { StartScreen } from './components/StartScreen';
 import { Scene, SCENES } from './scenes/Scene';
 import { AudioEngine } from './audio/AudioEngine';
-import { SlidersHorizontal, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { YoungMusician } from './components/YoungMusician';
 import { PerformancePanel } from './components/PerformancePanel';
 import { slidePosition } from './utils/performance';
 import './components/controls.css';
 import { LandscapeGuard, requestLandscape } from './components/LandscapeGuard';
+import {loadSettings,SETTINGS_KEY} from './utils/settings';
 
 const initialInstruments = Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,v])=>[name,{...v,active:false}]));
 
@@ -21,6 +22,7 @@ export default function App() {
   const [error,setError] = useState(null);
   const [sceneIndex,setSceneIndex] = useState(0);
   const [mixer,setMixer] = useState(false);
+  const [settings,setSettings] = useState(()=>loadSettings(localStorage));
   const [sceneVolume,setSceneVolume] = useState(-4);
   const mixerTap = useRef(null);
   const [instruments,setInstruments] = useState(initialInstruments);
@@ -35,6 +37,10 @@ export default function App() {
 
   useEffect(()=>{ stateRef.current=instruments; },[instruments]);
   useEffect(()=>()=>audioRef.current?.dispose(),[]);
+  useEffect(()=>{
+    if(audioRef.current)audioRef.current.performanceSettings=settings.instruments;
+    try {localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));}catch{}
+  },[settings]);
 
   async function start() {
     if(startInProgress.current) return;
@@ -50,6 +56,7 @@ export default function App() {
         };
       }
       await audioRef.current.init();
+      audioRef.current.performanceSettings=settings.instruments;
       audioRef.current.setSceneKey(SCENES[sceneIndex].root);
       setStarted(true);
     }
@@ -185,7 +192,7 @@ export default function App() {
   }
 
   return <main className={`app-shell ${equipped?'manual-open':''}`}>
-    <div className="landscape-world" ref={worldRef}>
+    <div className="landscape-world" ref={worldRef} inert={mixer}>
     <Scene sceneIndex={sceneIndex} audio={audioRef.current} onRotate={rotateScene} onCelestialSettled={()=>{if(started)for(const name of Object.keys(INSTRUMENTS))settle(name);}}/>
     {started&&<YoungMusician equipped={equipped?INSTRUMENTS[equipped].label:null} accepting={nearChild}/>}
     <div className="instrument-layer">
@@ -194,13 +201,13 @@ export default function App() {
     </div>
     </div>
 
-    <div className="top-bar">
-      {started && <button className="mixer-button" onClick={activateMixer} aria-expanded={mixer} aria-controls="landscape-mixer" aria-label={mixer?'Close mixer':'Open mixer'} title={mixer?'Close mixer':'Double-click or double-tap to open mixer'}>{mixer?<X size={22}/>:<SlidersHorizontal size={22}/>}</button>}
+    <div className="top-bar" inert={mixer} aria-hidden={mixer}>
+      {started && <button className="mixer-button" onClick={activateMixer} aria-expanded={mixer} aria-controls="landscape-mixer" aria-label={mixer?'Close settings':'Open settings'} title={mixer?'Close settings':'Double-click or double-tap to open settings'}>{mixer?<X size={22}/>:<Menu size={22}/>}</button>}
     </div>
 
-    {started && mixer && <Mixer instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
+    {started && mixer && <Mixer instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} settings={settings} onSettings={setSettings} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
 
-    {equipped&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={SCENES[sceneIndex].root} onClose={()=>equip(null)}/>}
+    {equipped&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={SCENES[sceneIndex].root} options={settings.instruments[equipped]} settingsOpen={mixer} onClose={()=>equip(null)}/>}
 
     {!started && <StartScreen loading={loading} error={error} onStart={start}/>}
     <LandscapeGuard/>

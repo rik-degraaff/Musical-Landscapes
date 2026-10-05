@@ -5,6 +5,8 @@ import { SCENE_SOUNDS } from './sceneSounds';
 import audioLevels from './audioLevels.json';
 import { DRUM_NOTES, DRUM_SAMPLES, SAMPLE_LIBRARY, sampleUrls } from './sampleLibrary';
 import { createSustainLoop, MANUAL_RELEASE } from './envelopes';
+import { GUITAR_LIBRARY } from '../utils/guitar';
+import { phraseComplexity } from '../utils/settings';
 
 const MIN_GAIN = -60;
 const FADE_SECONDS = 0.045;
@@ -22,6 +24,7 @@ export class AudioEngine {
     this.pendingEvents = new Map();
     this.nodes = {};
     this.root = 'C';
+    this.performanceSettings = {};
     this.sceneVolume = -4;
     this.manualInstrument = null;
     this.onActiveChange = null;
@@ -256,9 +259,9 @@ export class AudioEngine {
   playPickup(name) {
     const currentBar = Math.max(0, this.barIndex - 1);
     const energy = this.noise[name].energyAt(currentBar);
-    const complexity = this.noise[name].complexityAt(currentBar);
-    const phrase = nearestBar(patterns[name], energy, complexity);
-    const [firstEvent] = transposeEvents(phrase.events.slice(0, 1), this.root);
+    const complexity = phraseComplexity(this.noise[name].complexityAt(currentBar),this.performanceSettings[name]?.complexity);
+    const phrase = nearestBar(name==='guitar'?GUITAR_LIBRARY[this.root].phrases:patterns[name], energy, complexity);
+    const [firstEvent] = name==='guitar'?phrase.events:transposeEvents(phrase.events.slice(0, 1), this.root);
     if (firstEvent) this.playEvent(name, firstEvent, Tone.now() + FADE_SECONDS + 0.01);
   }
 
@@ -306,9 +309,9 @@ export class AudioEngine {
     for (const name of instrumentNames) {
       if (!this.shouldSchedule(name)) continue;
       const energy = this.noise[name].energyAt(bar);
-      const complexity = this.noise[name].complexityAt(bar);
-      const selected = nearestBar(patterns[name], energy, complexity);
-      const events = transposeEvents(selected.events, this.root);
+      const complexity = phraseComplexity(this.noise[name].complexityAt(bar),this.performanceSettings[name]?.complexity);
+      const selected = nearestBar(name==='guitar'?GUITAR_LIBRARY[this.root].phrases:patterns[name], energy, complexity);
+      const events = name==='guitar'?selected.events:transposeEvents(selected.events, this.root);
       for (const event of events) {
         const offset = Tone.Time(event.time).toSeconds();
         if (offset === 0) {

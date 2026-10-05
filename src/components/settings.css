@@ -1,0 +1,23 @@
+.settings-backdrop { position:absolute;inset:0;z-index:100;display:grid;place-items:center;background:#18382b66;padding:12px; }
+.app-shell .settings-dialog.mixer { position:relative;inset:auto;width:min(660px,100%);height:min(460px,100%);max-height:100%;padding:0;margin:0;display:flex;flex-direction:column;border:1px solid #afc7b9;border-radius:8px;background:#f5f8f2;color:#355e4c;overflow:hidden;box-shadow:0 12px 40px #16382b55;touch-action:pan-y; }
+.settings-dialog .settings-head { display:flex;align-items:center;justify-content:space-between;padding:8px 16px;flex:none;height:44px;border-bottom:1px solid #c9d8cd; }
+.settings-dialog .settings-head h2 { font-size:18px;margin:0; }
+.settings-dialog button { font:inherit;color:inherit;cursor:pointer; }
+.settings-dialog .settings-head button { width:30px;height:30px;border:0;border-radius:4px;background:transparent;display:grid;place-items:center;padding:0; }
+.settings-tabs { display:flex;gap:4px;padding:6px 12px;flex:none;border-bottom:1px solid #c9d8cd; }
+.settings-tabs button { display:flex;align-items:center;gap:6px;padding:6px 12px;border:0;background:transparent;border-radius:4px;font-size:13px; }
+.settings-tabs button[aria-selected=true] { background:#d3e5d7;box-shadow:inset 0 -2px #567d66; }
+.settings-content { overflow:auto;overscroll-behavior:contain;touch-action:pan-y;min-height:0;flex:1;padding:12px 16px; }
+.sound-settings { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 24px; }
+.settings-volume { display:flex;flex-direction:column;gap:3px;font-size:12px;min-width:0; }
+.settings-volume span { display:flex;align-items:center;gap:6px; }
+.settings-volume output { margin-left:auto;white-space:nowrap;color:#647b6a;font-size:11px; }
+.settings-dialog input[type=range] { width:100%;accent-color:#627f51; }
+.settings-dialog input[type=checkbox],.settings-dialog input[type=radio] { width:auto;accent-color:#627f51; }
+.settings-instrument { display:flex;align-items:center;gap:12px;margin:12px 0;font-size:13px; }
+.settings-instrument select { font:inherit;color:inherit;min-width:160px;background:#fff;border:1px solid #aec5b5;border-radius:4px;padding:4px; }
+.settings-check { display:flex;align-items:center;gap:10px;font-size:13px;padding:7px 0; }
+.complexity-presets { display:flex;gap:18px;margin:0;border:1px solid #c9d8cd;border-radius:4px;padding:8px 12px; }
+.complexity-presets legend { font-size:12px; }.complexity-presets label { display:flex;align-items:center;gap:6px;font-size:13px; }
+.settings-dialog :focus-visible { outline:2px solid #bd714b;outline-offset:2px; }
+@media(max-height:350px) { .settings-dialog .settings-head { height:34px;padding:3px 12px; }.settings-tabs { padding:3px 10px; }.settings-tabs button { padding:3px 10px; }.settings-content { padding:8px 12px; }.settings-check { padding:4px 0; } }

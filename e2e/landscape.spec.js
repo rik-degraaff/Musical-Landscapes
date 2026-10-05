@@ -123,7 +123,7 @@ test('all six instruments produce audio, stop, restart and survive rapid toggles
 
 test('audio resumes after suspension, mixer settings persist and reduced motion works', async ({ page }, testInfo) => {
   const errors = await startWorld(page);
-  const mixerButton = page.getByRole('button', { name: 'Open mixer' });
+  const mixerButton = page.getByRole('button', { name: 'Open settings' });
   await tap(mixerButton, testInfo);
   await expect(page.locator('.mixer')).toHaveCount(0);
   await tap(mixerButton, testInfo);
@@ -131,7 +131,7 @@ test('audio resumes after suspension, mixer settings persist and reduced motion 
   const slider = page.getByRole('slider', { name: 'Piano volume', exact: true });
   await slider.fill('-18');
   await expect(slider).toHaveValue('-18');
-  await page.locator('.mixer-head').getByRole('button', { name: 'Close mixer' }).click();
+  await page.locator('.mixer-head').getByRole('button', { name: 'Close settings' }).click();
   await tap(page.locator('#instrument-piano'), testInfo);
   expect(await measureAudio(page, 'piano')).toBeGreaterThan(0.0003);
   await tap(page.locator('#instrument-piano'), testInfo);
@@ -198,7 +198,7 @@ test('dragging does not toggle and canceled touch does not block the next tap', 
 
 test('double activation protects the mixer and scenery mute leaves instruments alone', async ({ page }, testInfo) => {
   const errors = await startWorld(page);
-  const button = page.getByRole('button', { name: 'Open mixer', exact: true });
+  const button = page.getByRole('button', { name: 'Open settings', exact: true });
   await tap(button, testInfo);
   await expect(page.locator('.mixer')).toHaveCount(0);
   await page.waitForTimeout(500);
@@ -209,7 +209,7 @@ test('double activation protects the mixer and scenery mute leaves instruments a
   const scenery = page.getByRole('slider', { name: 'Scenery sounds volume', exact: true });
   await scenery.fill('-60');
   await expect(page.locator('.scenery-mixer-row')).toContainText('Muted');
-  await page.locator('.mixer-head').getByRole('button', { name: 'Close mixer' }).click();
+  await page.locator('.mixer-head').getByRole('button', { name: 'Close settings' }).click();
   await tap(page.getByRole('button', { name: 'Cow', exact: true }), testInfo);
   expect(await measureAudio(page, 'scene', 0.5)).toBeLessThan(0.001);
   await tap(page.locator('#instrument-piano'), testInfo);
@@ -222,7 +222,7 @@ test('double activation protects the mixer and scenery mute leaves instruments a
   await tap(button, testInfo);
   await expect(scenery).toHaveValue('-60');
   await scenery.fill('-10');
-  await page.locator('.mixer-head').getByRole('button', { name: 'Close mixer' }).click();
+  await page.locator('.mixer-head').getByRole('button', { name: 'Close settings' }).click();
   await tap(page.getByRole('button', { name: 'Bird', exact: true }), testInfo);
   expect(await measureAudio(page, 'scene', 0.5)).toBeGreaterThan(0.01);
   expect(await page.evaluate(() => window.audioEngine.sceneVolume)).toBe(-10);

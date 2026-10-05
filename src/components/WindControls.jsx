@@ -3,7 +3,7 @@ import {FLUTE_KEYS,fluteNote,fluteInput,lipPosition} from '../utils/wind';
 import {TRUMPET_REGISTERS,trumpetNote} from '../utils/performance';
 import {trumpetInput} from '../utils/autoplay';
 
-export function Flute({audio,cue,PressControl}) {
+export function Flute({audio,cue,PressControl,options}) {
   const owners=useRef(new Map());
   const registerRef=useRef(0);
   const [register,setRegister]=useState(0);
@@ -23,15 +23,15 @@ export function Flute({audio,cue,PressControl}) {
     update();
   }
   return <div className="boehm-flute">
-    <div className="flute-register" role="group" aria-label="Flute air register">{['Low','Middle','High'].map((label,index)=><button key={label} aria-pressed={register===index} onClick={()=>{registerRef.current=index;setRegister(index);update();}}>{label}</button>)}<output aria-label="Flute pitch">{cue?.note??pitch??'—'}</output></div>
+    <div className="flute-register" role="group" aria-label="Flute air register">{['Low','Middle','High'].map((label,index)=><button key={label} aria-pressed={register===index} onClick={()=>{registerRef.current=index;setRegister(index);update();}}>{label}</button>)}<output hidden={!options.playbackNotes} aria-label="Flute pitch">{cue?.note??pitch??'—'}</output></div>
     <div className="flute-mechanism" role="group" aria-label="Boehm flute keys">
       <div className="flute-tube-art" aria-hidden="true"/>
-      {FLUTE_KEYS.map(([key,label])=><PressControl key={key} label={`Flute key ${label}`} className={`flute-physical-key flute-key-${key}`} demoPressed={Boolean(demo?.keys.includes(key))} onPress={token=>change(key,token,true)} onRelease={token=>change(key,token,false)}><span>{label}</span><i aria-hidden="true"/></PressControl>)}
+      {FLUTE_KEYS.map(([key,label])=><PressControl key={key} label={`Flute key ${label}`} className={`flute-physical-key flute-key-${key}`} demoPressed={Boolean(demo?.keys.includes(key))} onPress={token=>change(key,token,true)} onRelease={token=>change(key,token,false)}><span hidden={!options.noteLabels}>{label}</span><i aria-hidden="true"/></PressControl>)}
     </div>
   </div>;
 }
 
-export function Trumpet({audio,cue,PressControl}) {
+export function Trumpet({audio,cue,PressControl,options}) {
   const valves=useRef([new Set(),new Set(),new Set()]);
   const lips=useRef(new Map());
   const partialRef=useRef(0);
@@ -71,9 +71,9 @@ export function Trumpet({audio,cue,PressControl}) {
       onKeyDown={event=>{if(['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();partialRef.current=Math.max(0,Math.min(TRUMPET_REGISTERS.length-1,partialRef.current+(event.key==='ArrowRight'?1:-1)));centsRef.current=0;setPosition((partialRef.current+.5)/TRUMPET_REGISTERS.length);update();}if(!event.repeat&&[' ','Enter'].includes(event.key)){event.preventDefault();lips.current.set('keyboard',position);setBlowing(true);update();}}}
       onKeyUp={event=>{if([' ','Enter'].includes(event.key)){event.preventDefault();lips.current.delete('keyboard');setBlowing(lips.current.size>0);update();}}}
       onBlur={()=>{lips.current.delete('keyboard');setBlowing(lips.current.size>0);update();}}>
-      {TRUMPET_REGISTERS.map(note=><span className="lip-segment" key={note}>{note}</span>)}
+      {TRUMPET_REGISTERS.map(note=><span className="lip-segment" key={note}>{options.noteLabels?note:''}</span>)}
       {(demo||blowing)&&<i className={`lip-indicator ${demo?'is-demo':''}`} style={{left:`${Math.max(2,Math.min(98,shown*100))}%`}} aria-label="Lip position"/>}
     </div>
-    <output className="trumpet-pitch">{cue?.note??trumpetNote(fingering,partialRef.current)}</output>
+    <output className="trumpet-pitch" hidden={!options.playbackNotes}>{cue?.note??trumpetNote(fingering,partialRef.current)}</output>
   </div>;
 }
