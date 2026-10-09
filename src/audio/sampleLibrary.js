@@ -7,6 +7,25 @@ export const SAMPLE_LIBRARY = {
   melody: { source: 'trumpet', notes: range(54,26,['G#5','C6']), release: 0.15 },
   marimba: { source: 'marimba', notes: range(72,13,['E6','G#6']), release: 0.35 },
   flute: { source: 'flute', notes: range(60,13,['E5','G#5','C6']), release: 0.22 },
+  ukulele: {
+    source: 'FreePats Ukulele 2026-08-11',
+    url: 'https://freepats.zenvoid.org/GuitarFamily/ukulele.html',
+    rootUrl: 'https://raw.githubusercontent.com/freepats/ukulele1/86d345f6f7b79a106ace98eca0da19b087786dba/samples/',
+    license: 'CC0-1.0',
+    licenseUrl: 'https://github.com/freepats/ukulele1/blob/86d345f6f7b79a106ace98eca0da19b087786dba/LICENSE.txt',
+    author: 'Mateusz Dąbrowski',
+    extension: 'flac',
+    notes: ['C4','D4','E4','F#4','G4','A4','B4','C#5','D#5','F5','G5','A5','C6'],
+    release: 0.35,
+  },
+  panflute: {
+    source: 'pan_flute',
+    url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/pan_flute-mp3.js',
+    license: 'CC-BY-3.0-US',
+    licenseUrl: 'https://creativecommons.org/licenses/by/3.0/us/',
+    notes: range(60,22,[]),
+    release: 0.22,
+  },
 };
 
 export const DRUM_SAMPLES = {
@@ -25,5 +44,5 @@ export const DRUM_NOTES = { kick: 'C2', snare: 'D2', hat: 'F#2', tom: 'G2', clap
 export function sampleUrls(name) {
   const instrument = SAMPLE_LIBRARY[name];
   if (!instrument) throw new Error(`Unknown sampled instrument: ${name}`);
-  return Object.fromEntries(instrument.notes.map(note => [note, `${name}/${note.replace('#', 's')}.mp3`]));
+  return Object.fromEntries(instrument.notes.map(note => [note, `${name}/${note.replace('#', 's')}.${instrument.extension ?? 'mp3'}`]));
 }

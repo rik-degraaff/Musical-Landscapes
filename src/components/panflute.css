@@ -1,0 +1,8 @@
+.panflute-pipes { position:relative;height:100%;display:grid;grid-template-columns:repeat(22,minmax(0,1fr));gap:4px;padding:4px 3px 0;isolation:isolate; }
+.panflute-pipe { height:var(--pipe-length);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:0;padding:0 0 10px;border:2px solid #92764a;border-radius:8px 8px 6px 6px;background:linear-gradient(90deg,#a87f49,#eaca88 35%,#f2d99b 60%,#b59055);color:#514734;box-shadow:inset 0 -5px #88663b; }
+.panflute-pipe.sharp-pipe { background:linear-gradient(90deg,#867753,#c3b587 40%,#dbcca1 60%,#a19367); }
+.pipe-mouth { position:absolute;left:9%;width:82%;top:1px;height:12px;border-radius:50%;background:#443c2a;border:2px solid #eddbaa;pointer-events:none; }
+.panflute-pipe span { font-size:10px;position:relative;z-index:2;pointer-events:none; }
+.panflute-pipe.pressed,.panflute-pipe.swipe-pressed { background:#ff8b20;box-shadow:inset 0 0 0 3px #fff0bd; }
+.panflute-binding { position:absolute;left:0;right:0;top:30%;height:8px;background:repeating-linear-gradient(90deg,#76966b 0 6px,#b1bc7e 6px 9px);border:1px solid #596e50;pointer-events:none;z-index:1; }
+@media(max-height:550px) { .panflute-pipes { gap:3px; }.pipe-mouth { height:9px; }.panflute-pipe span { font-size:8px; }.panflute-pipe { padding-bottom:4px; } }

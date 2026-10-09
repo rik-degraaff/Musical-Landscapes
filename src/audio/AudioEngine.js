@@ -5,7 +5,7 @@ import { SCENE_SOUNDS } from './sceneSounds';
 import audioLevels from './audioLevels.json';
 import { DRUM_NOTES, DRUM_SAMPLES, SAMPLE_LIBRARY, sampleUrls } from './sampleLibrary';
 import { createSustainLoop, MANUAL_RELEASE } from './envelopes';
-import { GUITAR_LIBRARY } from '../utils/guitar';
+import { STRING_INSTRUMENTS } from '../utils/guitar';
 import { phraseComplexity } from '../utils/settings';
 
 const MIN_GAIN = -60;
@@ -106,7 +106,7 @@ export class AudioEngine {
         const waveform = decoded.getChannelData(channel);
         for (let index = 0; index < waveform.length; index++) waveform[index] *= correction;
       }
-      if (name === 'melody' || name === 'flute') {
+      if (['melody','flute','panflute'].includes(name)) {
         const parts = /^([A-G]#?)(\d+)$/.exec(note);
         const midi = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].indexOf(parts[1]) + (Number(parts[2]) + 1) * 12;
         const channels = Array.from({length:decoded.numberOfChannels},(_,channel)=>decoded.getChannelData(channel));
@@ -192,7 +192,7 @@ export class AudioEngine {
     const name = this.manualInstrument;
     if (!this.ready || !name) return;
     Tone.start().catch(console.error);
-    if (name === 'flute' || name === 'melody') {
+    if (['flute','melody','panflute'].includes(name)) {
       const current=this.manualVoices.get(token);
       if(current?.note===note) {
         current.envelope.gain.setTargetAtTime(velocity,Tone.getContext().rawContext.currentTime,.025);
@@ -220,7 +220,7 @@ export class AudioEngine {
     const loop = this.nodes[name].sustainLoops?.[selected.note];
     source.buffer = loop?.buffer ?? this.nodes[name].buffers[selected.note].get();
     source.playbackRate.value = 2 ** ((pitch - selected.midi) / 12);
-    if (name === 'melody' || name === 'flute') {
+    if (['melody','flute','panflute'].includes(name)) {
       source.loop = true;
       source.loopStart = loop.loopStart;
       source.loopEnd = loop.loopEnd;
@@ -229,7 +229,7 @@ export class AudioEngine {
     Tone.connect(envelope, this.nodes[name].gain);
     const when = context.currentTime + 0.015;
     envelope.gain.setValueAtTime(0, when);
-    envelope.gain.linearRampToValueAtTime(velocity, when + (name === 'flute' ? 0.035 : 0.006));
+    envelope.gain.linearRampToValueAtTime(velocity, when + (['flute','panflute'].includes(name) ? 0.035 : 0.006));
     const voice = { source, envelope, note, name, rate:source.playbackRate.value };
     this.manualVoices.set(token, voice);
     source.onended = () => {
@@ -275,8 +275,8 @@ export class AudioEngine {
     const currentBar = Math.max(0, this.barIndex - 1);
     const energy = this.noise[name].energyAt(currentBar);
     const complexity = phraseComplexity(this.noise[name].complexityAt(currentBar),this.performanceSettings[name]?.complexity);
-    const phrase = nearestBar(name==='guitar'?GUITAR_LIBRARY[this.root].phrases:patterns[name], energy, complexity);
-    const [firstEvent] = name==='guitar'?phrase.events:transposeEvents(phrase.events.slice(0, 1), this.root);
+    const phrase = nearestBar(STRING_INSTRUMENTS[name]?.library[this.root].phrases??patterns[name], energy, complexity);
+    const [firstEvent] = STRING_INSTRUMENTS[name]?phrase.events:transposeEvents(phrase.events.slice(0, 1), this.root);
     if (firstEvent) this.playEvent(name, firstEvent, Tone.now() + FADE_SECONDS + 0.01);
   }
 
@@ -348,8 +348,8 @@ export class AudioEngine {
       if (!this.shouldSchedule(name)) continue;
       const energy = this.noise[name].energyAt(bar);
       const complexity = phraseComplexity(this.noise[name].complexityAt(bar),this.performanceSettings[name]?.complexity);
-      const selected = nearestBar(name==='guitar'?GUITAR_LIBRARY[this.root].phrases:patterns[name], energy, complexity);
-      const events = name==='guitar'?selected.events:transposeEvents(selected.events, this.root);
+      const selected = nearestBar(STRING_INSTRUMENTS[name]?.library[this.root].phrases??patterns[name], energy, complexity);
+      const events = STRING_INSTRUMENTS[name]?selected.events:transposeEvents(selected.events, this.root);
       for (const event of events) {
         const offset = Tone.Time(event.time).toTicks();
         if (offset === 0) {
@@ -383,7 +383,7 @@ export class AudioEngine {
     }
     const notes = event.notes ?? [event.note];
     notes.forEach((note, index) => {
-      const strumOffset = name === 'guitar' ? index * 0.016 : 0;
+      const strumOffset = STRING_INSTRUMENTS[name] ? index * (name==='ukulele'?.012:.016) : 0;
       sampler.triggerAttackRelease(note, event.dur, time + strumOffset, velocity * (1 - index * 0.04));
     });
   }

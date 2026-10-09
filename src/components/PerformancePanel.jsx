@@ -8,6 +8,7 @@ import { flashInput } from './inputFeedback';
 import { guitarInputs } from '../utils/autoplay';
 import {Flute as KeyFlute,Trumpet as LipTrumpet} from './WindControls';
 import {Guitar as FretboardGuitar} from './Guitar';
+import {PanFlute} from './PanFlute';
 
 function PressControl({ label, className='', onPress, onRelease=()=>{}, children, style, swipeNote, demoPressed=false }) {
   const owners=useRef(new Set());
@@ -32,7 +33,7 @@ function Keyboard({ audio, notes, kind, options }) {
     {notes.map(note=>{
       const sharp=note.includes('#');if(!sharp)whiteIndex++;
       return <PressControl key={note} swipeNote={kind==='flute'?undefined:note} label={`${kind==='marimba'?'Marimba bar':kind==='flute'?'Flute note':'Piano key'} ${note}`} className={`note-key ${sharp?'sharp-key':'natural-key'}`}
-        style={sharp?{left:`${(whiteIndex+.68)/whiteCount*100}%`,width:`${.64/whiteCount*100}%`}:{gridColumn:whiteIndex+1}}
+        style={sharp?{left:`${Math.min((whiteIndex+.68)/whiteCount*100,100-.64/whiteCount*100)}%`,width:`${.64/whiteCount*100}%`}:{gridColumn:whiteIndex+1}}
         onPress={token=>kind==='marimba'?audio.manualStrike(note,`${note}-${token}`):audio.manualNoteOn(note,`${note}-${token}`)}
         onRelease={token=>{if(kind!=='marimba')audio.manualNoteOff(`${note}-${token}`);}}><span hidden={!options.noteLabels}>{note}</span>{kind==='marimba'&&<i className="bar-bolt"/>}</PressControl>;
     })}
@@ -73,7 +74,7 @@ export function PerformancePanel({ name, audio, root, onClose, options, settings
     for(const button of panelRef.current.querySelectorAll('.note-key,.drum-pad')) {
       if(notes.some(note=>button.getAttribute('aria-label')?.endsWith(` ${note}`))||button.classList.contains(`pad-${cue.note}`))flashInput(button,name==='piano'?cue.duration*1000:0,'autoplay-hit');
     }
-    if(name==='guitar')(cue.fingering??guitarInputs(notes)).forEach(input=>flashInput(panelRef.current.querySelectorAll('.playable-string')[input.string],0,'autoplay-hit'));
+    if(['guitar','ukulele'].includes(name))(cue.fingering??guitarInputs(notes)).forEach(input=>flashInput(panelRef.current.querySelectorAll('.playable-string')[input.string],0,'autoplay-hit'));
   },[cue,name]);
   useEffect(()=>{
     const stop=()=>audio.stopManualVoices();const hidden=()=>{if(document.hidden)stop();};
@@ -84,9 +85,10 @@ export function PerformancePanel({ name, audio, root, onClose, options, settings
     <div className="performance-surface">
       {name==='piano'&&<Keyboard audio={audio} notes={PIANO_NOTES} kind="piano" options={options}/>}
       {name==='flute'&&<KeyFlute audio={audio} cue={cue} PressControl={PressControl} options={options}/>}
+      {name==='panflute'&&<PanFlute audio={audio} cue={cue} PressControl={PressControl} options={options}/>}
       {name==='marimba'&&<Keyboard audio={audio} notes={MARIMBA_NOTES} kind="marimba" options={options}/>}
       {name==='melody'&&<LipTrumpet audio={audio} cue={cue} PressControl={PressControl} options={options}/>}
-      {name==='guitar'&&<FretboardGuitar audio={audio} cue={cue} root={root} PressControl={PressControl} options={options}/>}
+      {['guitar','ukulele'].includes(name)&&<FretboardGuitar name={name} audio={audio} cue={cue} root={root} PressControl={PressControl} options={options}/>}
       {name==='drums'&&<Drums audio={audio} options={options}/>}
     </div>
     <header><h2>{INSTRUMENTS[name].label}</h2><output className="autoplay-notes" hidden={!options.playbackNotes}>{autoplay?(cue?.notes??(cue?.note?[cue.note]:[])).join(' + '):''}</output><button className="return-instrument" aria-label="Put instrument down" title="Put instrument down" onClick={onClose}><ArrowUpFromLine size={20}/></button></header>

@@ -1,12 +1,13 @@
-import {INSTRUMENTS} from './music.js';
+import {INSTRUMENTS,DEFAULT_INSTRUMENTS} from './music.js';
 
 export const SETTINGS_KEY='farmjam-settings-v1';
 export const COMPLEXITY_PRESETS={Simple:.35,Balanced:1,Expressive:1.5};
 export function defaultSettings() {
-  return {preset:'Balanced',instruments:Object.fromEntries(Object.keys(INSTRUMENTS).map(name=>[name,{complexity:1,noteLabels:false,playbackNotes:false,fingeringCharts:false,fretDots:false,seventhChords:true}]))};
+  return {preset:'Balanced',selected:[...DEFAULT_INSTRUMENTS],instruments:Object.fromEntries(Object.keys(INSTRUMENTS).map(name=>[name,{complexity:1,noteLabels:false,playbackNotes:false,fingeringCharts:false,fretDots:false,seventhChords:true}]))};
 }
 export function normalizeSettings(value) {
   const result=defaultSettings();
+  if(Array.isArray(value?.selected)&&value.selected.length===6&&new Set(value.selected).size===6&&value.selected.every(name=>Object.hasOwn(INSTRUMENTS,name)))result.selected=[...value.selected];
   result.preset=value?.preset==='Custom'||Object.hasOwn(COMPLEXITY_PRESETS,value?.preset)?value.preset:'Balanced';
   for(const [name,options] of Object.entries(result.instruments)) {
     const saved=value?.instruments?.[name];

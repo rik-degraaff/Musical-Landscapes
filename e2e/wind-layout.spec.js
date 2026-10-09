@@ -1,5 +1,13 @@
 import {test,expect} from '@playwright/test';
 
+test.beforeEach(async({page})=>{
+  await page.addInitScript(()=>{
+    const key='farmjam-settings-v1';
+    const saved=JSON.parse(localStorage.getItem(key)??'{}');
+    localStorage.setItem(key,JSON.stringify({...saved,selected:['piano','drums','guitar','melody','marimba','flute']}));
+  });
+});
+
 async function start(page) {
   const viewport=page.viewportSize();if(viewport.height>viewport.width)await page.setViewportSize({width:viewport.height,height:viewport.width});
   await page.goto('/');await page.getByRole('button',{name:'Tap to play'}).click();await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:20000});

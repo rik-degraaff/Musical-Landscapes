@@ -15,9 +15,17 @@ export function note(root, semitones, octave) {
 export function transposeEvents(events, root) {
   return events.map(e => ({
     ...e,
-    notes: e.notes?.map(n => transposeNote(n, root)) ?? undefined,
+    notes: e.notes ? [...new Set(e.notes.map(n => e.compactPiano ? compactPianoNote(transposeNote(n, root)) : transposeNote(n, root)))] : undefined,
     note: e.note && !DRUM_HITS.has(e.note) ? transposeNote(e.note, root) : e.note,
   }));
+}
+
+function compactPianoNote(value) {
+  const match=/^([A-G]#?)(\d+)$/.exec(value);
+  let midi=(Number(match[2])+1)*12+NOTE_NAMES.indexOf(match[1]);
+  while(midi>78)midi-=12;
+  while(midi<60)midi+=12;
+  return `${NOTE_NAMES[midi%12]}${Math.floor(midi/12)-1}`;
 }
 
 function transposeNote(value, root) {
@@ -47,20 +55,7 @@ export function nearestBar(bars, energy, complexity) {
 const P = (energy, complexity, events) => ({ energy, complexity, events });
 
 export const patterns = {
-  piano: [
-    P(.06,.08,[{time:'0:0:0',notes:['C3','G3','E4','G4'],dur:'1m',velocity:.34}]),
-    P(.15,.23,[{time:'0:0:0',notes:['C4','E4','G4'],dur:'2n',velocity:.42},{time:'0:2:0',notes:['G3','D4','G4'],dur:'2n',velocity:.36}]),
-    P(.22,.43,[{time:'0:0:0',notes:['C4','G4'],dur:'8n',velocity:.43},{time:'0:1:0',notes:['E4','G4'],dur:'4n',velocity:.36},{time:'0:2:0',notes:['D4','G4'],dur:'8n',velocity:.4},{time:'0:3:0',notes:['E4','C5'],dur:'4n',velocity:.38}]),
-    P(.31,.18,[{time:'0:0:0',notes:['C3','G3','E4'],dur:'2n',velocity:.35},{time:'0:2:0',notes:['G3','D4','G4'],dur:'2n',velocity:.32}]),
-    P(.38,.48,[{time:'0:0:0',notes:['C4','E4'],dur:'8n',velocity:.48},{time:'0:1:2',notes:['G4','C5'],dur:'8n',velocity:.38},{time:'0:2:0',notes:['D4','G4'],dur:'4n',velocity:.4},{time:'0:3:2',notes:['E4','G4'],dur:'8n',velocity:.38}]),
-    P(.46,.34,[{time:'0:0:0',notes:['C4','G4'],dur:'4n',velocity:.45},{time:'0:1:0',notes:['E4','G4','C5'],dur:'4n',velocity:.35},{time:'0:2:2',notes:['D4','G4'],dur:'8n',velocity:.4},{time:'0:3:0',notes:['C4','E4','G4'],dur:'4n',velocity:.36}]),
-    P(.54,.60,[{time:'0:0:0',notes:['C4','E4','G4'],dur:'8n',velocity:.5},{time:'0:0:2',notes:['D4','G4'],dur:'8n',velocity:.34},{time:'0:1:0',notes:['E4','G4','C5'],dur:'4n',velocity:.4},{time:'0:2:0',notes:['D4','F4','A4'],dur:'8n',velocity:.42},{time:'0:3:0',notes:['E4','G4','B4'],dur:'8n',velocity:.38}]),
-    P(.63,.40,[{time:'0:0:0',notes:['C4','G4'],dur:'8n',velocity:.46},{time:'0:1:0',notes:['E4','C5'],dur:'8n',velocity:.4},{time:'0:2:0',notes:['G3','D4','G4'],dur:'4n',velocity:.4},{time:'0:3:0',notes:['D4','G4','B4'],dur:'8n',velocity:.42},{time:'0:3:2',notes:['E4','G4'],dur:'8n',velocity:.34}]),
-    P(.69,.74,[{time:'0:0:0',notes:['C4','E4'],dur:'8n',velocity:.5},{time:'0:0:2',notes:['G4','C5'],dur:'8n',velocity:.38},{time:'0:1:0',notes:['E4','G4'],dur:'8n',velocity:.43},{time:'0:1:2',notes:['D4','B4'],dur:'8n',velocity:.35},{time:'0:2:0',notes:['C4','E4','G4'],dur:'8n',velocity:.5},{time:'0:2:2',notes:['D4','G4'],dur:'8n',velocity:.34},{time:'0:3:0',notes:['E4','B4'],dur:'8n',velocity:.42}]),
-    P(.77,.56,[{time:'0:0:0',notes:['C4','E4','G4'],dur:'4n',velocity:.54},{time:'0:1:2',notes:['D4','G4'],dur:'8n',velocity:.4},{time:'0:2:0',notes:['E4','G4','C5'],dur:'4n',velocity:.46},{time:'0:3:2',notes:['D4','G4','B4'],dur:'8n',velocity:.4}]),
-    P(.83,.86,[{time:'0:0:0',notes:['C4','E4','G4'],dur:'8n',velocity:.56},{time:'0:0:2',notes:['D4','F4','A4'],dur:'8n',velocity:.4},{time:'0:1:0',notes:['E4','G4','B4'],dur:'8n',velocity:.48},{time:'0:1:2',notes:['C5','G4'],dur:'8n',velocity:.38},{time:'0:2:0',notes:['D4','G4','B4'],dur:'8n',velocity:.5},{time:'0:2:2',notes:['E4','A4'],dur:'8n',velocity:.38},{time:'0:3:0',notes:['C4','E4','G4'],dur:'8n',velocity:.52},{time:'0:3:2',notes:['D4','G4'],dur:'8n',velocity:.36}]),
-    P(.94,.68,[{time:'0:0:0',notes:['C4','G4'],dur:'8n',velocity:.55},{time:'0:0:2',notes:['E4','G4'],dur:'8n',velocity:.42},{time:'0:1:0',notes:['D4','G4','B4'],dur:'4n',velocity:.48},{time:'0:2:0',notes:['C4','E4','G4'],dur:'8n',velocity:.54},{time:'0:2:2',notes:['G4','C5'],dur:'8n',velocity:.42},{time:'0:3:0',notes:['E4','G4','C5'],dur:'4n',velocity:.48}]),
-  ],
+  piano: [],
   guitar: [
     P(.06,.05,[{time:'0:0:0',notes:['C3','G3','E4'],dur:'2n',velocity:.52},{time:'0:2:0',notes:['G3','B3','D4'],dur:'2n',velocity:.44}]),
     P(.16,.18,[{time:'0:0:0',note:'C3',dur:'4n',velocity:.62},{time:'0:1:0',note:'E4',dur:'4n',velocity:.5},{time:'0:2:0',note:'G3',dur:'4n',velocity:.54},{time:'0:3:0',note:'C4',dur:'4n',velocity:.48}]),
@@ -114,6 +109,32 @@ export const patterns = {
   ],
 };
 
+patterns.piano = [
+  P(.08,.08,[{time:'0:0:0',notes:['C4','E4','G4'],dur:'1m',velocity:.36}]),
+  P(.25,.2,[{time:'0:0:0',notes:['C4','E4','G4'],dur:'2n',velocity:.42},{time:'0:2:0',notes:['B4','D4','G4'],dur:'2n',velocity:.36}]),
+  P(.4,.45,[{time:'0:0:0',notes:['C4','G4'],dur:'4n',velocity:.45},{time:'0:1:0',notes:['E4','G4'],dur:'4n',velocity:.38},{time:'0:2:0',notes:['D4','G4'],dur:'4n',velocity:.41},{time:'0:3:0',notes:['C4','E4'],dur:'4n',velocity:.36}]),
+  P(.56,.55,[{time:'0:0:0',notes:['C4','E4'],dur:'8n',velocity:.48},{time:'0:0:2',notes:['G4'],dur:'8n',velocity:.34},{time:'0:1:0',notes:['E4','G4'],dur:'4n',velocity:.4},{time:'0:2:0',notes:['D4','F4','A4'],dur:'4n',velocity:.44},{time:'0:3:0',notes:['E4','G4','B4'],dur:'4n',velocity:.39}]),
+  P(.75,.7,[{time:'0:0:0',notes:['C4','E4','G4'],dur:'8n',velocity:.51},{time:'0:0:2',notes:['D4','G4'],dur:'8n',velocity:.36},{time:'0:1:0',notes:['E4','G4'],dur:'4n',velocity:.44},{time:'0:2:0',notes:['F4','A4'],dur:'8n',velocity:.45},{time:'0:2:2',notes:['E4','G4'],dur:'8n',velocity:.36},{time:'0:3:0',notes:['D4','G4','B4'],dur:'4n',velocity:.42}]),
+  P(.92,.9,[{time:'0:0:0',notes:['C4','E4'],dur:'8n',velocity:.54},{time:'0:0:2',notes:['G4'],dur:'8n',velocity:.38},{time:'0:1:0',notes:['E4','G4'],dur:'8n',velocity:.46},{time:'0:1:2',notes:['D4','B4'],dur:'8n',velocity:.38},{time:'0:2:0',notes:['C4','E4','G4'],dur:'8n',velocity:.52},{time:'0:2:2',notes:['F4','A4'],dur:'8n',velocity:.38},{time:'0:3:0',notes:['E4','G4'],dur:'8n',velocity:.44},{time:'0:3:2',notes:['D4','G4'],dur:'8n',velocity:.36}])
+].map(phrase=>({...phrase,events:phrase.events.map(event=>({...event,compactPiano:true}))}));
+
+patterns.ukulele = [
+  P(.08,.08,[{time:'0:0:0',notes:['G4','C4','E4','C5'],dur:'2n',velocity:.45},{time:'0:2:0',notes:['G4','D4','G4','B4'],dur:'2n',velocity:.38}]),
+  P(.25,.25,[{time:'0:0:0',note:'C4',dur:'4n',velocity:.52},{time:'0:1:0',note:'E4',dur:'4n',velocity:.43},{time:'0:2:0',note:'G4',dur:'4n',velocity:.48},{time:'0:3:0',note:'C5',dur:'4n',velocity:.43}]),
+  P(.45,.4,[{time:'0:0:0',notes:['G4','C4','E4','C5'],dur:'4n',velocity:.55},{time:'0:1:2',notes:['G4','C4','E4','C5'],dur:'8n',velocity:.4},{time:'0:2:0',notes:['G4','D4','G4','B4'],dur:'4n',velocity:.5},{time:'0:3:2',note:'B4',dur:'8n',velocity:.4}]),
+  P(.62,.6,[{time:'0:0:0',note:'C4',dur:'8n',velocity:.55},{time:'0:0:2',note:'G4',dur:'8n',velocity:.42},{time:'0:1:0',note:'E4',dur:'8n',velocity:.48},{time:'0:1:2',note:'C5',dur:'8n',velocity:.4},{time:'0:2:0',note:'A4',dur:'4n',velocity:.5},{time:'0:3:0',notes:['G4','D4','B4'],dur:'4n',velocity:.48}]),
+  P(.85,.85,[{time:'0:0:0',notes:['G4','C4','E4','C5'],dur:'8n',velocity:.58},{time:'0:0:2',note:'E4',dur:'8n',velocity:.4},{time:'0:1:0',note:'G4',dur:'8n',velocity:.48},{time:'0:1:2',note:'C5',dur:'8n',velocity:.42},{time:'0:2:0',notes:['A4','C4','E4','A4'],dur:'4n',velocity:.54},{time:'0:3:0',notes:['G4','D4','G4','B4'],dur:'8n',velocity:.5},{time:'0:3:2',note:'D4',dur:'8n',velocity:.4}])
+];
+patterns.panflute = [
+  P(.08,.08,[{time:'0:0:0',note:'E4',dur:'2n.',velocity:.3},{time:'0:3:0',note:'G4',dur:'8n',velocity:.28}]),
+  P(.25,.25,[{time:'0:0:0',note:'C4',dur:'4n',velocity:.38},{time:'0:1:0',note:'E4',dur:'4n',velocity:.32},{time:'0:2:0',note:'G4',dur:'2n',velocity:.36}]),
+  P(.45,.45,[{time:'0:0:0',note:'G4',dur:'4n',velocity:.42},{time:'0:1:0',note:'A4',dur:'8n',velocity:.34},{time:'0:1:2',note:'G4',dur:'8n',velocity:.3},{time:'0:2:0',note:'E4',dur:'4n',velocity:.37},{time:'0:3:0',note:'D4',dur:'8n',velocity:.32}]),
+  P(.65,.65,[{time:'0:0:0',note:'E4',dur:'8n',velocity:.44},{time:'0:0:2',note:'G4',dur:'8n',velocity:.33},{time:'0:1:0',note:'C5',dur:'4n',velocity:.39},{time:'0:2:0',note:'B4',dur:'8n',velocity:.38},{time:'0:2:2',note:'A4',dur:'8n',velocity:.32},{time:'0:3:0',note:'G4',dur:'4n',velocity:.4}]),
+  P(.85,.85,[{time:'0:0:0',note:'C4',dur:'8n',velocity:.48},{time:'0:0:2',note:'E4',dur:'8n',velocity:.34},{time:'0:1:0',note:'G4',dur:'8n',velocity:.42},{time:'0:1:2',note:'A4',dur:'8n',velocity:.35},{time:'0:2:0',note:'C5',dur:'4n',velocity:.44},{time:'0:3:0',note:'G4',dur:'8n',velocity:.38},{time:'0:3:2',note:'E4',dur:'8n',velocity:.32}])
+];
+
+export const DEFAULT_INSTRUMENTS = ['piano','drums','ukulele','melody','marimba','panflute'];
+export const INSTRUMENT_SLOTS = [{x:15,y:35},{x:50,y:35},{x:85,y:35},{x:15,y:67},{x:50,y:67},{x:85,y:67}];
 export const INSTRUMENTS = {
   piano:{label:'Piano', icon:'🎹', volume:-7, x:15, y:35, seed:11},
   drums:{label:'Drums', icon:'🥁', volume:-9, x:50, y:35, seed:23},
@@ -121,4 +142,6 @@ export const INSTRUMENTS = {
   melody:{label:'Trumpet', icon:'🎺', volume:-10, x:15, y:67, seed:51},
   marimba:{label:'Marimba', icon:'🎶', volume:-9, x:50, y:67, seed:63},
   flute:{label:'Flute', icon:'🪈', volume:-12, x:85, y:67, seed:77},
+  ukulele:{label:'Ukulele',icon:'🎸',volume:-7,x:85,y:35,seed:89},
+  panflute:{label:'Pan flute',icon:'🪈',volume:-12,x:85,y:67,seed:101},
 };

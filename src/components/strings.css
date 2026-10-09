@@ -1,0 +1,76 @@
+.strings-layout.guitar-fretboard-layout .guitar-stringboard {
+  grid-template-rows:repeat(var(--string-count),minmax(0,1fr));
+  isolation:isolate;
+  container-type:inline-size;
+}
+.strings-layout.guitar-fretboard-layout .guitar-neck {
+  left:1%;width:65%;top:0;bottom:0;height:auto;border:0;border-radius:0;
+}
+.strings-layout.guitar-fretboard-layout .guitar-soundhole {
+  left:76%;top:50%;
+  height:min(84%,20cqw);width:auto;
+  aspect-ratio:1;
+  box-sizing:border-box;
+  translate:0 -50%;
+}
+.strings-layout.guitar-fretboard-layout .guitar-fingering-overlay {
+  z-index:5;
+  pointer-events:none;
+  overflow:visible;
+}
+.strings-layout.guitar-fretboard-layout .fingering-dot {
+  width:13px;height:13px;
+  background:#ff7900;
+  border:2px solid #fff5df;
+  box-shadow:0 0 0 2px #8c3200,0 2px 5px #271407b3;
+}
+.strings-layout.guitar-fretboard-layout .open-string-dot {
+  left:1.5%!important;
+  background:#482411;
+  border-color:#ff9a23;
+  box-shadow:0 0 0 1px #fff5df,0 2px 5px #271407b3;
+}
+.strings-layout.guitar-fretboard-layout .phrase-note-dot {
+  width:17px;height:17px;
+  background:#ff7900;
+  border:3px solid #fff5df;
+  box-shadow:0 0 0 2px #a63d00,0 0 8px #ff7900;
+  z-index:1;
+}
+.strings-layout.guitar-fretboard-layout .phrase-note-dot[data-fret="0"] { left:1.5%!important; }
+.strings-layout.guitar-fretboard-layout .neck-chord-controls {
+  gap:4px;
+  align-items:center;
+}
+.strings-layout.guitar-fretboard-layout .neck-chord-controls .chord-control {
+  align-self:center;
+  height:26px;
+  max-height:100%;
+  padding:2px;
+  background:#f7ecd687;
+  border-color:#fff2cd91;
+  color:#273b2c;
+  font-size:12px!important;
+}
+.strings-layout.guitar-fretboard-layout .neck-chord-controls .chord-control.playing-chord,
+.strings-layout.guitar-fretboard-layout .neck-chord-controls .chord-control.pressed { background:#ffc06bb8; }
+.strings-layout.guitar-fretboard-layout .neck-chord-controls.with-charts .chord-control { height:100%; }
+.strings-layout.guitar-fretboard-layout .neck-chord-name {
+  left:auto;right:0;top:1px;
+  translate:0;
+  font-size:12px;
+  line-height:1;
+  opacity:1;
+  color:#fff5df;
+  text-shadow:0 1px 2px #271407;
+}
+@media(max-width:650px) {
+  .strings-layout.guitar-fretboard-layout .neck-chord-controls { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .strings-layout.guitar-fretboard-layout .neck-chord-controls .chord-control { font-size:10px!important; }
+}
+@media(max-height:550px) and (orientation:landscape) {
+  .strings-layout.guitar-fretboard-layout .fingering-dot { width:10px;height:10px; }
+  .strings-layout.guitar-fretboard-layout .phrase-note-dot { width:13px;height:13px;border-width:2px; }
+  .strings-layout.guitar-fretboard-layout .neck-chord-controls .chord-control { height:20px;font-size:10px!important; }
+  .strings-layout.guitar-fretboard-layout .neck-chord-controls.with-charts .chord-control { height:100%; }
+}

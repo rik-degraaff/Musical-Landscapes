@@ -7,6 +7,9 @@ test('each key has all seven diatonic triads and seventh chords with playable fi
   for(const library of Object.values(GUITAR_LIBRARY)) {
     assert.equal(library.chords.length,14);
     for(const chord of library.chords) {
+      assert.equal(chord.notes.length,6);
+      assert.ok(chord.frets.every(fret=>Number.isInteger(fret)&&fret>=0&&fret<=24));
+      assert.ok(Math.max(...chord.frets)-Math.min(...chord.frets)<=4);
       const pitches=chord.notes.filter(Boolean).map(note=>noteMidi(note)%12);
       assert.ok(chord.tones.every(tone=>pitches.includes(tone)));
       chord.frets.forEach((fret,string)=>{if(fret!==null)assert.equal(noteMidi(chord.notes[string]),noteMidi(OPEN_STRINGS[string])+fret);});
@@ -21,6 +24,10 @@ test('every note event has a precalculated compatible chord and exact playable n
     assert.ok(notes.every(note=>chord.tones.includes(noteMidi(note)%12)));
     assert.equal(event.fingering.length,notes.length);
     assert.equal(new Set(event.fingering.map(value=>value.string)).size,notes.length);
+    event.fingering.forEach((input,index)=>{
+      assert.equal(input.note,notes[index]);
+      assert.equal(noteMidi(input.note),noteMidi(OPEN_STRINGS[input.string])+input.fret);
+    });
   }
   assert.equal(fretPosition(0),0);assert.equal(fretPosition(24),1);
 });

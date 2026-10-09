@@ -1,4 +1,4 @@
-export const MANUAL_RELEASE = { piano: 0.9, guitar: 0.4, marimba: 0.35, melody: 0.14, flute: 0.22 };
+export const MANUAL_RELEASE = { piano: 0.9, guitar: 0.4, ukulele:0.35, panflute:0.22, marimba: 0.35, melody: 0.14, flute: 0.22 };
 
 export function createSustainLoop(channels, sampleRate, frequency) {
   const length = Math.min(...channels.map(channel => channel.length));

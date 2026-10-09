@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PIANO_NOTES, GUITAR_CHORDS, trumpetNote, slidePosition } from '../src/utils/performance.js';
-test('manual instruments have extended piano, open strings and acoustic trumpet valve intervals', () => {
-  assert.equal(PIANO_NOTES.length, 34);
-  assert.equal(PIANO_NOTES.at(-1), 'A5');
+test('manual instruments have compact piano, open strings and acoustic trumpet valve intervals', () => {
+  assert.equal(PIANO_NOTES.length, 19);
+  assert.equal(PIANO_NOTES[0], 'C4');
+  assert.equal(PIANO_NOTES.at(-1), 'F#5');
   assert.deepEqual(GUITAR_CHORDS.Open, ['E2','A2','D3','G3','B3','E4']);
   assert.equal(trumpetNote([false,false,false], 0), 'C4');
   assert.equal(trumpetNote([true,false,false], 0), 'A#3');

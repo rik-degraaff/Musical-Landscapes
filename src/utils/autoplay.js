@@ -11,21 +11,24 @@ export function keyboardRange(notes, extra) {
   return Array.from({length:high-low+1}, (_, index) => midiNote(low+index));
 }
 
-export function guitarInput(note) {
-  const open = ['E2','A2','D3','G3','B3','E4'];
-  const choices = open.map((value, string) => ({string, fret:noteMidi(note)-noteMidi(value)})).filter(value => value.fret >= 0 && value.fret <= 24);
+export function guitarInput(note, tuning = ['E2','A2','D3','G3','B3','E4'], frets = tuning.length === 4 ? 18 : 24) {
+  const choices = tuning.map((value, string) => ({string, fret:noteMidi(note)-noteMidi(value)})).filter(value => value.fret >= 0 && value.fret <= frets);
   return choices.sort((first, second) => first.fret-second.fret)[0];
 }
 
-export function guitarInputs(notes) {
-  const open = ['E2','A2','D3','G3','B3','E4'];
+export function guitarInputs(notes, tuning = ['E2','A2','D3','G3','B3','E4'], frets = tuning.length === 4 ? 18 : 24) {
   let best = null;
   let bestCost = Infinity;
   function assign(index, assigned, cost) {
-    if(index === notes.length) { if(cost < bestCost) { best=assigned;bestCost=cost; } return; }
-    open.forEach((base,string)=>{
+    if(index === notes.length) {
+      const positions=assigned.map(input=>input.fret);
+      const score=Math.max(0,...positions)*1000+(positions.length?Math.max(...positions)-Math.min(...positions):0)*100+cost;
+      if(score < bestCost) { best=assigned;bestCost=score; }
+      return;
+    }
+    tuning.forEach((base,string)=>{
       const fret=noteMidi(notes[index])-noteMidi(base);
-      if(fret>=0&&fret<=24&&!assigned.some(input=>input.string===string)) assign(index+1,[...assigned,{string,fret,note:notes[index]}],cost+fret);
+      if(fret>=0&&fret<=frets&&!assigned.some(input=>input.string===string)) assign(index+1,[...assigned,{string,fret,note:notes[index]}],cost+fret);
     });
   }
   assign(0,[],0);

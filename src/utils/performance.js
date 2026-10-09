@@ -2,7 +2,8 @@ const pitches = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 export function midiNote(value) {
   return `${pitches[value % 12]}${Math.floor(value / 12) - 1}`;
 }
-export const PIANO_NOTES = Array.from({ length: 34 }, (_, index) => midiNote(48 + index));
+export const PIANO_NOTES = Array.from({ length: 19 }, (_, index) => midiNote(60 + index));
+export const PANFLUTE_NOTES = Array.from({ length: 22 }, (_, index) => midiNote(60 + index));
 export const FLUTE_NOTES = Array.from({ length: 26 }, (_, index) => midiNote(60 + index));
 export const MARIMBA_NOTES = Array.from({ length: 22 }, (_, index) => midiNote(72 + index));
 export const GUITAR_CHORDS = {

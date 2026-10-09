@@ -15,7 +15,8 @@ test('every instrument has local recordings with valid audio signatures', () => 
     for (const file of Object.values(sampleUrls(name))) {
       const bytes = readFileSync(new URL(`../public/audio/instruments/${file}`, import.meta.url));
       assert.ok(bytes.length > 1000, file);
-      assert.ok(bytes.subarray(0, 3).toString() === 'ID3' || (bytes[0] === 255 && (bytes[1] & 224) === 224), file);
+      if (file.endsWith('.flac')) assert.equal(bytes.subarray(0, 4).toString(), 'fLaC', file);
+      else assert.ok(bytes.subarray(0, 3).toString() === 'ID3' || (bytes[0] === 255 && (bytes[1] & 224) === 224), file);
     }
   }
   for (const { file } of Object.values(DRUM_SAMPLES)) {

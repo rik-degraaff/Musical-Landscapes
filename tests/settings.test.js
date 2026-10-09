@@ -4,6 +4,9 @@ import {defaultSettings,normalizeSettings,applyPreset,phraseComplexity,loadSetti
 
 test('advanced information is hidden by default and settings preserve safe individual controls',()=>{
   const defaults=defaultSettings();
+  assert.equal(defaults.selected.length,6);
+  assert.deepEqual(normalizeSettings({selected:['piano','piano']}).selected,defaults.selected);
+  assert.deepEqual(normalizeSettings({selected:['piano','drums','guitar','melody','marimba','flute']}).selected,['piano','drums','guitar','melody','marimba','flute']);
   for(const options of Object.values(defaults.instruments)){assert.equal(options.fingeringCharts,false);assert.equal(options.noteLabels,false);assert.equal(options.playbackNotes,false);assert.equal(options.fretDots,false);}
   const saved=normalizeSettings({instruments:{guitar:{complexity:99,fingeringCharts:true,noteLabels:'true'}}});
   assert.equal(saved.instruments.guitar.complexity,2);assert.equal(saved.instruments.guitar.fingeringCharts,true);assert.equal(saved.instruments.guitar.noteLabels,false);

@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async({page})=>{
+  await page.addInitScript(()=>{
+    const key='farmjam-settings-v1';
+    const saved=JSON.parse(localStorage.getItem(key)??'{}');
+    localStorage.setItem(key,JSON.stringify({...saved,selected:['piano','drums','guitar','melody','marimba','flute']}));
+  });
+});
+
 async function start(page) {
   const viewport=page.viewportSize();
   if(viewport.height>viewport.width)await page.setViewportSize({width:viewport.height,height:viewport.width});
@@ -54,7 +62,7 @@ test('piano chords release and wind notes sustain while the world continues',asy
   const errors=await start(page);
   await page.locator('#instrument-drums').click();
   await equip(page,'piano');
-  await expect(page.getByRole('button',{name:/Piano key/})).toHaveCount(34);
+  await expect(page.getByRole('button',{name:/Piano key/})).toHaveCount(19);
   const key=page.getByRole('button',{name:'Piano key C4',exact:true});
   await key.focus();await page.keyboard.down('Space');
   expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBe(1);

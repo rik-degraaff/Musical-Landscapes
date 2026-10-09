@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async({page})=>{
+  await page.addInitScript(()=>{
+    const key='farmjam-settings-v1';
+    const saved=JSON.parse(localStorage.getItem(key)??'{}');
+    localStorage.setItem(key,JSON.stringify({...saved,selected:['piano','drums','guitar','melody','marimba','flute']}));
+  });
+});
+
 async function start(page) {
   const viewport=page.viewportSize();
   if(viewport.height>viewport.width)await page.setViewportSize({width:viewport.height,height:viewport.width});
@@ -186,7 +194,6 @@ test('guitar fretboard diagrams, full neck and chord and autoplay dots fit compa
   await page.getByRole('tab',{name:'Display',exact:true}).click();
   await page.getByRole('combobox',{name:'Configure instrument'}).selectOption('guitar');
   await page.getByLabel('Show chord fingering charts').check();
-  await page.getByLabel('Show detailed fret positions').check();
   await page.locator('.mixer-head').getByRole('button',{name:'Close settings'}).click();
   await expect(page.locator('.guitar-stringboard .guitar-chords')).toHaveClass(/with-charts/);
   const library=await page.evaluate(async()=>{
@@ -198,7 +205,7 @@ test('guitar fretboard diagrams, full neck and chord and autoplay dots fit compa
     await expect(dot).toBeVisible();
     const overlay=await page.locator('.guitar-fingering-overlay').boundingBox();
     const bounds=await dot.boundingBox();
-    const horizontal=fret===0?0:(position(fret-1)+position(fret))/2;
+    const horizontal=fret===0?.015:(position(fret-1)+position(fret))/2;
     expect(bounds.x+bounds.width/2).toBeCloseTo(overlay.x+overlay.width*horizontal,0);
     expect(bounds.y+bounds.height/2).toBeCloseTo(overlay.y+overlay.height*(string+.5)/6,0);
   };
@@ -212,7 +219,8 @@ test('guitar fretboard diagrams, full neck and chord and autoplay dots fit compa
     await expect(page.locator('.guitar-stringboard .fret-line')).toHaveCount(25);
     await expect(page.locator('.manual-guitar input[type="number"]')).toHaveCount(0);
     for(const [index,note] of library.open.entries())await expect(page.locator('.playable-string').nth(index)).toHaveAttribute('aria-label',`Guitar string ${index+1} ${note}`);
-    await expect(page.locator('.fingering-dot,.phrase-note-dot,.neck-chord-name')).toHaveCount(0);
+    await expect(page.locator('.fingering-dot.open-string-dot')).toHaveCount(6);
+    await expect(page.locator('.phrase-note-dot,.neck-chord-name')).toHaveCount(0);
     const board=await page.locator('.guitar-stringboard').boundingBox();
     const neck=await page.locator('.guitar-stringboard .guitar-neck').boundingBox();
     const hole=await page.locator('.guitar-soundhole').boundingBox();
@@ -232,13 +240,14 @@ test('guitar fretboard diagrams, full neck and chord and autoplay dots fit compa
     const button=page.getByRole('button',{name:'Hold guitar chord C',exact:true});
     await button.focus();await page.keyboard.down('Space');
     await expect(page.locator('.neck-chord-name')).toHaveText('C');
-    await expect(page.locator('.fingering-dot')).toHaveCount(chord.frets.filter(fret=>fret!==null).length);
+    await expect(page.locator('.fingering-dot')).toHaveCount(6);
     for(const [string,fret] of chord.frets.entries()){
-      if(fret!==null)await expectDot(page.locator(`.fingering-dot[data-string="${string+1}"][data-fret="${fret}"]`),string,fret);
+      await expectDot(page.locator(`.fingering-dot[data-string="${string+1}"][data-fret="${fret}"]`),string,fret);
     }
     await page.screenshot({path:`test-results/${testInfo.project.name}-guitar-held-${viewport.width}.png`});
     await page.keyboard.up('Space');
-    await expect(page.locator('.fingering-dot,.neck-chord-name')).toHaveCount(0);
+    await expect(page.locator('.fingering-dot.open-string-dot')).toHaveCount(6);
+    await expect(page.locator('.phrase-note-dot,.neck-chord-name')).toHaveCount(0);
     await page.evaluate(event=>window.audioEngine.onManualAutoplayEvent({...event,duration:60}),library.event);
     await expect(page.locator('.neck-chord-name')).toHaveText(library.event.chord);
     await expect(page.getByRole('button',{name:`Hold guitar chord ${library.event.chord}`,exact:true})).toHaveClass(/playing-chord/);
@@ -249,13 +258,14 @@ test('guitar fretboard diagrams, full neck and chord and autoplay dots fit compa
     await expect(page.locator('.phrase-note-dot')).toHaveCount(0);
     const demoChord=page.getByRole('button',{name:`Hold guitar chord ${library.event.chord}`,exact:true});
     await demoChord.focus();await page.keyboard.press('Space');
-    await expect(page.locator('.fingering-dot,.neck-chord-name')).toHaveCount(0);
+    await expect(page.locator('.fingering-dot.open-string-dot')).toHaveCount(6);
+    await expect(page.locator('.phrase-note-dot,.neck-chord-name')).toHaveCount(0);
   }
 });
 
 test('all phrase notes are visible before activation and ranges do not resize with playback',async({page})=>{
   await start(page);
-  for(const [name,count,label] of [['piano',34,'Piano key'],['marimba',22,'Marimba bar'],['flute',17,'Flute key']]){
+  for(const [name,count,label] of [['piano',19,'Piano key'],['marimba',22,'Marimba bar'],['flute',17,'Flute key']]){
     await equipByKey(page,name);
     await expect(page.getByRole('button',{name:new RegExp(`^${label} `)})).toHaveCount(count);
     await page.locator(`#instrument-${name}`).click();

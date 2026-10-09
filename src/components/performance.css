@@ -17,7 +17,7 @@
 .return-instrument { width:32px;height:30px;display:grid;place-items:center;background:transparent;border:0;color:#46635b;cursor:pointer;border-radius:4px; }
 .performance-surface { flex:1;min-height:0;width:100%;max-width:1050px;margin:0 auto;padding:12px 18px 18px; }
 .performance-piano .performance-surface,.performance-marimba .performance-surface { padding-top:2px;padding-bottom:6px; }
-.performance-guitar .performance-surface { padding-top:4px;padding-bottom:26px; }
+.performance-guitar .performance-surface,.performance-ukulele .performance-surface { padding-top:4px;padding-bottom:26px; }
 .performance-panel button { font:inherit;touch-action:none;cursor:pointer;-webkit-tap-highlight-color:transparent; }
 .performance-panel button:focus-visible { outline:3px solid #db765e;outline-offset:2px; }
 .boehm-flute { height:100%;display:grid;grid-template-rows:minmax(0,1fr); }
@@ -62,8 +62,8 @@
 .note-key span { font-size:12px;pointer-events:none; }
 .natural-key { grid-row:1;background:linear-gradient(#fcfcf1,#e5e8df);box-shadow:inset 0 -5px #b9c3b7;color:#42534d;height:100%; }
 .sharp-key { position:absolute;top:0;height:62%;background:linear-gradient(#364441,#172c28);box-shadow:inset 0 -5px #090f0e;z-index:2;color:#e7f0e6; }
-.note-key.pressed { background:#eac273;box-shadow:inset 0 -2px #b18c4f; }
-.note-key.swipe-pressed { background:#eac273;box-shadow:inset 0 -2px #b18c4f; }
+.note-key.pressed { background:#ff7900;box-shadow:inset 0 -2px #b04a00; }
+.note-key.swipe-pressed { background:#ff7900;box-shadow:inset 0 -2px #b04a00; }
 .playable-string.swipe-pressed i { background:#fff2a0;box-shadow:0 0 5px #f5cd66; }
 .marimba.manual-keyboard { border-color:#896952;background:#896952;border-top-width:8px;border-bottom-width:8px; }
 .marimba .natural-key { background:linear-gradient(90deg,#be824e,#e3b475,#b27643);box-shadow:inset 0 -6px #835a37; }
@@ -159,7 +159,7 @@
   .performance-piano .performance-surface,.performance-marimba .performance-surface { padding-top:0;padding-bottom:3px; }
   .performance-piano .manual-keyboard { border-top-width:8px;border-bottom-width:5px; }
   .performance-marimba .manual-keyboard { border-top-width:5px;border-bottom-width:4px; }
-  .performance-guitar .performance-surface { padding-top:0;padding-bottom:12px; }
+  .performance-guitar .performance-surface,.performance-ukulele .performance-surface { padding-top:0;padding-bottom:12px; }
   .app-shell.manual-open .instrument { width:60px;height:48px; }.app-shell.manual-open .instrument-drawing { scale:.4; }.app-shell.manual-open .scene .interactive-object { width:52px;height:44px; }
   .app-shell.manual-open .instrument:hover .instrument-drawing,.app-shell.manual-open .instrument:active .instrument-drawing { scale:.4; }
   .app-shell.manual-open .young-musician { width:38px;height:52px; }

@@ -1,5 +1,13 @@
 import {test,expect} from '@playwright/test';
 
+test.beforeEach(async({page})=>{
+  await page.addInitScript(()=>{
+    const key='farmjam-settings-v1';
+    const saved=JSON.parse(localStorage.getItem(key)??'{}');
+    localStorage.setItem(key,JSON.stringify({...saved,selected:['piano','drums','guitar','melody','marimba','flute']}));
+  });
+});
+
 async function start(page) {
   const viewport=page.viewportSize();if(viewport.height>viewport.width)await page.setViewportSize({width:viewport.height,height:viewport.width});
   await page.goto('/');
@@ -28,7 +36,7 @@ test('guitar buttons overlay the neck with diagrams off by default and display o
   }
   await page.screenshot({path:`test-results/${testInfo.project.name}-guitar-default-settings.png`});
   await settings(page,'Display');
-  await page.getByLabel('Show chord fingering charts').check();await page.getByLabel('Show detailed fret positions').check();
+  await page.getByLabel('Show chord fingering charts').check();
   await page.keyboard.press('Escape');
   await expect(page.locator('.chord-diagram')).toHaveCount(14);
   const chord=page.getByRole('button',{name:'Hold guitar chord C',exact:true});

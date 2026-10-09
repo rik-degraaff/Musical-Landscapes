@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async({page})=>{
+  await page.addInitScript(()=>{
+    const key='farmjam-settings-v1';
+    const saved=JSON.parse(localStorage.getItem(key)??'{}');
+    localStorage.setItem(key,JSON.stringify({...saved,selected:['piano','drums','guitar','melody','marimba','flute']}));
+  });
+});
+
 const instruments = ['piano', 'drums', 'guitar', 'melody', 'marimba', 'flute'];
 const objects = [['Cow', 'Tractor'], ['Outdoor faucet', 'Bird'], ['Frog', 'Windmill'], ['Cricket','Airplane'], ['Little bell', 'Night owl'], ['Rooster', 'Wind chimes']];
 

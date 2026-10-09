@@ -1,5 +1,5 @@
 import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
-import { INSTRUMENTS } from './utils/music';
+import { INSTRUMENTS,INSTRUMENT_SLOTS } from './utils/music';
 import { Instrument } from './components/Instrument';
 import { Mixer } from './components/Mixer';
 import { StartScreen } from './components/StartScreen';
@@ -14,7 +14,9 @@ import { LandscapeGuard, requestLandscape } from './components/LandscapeGuard';
 import {loadSettings,SETTINGS_KEY} from './utils/settings';
 import {Metronome} from './components/Metronome';
 
-const initialInstruments = Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,v])=>[name,{...v,active:false}]));
+function initialInstruments(selected) {
+  return Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,value])=>[name,{...value,...(selected.includes(name)?INSTRUMENT_SLOTS[selected.indexOf(name)]:{}),active:false}]));
+}
 
 export default function App() {
   const audioRef = useRef(null);
@@ -27,7 +29,7 @@ export default function App() {
   const [settings,setSettings] = useState(()=>loadSettings(localStorage));
   const [sceneVolume,setSceneVolume] = useState(-4);
   const mixerTap = useRef(null);
-  const [instruments,setInstruments] = useState(initialInstruments);
+  const [instruments,setInstruments] = useState(()=>initialInstruments(settings.selected));
   const stateRef = useRef(instruments);
   const drag = useRef(null);
   const startInProgress = useRef(false);
@@ -78,6 +80,18 @@ export default function App() {
     const next={...stateRef.current,[name]:{...stateRef.current[name],volume:Number(value)}};
     stateRef.current=next; setInstruments(next);
     audioRef.current.setVolumes({[name]:Number(value)});
+  }
+
+  function updateSettings(next) {
+    const changed=next.selected.some((name,index)=>name!==settings.selected[index]);
+    if(changed) {
+      if(equippedRef.current&&!next.selected.includes(equippedRef.current))equip(null);
+      for(const name of settings.selected)if(!next.selected.includes(name))audioRef.current?.setInstrumentActive(name,false);
+      const positions={...stateRef.current};
+      next.selected.forEach((name,index)=>{if(settings.selected[index]!==name)positions[name]={...positions[name],...INSTRUMENT_SLOTS[index]};});
+      stateRef.current=positions;setInstruments(positions);
+    }
+    setSettings(next);
   }
 
   function pointerDown(e,name) {
@@ -149,7 +163,8 @@ export default function App() {
     equippedRef.current=name;setEquipped(name);
     audioRef.current.setManualInstrument(name);
     if(previous&&previous!==name&&resetPrevious) {
-      const next={...stateRef.current,[previous]:{...stateRef.current[previous],x:INSTRUMENTS[previous].x,y:INSTRUMENTS[previous].y}};
+      const home=INSTRUMENT_SLOTS[settings.selected.indexOf(previous)]??INSTRUMENTS[previous];
+      const next={...stateRef.current,[previous]:{...stateRef.current[previous],x:home.x,y:home.y}};
       stateRef.current=next;setInstruments(next);
     }
     requestAnimationFrame(()=>{if(name)attachToChild(name);if(previous&&previous!==name)settle(previous);});
@@ -188,7 +203,7 @@ export default function App() {
     if(started)layout();
     window.addEventListener('resize',layout);
     return ()=>window.removeEventListener('resize',layout);
-  },[equipped,sceneIndex,started]);
+  },[equipped,sceneIndex,started,settings.selected]);
 
   function rotateScene() {
     setSceneIndex(i=>{ const next=(i+1)%SCENES.length; audioRef.current?.setSceneKey(SCENES[next].root); return next; });
@@ -199,8 +214,8 @@ export default function App() {
     <Scene sceneIndex={sceneIndex} audio={audioRef.current} onRotate={rotateScene} onCelestialSettled={()=>{if(started)for(const name of Object.keys(INSTRUMENTS))settle(name);}}/>
     {started&&<YoungMusician equipped={equipped?INSTRUMENTS[equipped].label:null} accepting={nearChild}/>}
     <div className="instrument-layer">
-      {Object.entries(instruments).map(([name,i])=><Instrument key={name} name={name} label={i.label} x={i.x} y={i.y} active={i.active} equipped={equipped===name} sliding={dragging!==name} onEquip={()=>equip(name)} onToggle={toggle}
-        onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}/>) }
+      {settings.selected.map(name=>{const i=instruments[name];return <Instrument key={name} name={name} label={i.label} x={i.x} y={i.y} active={i.active} equipped={equipped===name} sliding={dragging!==name} onEquip={()=>equip(name)} onToggle={toggle}
+        onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}/>;}) }
     </div>
     </div>
 
@@ -208,7 +223,7 @@ export default function App() {
       {started && <button className="mixer-button" onClick={activateMixer} aria-expanded={mixer} aria-controls="landscape-mixer" aria-label={mixer?'Close settings':'Open settings'} title={mixer?'Close settings':'Double-click or double-tap to open settings'}>{mixer?<X size={22}/>:<Menu size={22}/>}</button>}
     </div>
 
-    {started && mixer && <Mixer instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} settings={settings} onSettings={setSettings} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
+    {started && mixer && <Mixer instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} settings={settings} onSettings={updateSettings} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
     {started&&<Metronome audio={audioRef.current} open={metronomeOpen} disabled={mixer} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}
 
     {equipped&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={SCENES[sceneIndex].root} options={settings.instruments[equipped]} settingsOpen={mixer} onClose={()=>equip(null)}/>}
