@@ -6,7 +6,7 @@ import audioLevels from './audioLevels.json';
 import { DRUM_NOTES, DRUM_SAMPLES, SAMPLE_LIBRARY, sampleUrls } from './sampleLibrary';
 import { createSustainLoop, MANUAL_RELEASE } from './envelopes';
 import { STRING_INSTRUMENTS } from '../utils/guitar';
-import { phraseComplexity } from '../utils/settings';
+import {equippedProfile} from '../utils/difficulty';
 
 const MIN_GAIN = -60;
 const FADE_SECONDS = 0.045;
@@ -42,6 +42,9 @@ export class AudioEngine {
     this.resumePromise = null;
     this.lifecycleCleanup = null;
     this.playbackVersion = 0;
+    this.equippedPhrase=null;
+    this.phraseIdentity=null;
+    this.phrasePinned=false;
   }
 
   async init() {
@@ -215,7 +218,13 @@ export class AudioEngine {
   }
 
   setSceneKey(root) {
+    if(root===this.root)return;
     this.root = root;
+    if(this.ready&&this.manualInstrument){
+      this.clearPendingEvents(this.manualInstrument);this.nodes[this.manualInstrument].synth.releaseAll();this.stopManualVoices();
+      this.equippedPhrase=null;this.phraseIdentity=null;this.phrasePinned=false;
+      this.manualAutoplayVersion++;this.onManualAutoplayEvent?.(null);
+    }
   }
 
   setInstrumentActive(name, active) {
@@ -244,6 +253,11 @@ export class AudioEngine {
     this.stopManualVoices();
     const previous = this.manualInstrument;
     this.manualInstrument = name;
+    this.equippedPhrase=null;this.phraseIdentity=null;this.phrasePinned=false;
+    if(name&&(this.performanceSettings[name]?.complexity??1.5)<=1){
+      this.clearPendingEvents(name);this.nodes[name].synth.releaseAll();
+      this.manualAutoplayVersion++;
+    }
     if (previous) this.nodes[previous].gain.volume.rampTo(!this.tempoHeld&&!this.backgrounded&&this.active[previous] ? this.volumes[previous] : MIN_GAIN, FADE_SECONDS);
     if (name) {
       this.nodes[name].gain.volume.rampTo(this.tempoHeld||this.backgrounded?MIN_GAIN:this.volumes[name], FADE_SECONDS);
@@ -356,9 +370,8 @@ export class AudioEngine {
   playPickup(name) {
     const currentBar = Math.max(0, this.barIndex - 1);
     const energy = this.noise[name].energyAt(currentBar);
-    const complexity = phraseComplexity(this.noise[name].complexityAt(currentBar),this.performanceSettings[name]?.complexity);
-    const phrase = nearestBar(STRING_INSTRUMENTS[name]?.library[this.root].phrases??patterns[name], energy, complexity);
-    const [firstEvent] = STRING_INSTRUMENTS[name]?phrase.events:transposeEvents(phrase.events.slice(0, 1), this.root);
+    const phrase=this.selectPhrase(name,currentBar,energy);
+    const [firstEvent] = name===this.manualInstrument||STRING_INSTRUMENTS[name]?phrase.events:transposeEvents(phrase.events.slice(0, 1), this.root);
     if (firstEvent) this.playEvent(name, firstEvent, Tone.now() + FADE_SECONDS + 0.01);
   }
 
@@ -423,16 +436,50 @@ export class AudioEngine {
     return this.active[name];
   }
 
+  selectPhrase(name,bar,energy=this.noise[name].energyAt(bar)) {
+    const complexity=this.noise[name].complexityAt(bar);
+    if(name!==this.manualInstrument)return nearestBar(STRING_INSTRUMENTS[name]?.library[this.root].phrases??patterns[name],energy,complexity);
+    const identity=`${name}:${this.root}:${this.performanceSettings[name]?.complexity??1}`;
+    const pool=equippedProfile(name,this.root,this.performanceSettings[name]).phrases;
+    if(this.phraseIdentity!==identity){this.equippedPhrase=null;this.phraseIdentity=identity;this.phrasePinned=false;}
+    this.equippedPhrase=this.phrasePinned?pool.find(phrase=>JSON.stringify(phrase.events)===JSON.stringify(this.equippedPhrase?.events))??nearestBar(pool,energy,complexity):nearestBar(pool,energy,complexity);
+    return this.equippedPhrase;
+  }
+
+  skipEquippedPhrase() {
+    const name=this.manualInstrument;
+    if(!name||!this.ready)return false;
+    const pool=equippedProfile(name,this.root,this.performanceSettings[name]).phrases;
+    const current=this.selectPhrase(name,Math.max(0,this.barIndex-1));
+    const index=pool.findIndex(phrase=>JSON.stringify(phrase.events)===JSON.stringify(current.events));
+    this.equippedPhrase=pool[(index+1)%pool.length];
+    this.phrasePinned=true;
+    this.clearPendingEvents(name);
+    this.nodes[name].synth.releaseAll();
+    this.stopManualVoices();this.manualAutoplayVersion++;this.onManualAutoplayEvent?.(null);
+    this.setInstrumentActive(name,true);
+    return pool.length>1;
+  }
+
+  updatePerformanceSettings(settings) {
+    const name=this.manualInstrument;
+    const changed=name&&(this.performanceSettings[name]?.complexity??1.5)!==(settings[name]?.complexity??1.5);
+    this.performanceSettings=settings;
+    if(changed){
+      this.clearPendingEvents(name);this.nodes[name]?.synth.releaseAll();this.stopManualVoices();
+      this.equippedPhrase=null;this.phraseIdentity=null;this.phrasePinned=false;
+      this.manualAutoplayVersion++;this.onManualAutoplayEvent?.(null);
+    }
+  }
+
   scheduleBar(time) {
     if(this.backgrounded||this.tempoHeld)return;
     const bar = this.barIndex++;
     const barPosition = bar * Tone.Transport.PPQ * 4;
     for (const name of instrumentNames) {
       if (!this.shouldSchedule(name)) continue;
-      const energy = this.noise[name].energyAt(bar);
-      const complexity = phraseComplexity(this.noise[name].complexityAt(bar),this.performanceSettings[name]?.complexity);
-      const selected = nearestBar(STRING_INSTRUMENTS[name]?.library[this.root].phrases??patterns[name], energy, complexity);
-      const events = STRING_INSTRUMENTS[name]?selected.events:transposeEvents(selected.events, this.root);
+      const selected = this.selectPhrase(name,bar);
+      const events = name===this.manualInstrument||STRING_INSTRUMENTS[name]?selected.events:transposeEvents(selected.events, this.root);
       for (const event of events) {
         const offset = Tone.Time(event.time).toTicks();
         if (offset === 0) {

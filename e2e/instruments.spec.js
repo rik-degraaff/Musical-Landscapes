@@ -191,8 +191,9 @@ test('guitar fretboard diagrams, full neck and chord and autoplay dots fit compa
   await start(page);await equipByKey(page,'guitar');
   await expect(page.locator('.chord-diagram')).toHaveCount(0);
   await page.getByRole('button',{name:'Open settings'}).dblclick();
-  await page.getByRole('tab',{name:'Display',exact:true}).click();
+  await page.getByRole('tab',{name:'Instruments',exact:true}).click();
   await page.getByRole('combobox',{name:'Configure instrument'}).selectOption('guitar');
+  await page.locator('summary').filter({hasText:'Display details'}).click();
   await page.getByLabel('Show chord fingering charts').check();
   await page.locator('.mixer-head').getByRole('button',{name:'Close settings'}).click();
   await expect(page.locator('.guitar-stringboard .guitar-chords')).toHaveClass(/with-charts/);

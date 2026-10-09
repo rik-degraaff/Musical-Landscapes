@@ -18,20 +18,20 @@ function ChordDiagram({chord}) {
   </svg>;
 }
 
-export function Guitar({audio,cue,root,PressControl,options={},name='guitar'}) {
-  const {tuning,frets:fretCount,library:catalog}=STRING_INSTRUMENTS[name];
+export function Guitar({audio,cue,root,profile,PressControl,options={},name='guitar'}) {
+  const {tuning,frets:fretCount}=STRING_INSTRUMENTS[name];
   const label=name==='ukulele'?'Ukulele':'Guitar';
-  const library=catalog[root];
   const owners=useRef(new Map());
   const selection=useRef(null);
   const surface=useRef(null);
   const [manual,setManual]=useState(null);
   const [played,setPlayed]=useState(null);
-  const selected=manual?.root===root&&manual?.instrument===name?manual.chord:null;
-  const demo=cue?(cue.chord?cue:guitarEvent(root,cue,name)):null;
+  const buttons=profile.chords;
+  const selected=manual?.root===root&&manual?.instrument===name&&buttons.some(value=>value.name===manual.chord)?manual.chord:null;
+  const candidate=cue?(cue.chord?cue:guitarEvent(root,cue,name)):null;
+  const demo=candidate&&buttons.some(value=>value.name===candidate.chord)?candidate:null;
   const shown=selected??demo?.chord;
-  const chord=library.chords.find(value=>value.name===shown);
-  const buttons=library.chords.filter(value=>options.seventhChords||value.size===3);
+  const chord=buttons.find(value=>value.name===shown);
   const notes=chord?.notes??tuning;
   const notesRef=useRef(notes);notesRef.current=notes;
   useEffect(()=>{owners.current.clear();selection.current=null;setManual(null);setPlayed(null);},[root,name]);
@@ -41,12 +41,12 @@ export function Guitar({audio,cue,root,PressControl,options={},name='guitar'}) {
     selection.current={root,instrument:name,chord:active};
     setManual(selection.current);
     setPlayed(null);
-    const shape=library.chords.find(value=>value.name===(active??demo?.chord));
+    const shape=buttons.find(value=>value.name===(active??demo?.chord));
     notesRef.current=shape?.notes??tuning;
   }
   function pluck(string) {
     const current=selection.current;
-    const held=current?.root===root&&current?.instrument===name?library.chords.find(value=>value.name===current.chord):null;
+    const held=current?.root===root&&current?.instrument===name?buttons.find(value=>value.name===current.chord):null;
     const note=(held?.notes??notesRef.current)[string];
     if(note) {
       audio.manualStrike(note,`string-${string}`,.7);

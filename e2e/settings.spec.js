@@ -23,11 +23,19 @@ async function start(page) {
 }
 async function equip(page,name) {await page.locator(`#instrument-${name}`).focus();await page.keyboard.press('e');await expect(page.locator(`.performance-${name}`)).toBeVisible();}
 async function settings(page,tab) {await page.getByRole('button',{name:'Open settings'}).dblclick();await expect(page.getByRole('dialog',{name:'Settings'})).toBeVisible();if(tab)await page.getByRole('tab',{name:tab,exact:true}).click();}
+async function stored(page) {return page.evaluate(()=>JSON.parse(localStorage.getItem('farmjam-settings-v1')));}
+async function configure(page,name) {await page.getByRole('combobox',{name:'Configure instrument'}).selectOption(name);}
+async function chordCount(page,name,complexity) {
+  return page.evaluate(async({name,complexity})=>{
+    const {equippedProfile}=await import('/src/utils/difficulty.js');
+    return equippedProfile(name,'C',{complexity}).chords.length;
+  },{name,complexity});
+}
 
 test('guitar buttons overlay the neck with diagrams off by default and display options persist',async({page},testInfo)=>{
   await start(page);await equip(page,'guitar');
   await expect(page.locator('.chord-diagram')).toHaveCount(0);
-  await expect(page.locator('.chord-control')).toHaveCount(14);
+  await expect(page.locator('.chord-control')).toHaveCount(await chordCount(page,'guitar',1.5));
   const neck=await page.locator('.guitar-neck').boundingBox();
   for(const button of await page.locator('.chord-control').all()){
     const bounds=await button.boundingBox();
@@ -35,59 +43,92 @@ test('guitar buttons overlay the neck with diagrams off by default and display o
     expect(bounds.x+bounds.width).toBeLessThanOrEqual(neck.x+neck.width+1);expect(bounds.y+bounds.height).toBeLessThanOrEqual(neck.y+neck.height+1);
   }
   await page.screenshot({path:`test-results/${testInfo.project.name}-guitar-default-settings.png`});
-  await settings(page,'Display');
+  await settings(page,'Instruments');await configure(page,'guitar');
+  await expect(page.getByLabel('Show chord fingering charts')).toBeHidden();
+  await page.locator('.settings-display-details summary').click();
   await page.getByLabel('Show chord fingering charts').check();
   await page.keyboard.press('Escape');
-  await expect(page.locator('.chord-diagram')).toHaveCount(14);
+  await expect(page.locator('.chord-diagram')).toHaveCount(await chordCount(page,'guitar',1.5));
   const chord=page.getByRole('button',{name:'Hold guitar chord C',exact:true});
   await chord.focus();await page.keyboard.down('Space');await expect(page.locator('.fingering-dot').first()).toBeVisible();
   await page.screenshot({path:`test-results/${testInfo.project.name}-guitar-advanced-settings.png`});await page.keyboard.up('Space');
-  await page.reload();await page.getByRole('button',{name:'Tap to play'}).click();await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:20000});await equip(page,'guitar');
-  await expect(page.locator('.chord-diagram')).toHaveCount(14);
+  await start(page);await equip(page,'guitar');
+  await expect(page.locator('.chord-diagram')).toHaveCount(await chordCount(page,'guitar',1.5));
+  expect((await stored(page)).instruments.guitar.fingeringCharts).toBe(true);
 });
 
-test('complexity presets and individual controls are functional and do not reset other instruments',async({page})=>{
-  await start(page);await settings(page,'Playback');
-  await page.getByLabel('Simple',{exact:true}).check();
-  const stored=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('farmjam-settings-v1')));
-  expect(Object.values((await stored()).instruments).every(value=>value.complexity===.35)).toBe(true);
-  await page.getByRole('slider',{name:'Acoustic guitar phrase complexity'}).fill('1.25');
-  expect((await stored()).preset).toBe('Custom');expect((await stored()).instruments.guitar.complexity).toBe(1.25);expect((await stored()).instruments.piano.complexity).toBe(.35);
-  await page.getByRole('tab',{name:'Display',exact:true}).click();await page.getByRole('combobox',{name:'Configure instrument'}).selectOption('piano');
+test('per-instrument Simple Standard and Advanced configuration stays independent in storage and the engine',async({page},testInfo)=>{
+  await start(page);await settings(page,'Instruments');
+  await expect(page.getByRole('tab')).toHaveText(['Sound','Instruments']);
+  await expect(page.getByRole('slider')).toHaveCount(0);
+  const initial=await stored(page);
+  expect(initial.selected).toEqual(['piano','drums','guitar','melody','marimba','flute']);
+  expect(Object.values(initial.instruments).every(value=>value.complexity===1.5)).toBe(true);
+  expect(initial).not.toHaveProperty('preset');
+  await configure(page,'piano');await page.getByRole('radio',{name:'Simple',exact:true}).check();
+  const expected=structuredClone(initial);expected.instruments.piano.complexity=.35;
+  await expect.poll(()=>stored(page)).toEqual(expected);
+  await configure(page,'guitar');
+  for(const [label,complexity] of [['Simple',.35],['Standard',1],['Advanced',1.5]]){
+    await page.getByRole('radio',{name:label,exact:true}).check();
+    await expect(page.getByRole('radio',{name:label,exact:true})).toBeChecked();
+    expected.instruments.guitar.complexity=complexity;
+    await expect.poll(()=>stored(page)).toEqual(expected);
+    await expect.poll(()=>page.evaluate(()=>structuredClone(window.audioEngine.performanceSettings))).toEqual(expected.instruments);
+  }
+  await page.screenshot({path:testInfo.outputPath('settings-instruments.png')});
+  await configure(page,'piano');
+  await expect(page.getByRole('radio',{name:'Simple',exact:true})).toBeChecked();
+  await expect(page.getByLabel('Show note and control labels')).toBeHidden();
+  await page.locator('.settings-display-details summary').click();
   await page.getByLabel('Show note and control labels').check();await page.getByLabel('Show playback note names').check();
+  expected.instruments.piano.noteLabels=true;expected.instruments.piano.playbackNotes=true;
+  await expect.poll(()=>stored(page)).toEqual(expected);
+  await configure(page,'guitar');await expect(page.getByLabel('Show note and control labels')).toBeHidden();
   await page.getByRole('button',{name:'Close settings',exact:true}).click();await equip(page,'piano');
   await expect(page.locator('.note-key span').first()).toBeVisible();
-  await page.getByRole('button',{name:'Put instrument down'}).click();await equip(page,'guitar');await expect(page.locator('.chord-control')).toHaveCount(7);
+  await start(page);await settings(page,'Instruments');await configure(page,'piano');
+  await expect(page.getByRole('radio',{name:'Simple',exact:true})).toBeChecked();
+  await page.locator('.settings-display-details summary').click();
+  await expect(page.getByLabel('Show note and control labels')).toBeChecked();
+  await expect(page.getByLabel('Show playback note names')).toBeChecked();
+  await expect.poll(()=>stored(page)).toEqual(expected);
+  await expect.poll(()=>page.evaluate(()=>structuredClone(window.audioEngine.performanceSettings))).toEqual(expected.instruments);
 });
 
 test('settings modal keeps sound controls, traps focus, and hides advanced information per instrument by default',async({page},testInfo)=>{
   await start(page);await equip(page,'piano');await expect(page.locator('.note-key span').first()).toBeHidden();await expect(page.locator('.autoplay-notes')).toBeHidden();
-  await settings(page);
+  await settings(page,'Sound');
+  await expect(page.getByRole('tab')).toHaveText(['Sound','Instruments']);
+  await expect(page.getByRole('slider',{name:'Scenery sounds volume',exact:true})).toBeVisible();
   await page.getByRole('slider',{name:'Piano volume',exact:true}).fill('-18');await expect(page.getByRole('slider',{name:'Piano volume',exact:true})).toHaveValue('-18');
   await page.getByRole('button',{name:'Close settings',exact:true}).focus();await page.keyboard.press('Shift+Tab');
-  expect(await page.evaluate(()=>document.querySelector('.settings-dialog').contains(document.activeElement))).toBe(true);
-  await page.screenshot({path:`test-results/${testInfo.project.name}-settings-modal.png`});
+  await expect(page.getByRole('slider',{name:'Scenery sounds volume',exact:true})).toBeFocused();
+  await page.keyboard.press('Tab');await expect(page.getByRole('button',{name:'Close settings',exact:true})).toBeFocused();
+  await page.screenshot({path:testInfo.outputPath('settings-sound.png')});
   await page.keyboard.press('Escape');await expect(page.locator('.settings-dialog')).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Open settings'})).toBeFocused();
+  await settings(page,'Sound');await expect(page.getByRole('slider',{name:'Piano volume',exact:true})).toHaveValue('-18');
 });
 
-test('complexity settings select the corresponding authored phrases in the audio engine',async({page})=>{
-  await start(page);
+test('legacy settings migrate to per-instrument radios and preserve six slots and display options',async({page})=>{
+  await page.goto('/');
   await page.evaluate(()=>{
-    const engine=window.audioEngine;
-    engine.noise.piano.energyAt=()=>.5;engine.noise.piano.complexityAt=()=>.8;
-    window.selectedPhrases=[];
-    const original=engine.playEvent;
-    engine.playEvent=function(name,event,time){if(name==='piano'&&event.time==='0:0:0')window.selectedPhrases.push({event,factor:this.performanceSettings.piano.complexity});return original.call(this,name,event,time);};
+    localStorage.setItem('farmjam-settings-v1',JSON.stringify({preset:'Custom',selected:['piano','drums','guitar','melody','marimba','flute'],instruments:{guitar:{complexity:.45,fingeringCharts:true},piano:{complexity:.8,noteLabels:true},flute:{complexity:1.25}}}));
   });
-  await settings(page,'Playback');await page.getByLabel('Simple',{exact:true}).check();await page.keyboard.press('Escape');
-  await page.locator('#instrument-piano').click();
-  await expect.poll(()=>page.evaluate(()=>window.selectedPhrases.some(value=>value.factor===.35))).toBe(true);
-  await settings(page,'Playback');await page.getByRole('combobox',{name:'Configure instrument'}).selectOption('piano');await page.getByRole('slider',{name:'Piano phrase complexity'}).fill('1.25');await page.keyboard.press('Escape');
-  await expect.poll(()=>page.evaluate(()=>window.selectedPhrases.some(value=>value.factor===1.25))).toBe(true);
-  const checks=await page.evaluate(async()=>{
-    const {patterns,nearestBar,transposeEvents}=await import('/src/utils/music.js');
-    return window.selectedPhrases.map(value=>({...value,expected:transposeEvents(nearestBar(patterns.piano,.5,Math.min(1,.8*value.factor)).events,'C')[0]}));
-  });
-  for(const check of checks)expect(check.event).toEqual(check.expected);
-  expect(checks.find(check=>check.factor===.35).event).not.toEqual(checks.find(check=>check.factor===1.25).event);
+  await start(page);await settings(page,'Instruments');
+  const migrated=await stored(page);
+  expect(migrated.selected).toEqual(['piano','drums','guitar','melody','marimba','flute']);
+  expect(migrated).not.toHaveProperty('preset');
+  for(const [name,label] of [['guitar','Simple'],['piano','Standard'],['flute','Advanced']]){
+    await configure(page,name);await expect(page.getByRole('radio',{name:label,exact:true})).toBeChecked();
+  }
+  await configure(page,'guitar');await page.locator('.settings-display-details summary').click();
+  await expect(page.getByLabel('Show chord fingering charts')).toBeChecked();
+  await page.keyboard.press('Escape');await equip(page,'guitar');
+  const simpleChords=await chordCount(page,'guitar',.35);
+  await expect(page.locator('.chord-control')).toHaveCount(simpleChords);
+  await expect(page.locator('.chord-diagram')).toHaveCount(simpleChords);
+  await start(page);await expect.poll(()=>stored(page)).toEqual(migrated);
+  await expect.poll(()=>page.evaluate(()=>structuredClone(window.audioEngine.performanceSettings))).toEqual(migrated.instruments);
 });

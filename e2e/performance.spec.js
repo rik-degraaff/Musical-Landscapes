@@ -255,8 +255,9 @@ test('multitouch guitar chords and crossing all strings play their correct notes
 test('trumpet six harmonic columns and valves change held lips across the playable range',async({page},testInfo)=>{
   const errors=await start(page);await equip(page,'melody');
   await page.getByRole('button',{name:'Open settings'}).dblclick();
-  await page.getByRole('tab',{name:'Display',exact:true}).click();
+  await page.getByRole('tab',{name:'Instruments',exact:true}).click();
   await page.getByRole('combobox',{name:'Configure instrument'}).selectOption('melody');
+  await page.locator('summary').filter({hasText:'Display details'}).click();
   await page.getByLabel('Show note and control labels').check();
   await page.locator('.mixer-head').getByRole('button',{name:'Close settings'}).click();
   const session=await page.context().newCDPSession(page);
@@ -450,17 +451,19 @@ test('sun and moon advance the day, remain circular, and keep controls aligned t
   expect(errors).toEqual([]);
 });
 
-test('equipped autoplay uses normal selected phrases and manual input takes over for every instrument', async ({page},testInfo) => {
+test('equipped autoplay uses compatible selected phrases and manual input takes over for every instrument', async ({page},testInfo) => {
   const errors=await start(page);
   await page.evaluate(async()=>{
-    const {patterns,nearestBar,transposeEvents}=await import('/src/utils/music.js');
+    const {nearestBar}=await import('/src/utils/music.js');
+    const {equippedProfile}=await import('/src/utils/difficulty.js');
     const engine=window.audioEngine;
     window.autoEvents=[];
     const original=engine.playEvent;
     engine.playEvent=function(name,event,time){
       if(this.manualAutoplay&&name===this.manualInstrument){
-        const bar=this.barIndex-1;
-        const expected=transposeEvents(nearestBar(patterns[name],this.noise[name].energyAt(bar),this.noise[name].complexityAt(bar)).events,this.root);
+        const bar=Math.max(0,this.barIndex-1);
+        const pool=equippedProfile(name,this.root,this.performanceSettings[name]).phrases;
+        const expected=nearestBar(pool,this.noise[name].energyAt(bar),this.noise[name].complexityAt(bar)).events;
         window.autoEvents.push({name,event,expected});
       }
       return original.call(this,name,event,time);
@@ -477,12 +480,7 @@ test('equipped autoplay uses normal selected phrases and manual input takes over
     await expect.poll(()=>page.evaluate(()=>window.autoEvents.length)).toBeGreaterThan(0);
     await expect(page.locator('.autoplay-notes')).not.toBeEmpty();
     const events=await page.evaluate(()=>window.autoEvents);
-    for(const played of events){
-      if(played.name==='guitar'){
-        const {chord,fingering,...event}=played.event;
-        expect(played.expected).toContainEqual(event);
-      }else expect(played.expected).toContainEqual(played.event);
-    }
+    for(const played of events)expect(played.expected).toContainEqual(played.event);
     expect(await page.evaluate(()=>window.audioEngine.manualAutoplay)).toBe(true);
     if(name==='melody'){
       const positions=new Set();
@@ -551,7 +549,8 @@ test('equipped autoplay shares the transport with other instruments and follows 
   await page.locator('#instrument-drums').click();
   await equip(page,'piano');
   await page.evaluate(async()=>{
-    const {patterns,nearestBar,transposeEvents}=await import('/src/utils/music.js');
+    const {nearestBar}=await import('/src/utils/music.js');
+    const {equippedProfile}=await import('/src/utils/difficulty.js');
     const engine=window.audioEngine;
     window.phraseChecks=[];
     const roots=new Map();
@@ -560,9 +559,10 @@ test('equipped autoplay shares the transport with other instruments and follows 
     const original=engine.playEvent;
     engine.playEvent=function(name,event,time){
       if(name==='piano'&&this.manualAutoplay){
-        const bar=this.barIndex-1;
+        const bar=Math.max(0,this.barIndex-1);
         const root=roots.get(bar)??this.root;
-        const expected=transposeEvents(nearestBar(patterns[name],this.noise[name].energyAt(bar),this.noise[name].complexityAt(bar)).events,root);
+        const pool=equippedProfile(name,root,this.performanceSettings[name]).phrases;
+        const expected=nearestBar(pool,this.noise[name].energyAt(bar),this.noise[name].complexityAt(bar)).events;
         window.phraseChecks.push({event,expected,root});
       }
       return original.call(this,name,event,time);

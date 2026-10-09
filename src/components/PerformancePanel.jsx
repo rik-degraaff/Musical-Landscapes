@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUpFromLine } from 'lucide-react';
+import { ArrowUpFromLine, SkipForward } from 'lucide-react';
 import { INSTRUMENTS } from '../utils/music';
 import { PIANO_NOTES, MARIMBA_NOTES } from '../utils/performance';
 import './performance.css';
@@ -10,6 +10,7 @@ import {Flute as KeyFlute,Trumpet as LipTrumpet} from './WindControls';
 import {Guitar as FretboardGuitar} from './Guitar';
 import {PanFlute} from './PanFlute';
 import {useInputReset} from './useInputReset';
+import {equippedProfile} from '../utils/difficulty';
 
 function PressControl({ label, className='', onPress, onRelease=()=>{}, children, style, swipeNote, demoPressed=false }) {
   const owners=useRef(new Set());
@@ -49,20 +50,27 @@ function Keyboard({ audio, notes, kind, options }) {
   </div>;
 }
 
-function Drums({ audio, options }) {
+function Drums({ audio, options, profile }) {
   const pads=[['hat','Hi-hat'],['crash','Crash cymbal'],['ride','Ride cymbal'],['tom','High tom'],['floorTom','Floor tom'],['rim','Rim'],['snare','Snare'],['kick','Kick drum'],['clap','Hand clap'],['shaker','Shaker']];
   return <div className="manual-drums">
     <svg className="drum-stands" viewBox="0 0 1000 230" preserveAspectRatio="none" aria-hidden="true"><g stroke="#7c9495" strokeWidth="5" fill="none"><path d="M130 45v130l-55 45m55-45l55 45M835 45v130l-55 45m55-45l55 45M340 87v75l-55 45m55-45l45 45M680 87v75l-50 45m50-45l50 45M475 156l-32 61m115-61l32 61"/></g></svg>
-    {pads.map(([hit,label])=><PressControl key={hit} label={label} className={`drum-pad pad-${hit}`} onPress={token=>audio.manualNoteOn(hit,`${hit}-${token}`,hit==='hat'?.5:.7)}><span hidden={!options.noteLabels}>{label}</span><b className="drum-lug one"/><b className="drum-lug two"/></PressControl>)}
+    {pads.filter(([hit])=>profile.hits.includes(hit)).map(([hit,label])=><PressControl key={hit} label={label} className={`drum-pad pad-${hit}`} onPress={token=>audio.manualNoteOn(hit,`${hit}-${token}`,hit==='hat'?.5:.7)}><span hidden={!options.noteLabels}>{label}</span><b className="drum-lug one"/><b className="drum-lug two"/></PressControl>)}
   </div>;
 }
 
-export function PerformancePanel({ name, audio, root, onClose, options, settingsOpen }) {
+export function PerformancePanel({ name, audio, root, onClose, options={complexity:1.5}, settingsOpen }) {
+  const profile=equippedProfile(name,root,options);
+  const playableKey=`${name}:${root}:${profile.level}`;
   const [autoplay,setAutoplay]=useState(()=>audio.manualAutoplay);
   const [cue,setCue]=useState(null);
   const panelRef=useRef(null);
   const cueTimer=useRef(null);
   function stopAutoplay() { audio.setManualAutoplay(false);setAutoplay(false);setCue(null); }
+  function nextPhrase() { audio.skipEquippedPhrase();setAutoplay(audio.manualAutoplay); }
+  useEffect(()=>{
+    window.clearTimeout(cueTimer.current);setCue(null);setAutoplay(audio.manualAutoplay);
+    return ()=>{audio.stopManualVoices();window.dispatchEvent(new Event('farmjam-input-reset'));};
+  },[audio,playableKey]);
   useEffect(()=>{
     audio.onManualAutoplayEvent=event=>{window.clearTimeout(cueTimer.current);setCue(event);setAutoplay(audio.manualAutoplay);if(event)cueTimer.current=window.setTimeout(()=>setCue(null),Math.max(30,event.duration*1000));};
     const cancel=event=>{
@@ -92,14 +100,14 @@ export function PerformancePanel({ name, audio, root, onClose, options, settings
   },[audio]);
   return <section ref={panelRef} inert={settingsOpen} className={`performance-panel performance-${name}`} aria-label={`${INSTRUMENTS[name].label} play surface`}>
     <div className="performance-surface">
-      {name==='piano'&&<Keyboard audio={audio} notes={PIANO_NOTES} kind="piano" options={options}/>}
-      {name==='flute'&&<KeyFlute audio={audio} cue={cue} PressControl={PressControl} options={options}/>}
-      {name==='panflute'&&<PanFlute audio={audio} cue={cue} PressControl={PressControl} options={options}/>}
-      {name==='marimba'&&<Keyboard audio={audio} notes={MARIMBA_NOTES} kind="marimba" options={options}/>}
-      {name==='melody'&&<LipTrumpet audio={audio} cue={cue} PressControl={PressControl} options={options}/>}
-      {['guitar','ukulele'].includes(name)&&<FretboardGuitar name={name} audio={audio} cue={cue} root={root} PressControl={PressControl} options={options}/>}
-      {name==='drums'&&<Drums audio={audio} options={options}/>}
+      {name==='piano'&&<Keyboard key={playableKey} audio={audio} notes={profile.level==='Advanced'?PIANO_NOTES:profile.keyboardNotes} kind="piano" options={options}/>}
+      {name==='flute'&&<KeyFlute key={playableKey} audio={audio} cue={cue} profile={profile} PressControl={PressControl} options={options}/>}
+      {name==='panflute'&&<PanFlute key={playableKey} audio={audio} cue={cue} profile={profile} PressControl={PressControl} options={options}/>}
+      {name==='marimba'&&<Keyboard key={playableKey} audio={audio} notes={profile.level==='Advanced'?MARIMBA_NOTES:profile.keyboardNotes} kind="marimba" options={options}/>}
+      {name==='melody'&&<LipTrumpet key={playableKey} audio={audio} cue={cue} profile={profile} PressControl={PressControl} options={options}/>}
+      {['guitar','ukulele'].includes(name)&&<FretboardGuitar key={playableKey} name={name} audio={audio} cue={cue} root={root} profile={profile} PressControl={PressControl} options={options}/>}
+      {name==='drums'&&<Drums key={playableKey} audio={audio} options={options} profile={profile}/>}
     </div>
-    <header><h2>{INSTRUMENTS[name].label}</h2><output className="autoplay-notes" hidden={!options.playbackNotes}>{autoplay?(cue?.notes??(cue?.note?[cue.note]:[])).join(' + '):''}</output><button className="return-instrument" aria-label="Put instrument down" title="Put instrument down" onClick={onClose}><ArrowUpFromLine size={20}/></button></header>
+    <header><h2>{INSTRUMENTS[name].label}</h2><output className="autoplay-notes" hidden={!options.playbackNotes}>{autoplay?(cue?.notes??(cue?.note?[cue.note]:[])).join(' + '):''}</output><button className="next-phrase" aria-label="Next phrase" title="Next phrase" disabled={profile.phrases.length<2} onClick={nextPhrase}><SkipForward size={20}/></button><button className="return-instrument" aria-label="Put instrument down" title="Put instrument down" onClick={onClose}><ArrowUpFromLine size={20}/></button></header>
   </section>;
 }

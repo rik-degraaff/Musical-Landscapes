@@ -42,7 +42,7 @@ export default function App() {
   useEffect(()=>{ stateRef.current=instruments; },[instruments]);
   useEffect(()=>()=>audioRef.current?.dispose(),[]);
   useEffect(()=>{
-    if(audioRef.current)audioRef.current.performanceSettings=settings.instruments;
+    if(audioRef.current)audioRef.current.updatePerformanceSettings(settings.instruments);
     try {localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));}catch{}
   },[settings]);
 

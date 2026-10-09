@@ -14,7 +14,10 @@
 .performance-panel h2 { margin:0;font-size:17px; }
 .autoplay-notes { font-size:11px;margin-left:auto;margin-right:8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0; }
 .manual-guitar .guitar-stringboard { border-radius:8px; }
-.return-instrument { width:32px;height:30px;display:grid;place-items:center;background:transparent;border:0;color:#46635b;cursor:pointer;border-radius:4px; }
+.return-instrument,.next-phrase { width:32px;height:30px;flex:none;display:grid;place-items:center;background:transparent;border:0;color:#46635b;cursor:pointer;border-radius:4px; }
+.next-phrase { margin-left:auto;margin-right:6px; }
+.next-phrase:disabled { opacity:.4;cursor:default; }
+.performance-panel .panflute-pipes { grid-template-columns:repeat(var(--pipe-count,22),minmax(0,1fr)); }
 .performance-surface { flex:1;min-height:0;width:100%;max-width:1050px;margin:0 auto;padding:12px 18px 18px; }
 .performance-piano .performance-surface,.performance-marimba .performance-surface { padding-top:2px;padding-bottom:6px; }
 .performance-guitar .performance-surface,.performance-ukulele .performance-surface { padding-top:4px;padding-bottom:26px; }
@@ -23,7 +26,7 @@
 .boehm-flute { height:100%;display:grid;grid-template-rows:minmax(0,1fr); }
 .flute-mechanism { position:relative;min-height:0;isolation:isolate; }
 .flute-tube-art { position:absolute;left:1%;right:1%;top:38%;height:27%;border:3px solid #7d9991;border-radius:12px;background:linear-gradient(#f0f7ee,#a5c2b6 45%,#6f9386 50%,#cbded2);box-shadow:0 4px 7px #355e4c33;pointer-events:none; }
-.flute-headjoint { position:absolute;left:7%;top:13%;width:13%;height:75%;border:2px solid #78978b;border-radius:40%;background:linear-gradient(#f9fff4,#b4cfc1);display:grid;grid-template-rows:repeat(3,minmax(0,1fr));overflow:hidden;touch-action:none;cursor:ns-resize; }
+.flute-headjoint { position:absolute;left:7%;top:13%;width:13%;height:75%;border:2px solid #78978b;border-radius:40%;background:linear-gradient(#f9fff4,#b4cfc1);display:grid;grid-template-rows:repeat(var(--register-count,3),minmax(0,1fr));overflow:hidden;touch-action:none;cursor:ns-resize; }
 .flute-register-level { display:flex;align-items:center;justify-content:center;border-bottom:1px solid #78978b44;pointer-events:none;gap:3px; }
 .flute-register-level:last-of-type { border-bottom:0; }
 .flute-register-level i { width:27%;height:25%;border-radius:50%;background:#668674; }
@@ -45,7 +48,7 @@
 .flute-key-Cs { --key-x:86%;--key-y:80%;width:5%;height:25%;border-radius:8px; }.flute-key-C { --key-x:92%;--key-y:80%;width:5%;height:25%;border-radius:8px; }.flute-key-B { --key-x:97%;--key-y:80%;width:4%;height:25%;border-radius:8px; }
 .flute-key-BbLever { --key-x:54%;--key-y:16%;width:5%;height:23%;border-radius:8px; }.flute-key-DTrill { --key-x:65%;--key-y:16%;width:5%;height:23%;border-radius:8px; }.flute-key-DsTrill { --key-x:74%;--key-y:16%;width:5%;height:23%;border-radius:8px; }
 .flute-key-Gizmo { --key-x:95%;--key-y:18%;width:5%;height:23%;border-radius:8px; }
-.trumpet-embouchure { position:absolute;left:0;top:12%;height:73%;width:40%;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border:2px solid #819d91;border-radius:8px;background:#d4e2d9;touch-action:none;cursor:crosshair;overflow:hidden; }
+.trumpet-embouchure { position:absolute;left:0;top:12%;height:73%;width:40%;display:grid;grid-template-columns:repeat(var(--register-count,6),minmax(0,1fr));border:2px solid #819d91;border-radius:8px;background:#d4e2d9;touch-action:none;cursor:crosshair;overflow:hidden; }
 .lip-segment { display:flex;align-items:flex-end;justify-content:center;padding:0 0 10px;border-right:1px solid #819d91;font-size:10px;color:#355e4c;pointer-events:none; }
 .lip-segment:last-of-type { border-right:0; }
 .trumpet-embouchure.is-blowing { background:linear-gradient(#efe0a8,#cee2d5); }
