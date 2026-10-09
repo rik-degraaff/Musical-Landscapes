@@ -37,6 +37,11 @@ export class AudioEngine {
     this.manualAutoplayVersion = 0;
     this.onManualAutoplayEvent = null;
     this.manualVoices = new Map();
+    this.pendingManualNotes = new Map();
+    this.backgrounded = false;
+    this.resumePromise = null;
+    this.lifecycleCleanup = null;
+    this.playbackVersion = 0;
   }
 
   async init() {
@@ -62,10 +67,11 @@ export class AudioEngine {
     this.master = new Tone.Gain(0.8).connect(this.limiter);
     this.metronomeSynth = new Tone.Synth({oscillator:{type:'sine'},envelope:{attack:.001,decay:.035,sustain:0,release:.015},volume:-20}).connect(this.master);
     this.metronomeEvent = Tone.Transport.scheduleRepeat(time=>{
-      if(this.tempoHeld)return;
+      if(this.tempoHeld||this.backgrounded)return;
+      const version=this.playbackVersion;
       const beat=this.beatIndex++;
       if(this.metronomeSound)this.metronomeSynth.triggerAttackRelease(beat%4===0?'C6':'G5',.035,time,.5);
-      Tone.Draw.schedule(()=>{if(!this.tempoHeld)this.onMetronomeBeat?.(beat);},time);
+      Tone.Draw.schedule(()=>{if(!this.tempoHeld&&!this.backgrounded&&version===this.playbackVersion)this.onMetronomeBeat?.(beat);},time);
     },'4n');
     this.reverb = new Tone.Reverb({ decay: 1.2, preDelay: 0.018, wet: 0.09 }).connect(this.master);
     const loads = [];
@@ -77,7 +83,70 @@ export class AudioEngine {
     await Promise.all([this.reverb.ready, ...loads]);
     await this.createSceneSounds();
     this.ready = true;
+    this.installLifecycle();
     this.ensureTransport();
+  }
+
+  installLifecycle() {
+    this.lifecycleCleanup?.();
+    const context=Tone.getContext().rawContext;
+    const hidden=()=>{if(document.hidden)this.suspendPlayback();else this.resumePlayback();};
+    const suspend=()=>this.suspendPlayback();
+    const resume=()=>{if(!document.hidden)this.resumePlayback();};
+    const state=()=>{if(context.state==='running')resume();else if(context.state!=='closed')suspend();};
+    document.addEventListener('visibilitychange',hidden);
+    window.addEventListener('pagehide',suspend);
+    window.addEventListener('pageshow',resume);
+    window.addEventListener('focus',resume);
+    window.addEventListener('pointerdown',resume,true);
+    window.addEventListener('keydown',resume,true);
+    context.addEventListener('statechange',state);
+    this.lifecycleCleanup=()=>{
+      document.removeEventListener('visibilitychange',hidden);
+      window.removeEventListener('pagehide',suspend);
+      window.removeEventListener('pageshow',resume);
+      window.removeEventListener('focus',resume);
+      window.removeEventListener('pointerdown',resume,true);
+      window.removeEventListener('keydown',resume,true);
+      context.removeEventListener('statechange',state);
+    };
+    if(document.hidden||context.state!=='running')this.suspendPlayback();
+  }
+
+  suspendPlayback() {
+    if(!this.ready||this.backgrounded)return;
+    this.backgrounded=true;
+    window.dispatchEvent(new Event('farmjam-input-reset'));
+    this.playbackVersion++;
+    this.manualAutoplayVersion++;
+    Tone.Transport.stop();
+    Tone.Transport.position=0;
+    this.clearPendingEvents();
+    this.barIndex=0;
+    this.beatIndex=0;
+    this.stopManualVoices();
+    this.metronomeSynth.triggerRelease();
+    this.onManualAutoplayEvent?.(null);
+    for(const node of Object.values(this.nodes)){
+      node.gain.volume.value=MIN_GAIN;
+      const release=node.synth.release;
+      node.synth.release=.005;
+      node.synth.releaseAll(Tone.immediate());
+      node.synth.release=release;
+    }
+    for(const players of Object.values(this.scenePlayers??{}))for(const player of players)if(player.state==='started')player.stop();
+  }
+
+  resumePlayback() {
+    if(!this.ready||!this.backgrounded||document.hidden)return Promise.resolve();
+    if(this.resumePromise)return this.resumePromise;
+    this.resumePromise=Tone.start().then(()=>{
+      if(!this.ready||document.hidden||Tone.getContext().rawContext.state!=='running')return;
+      this.backgrounded=false;
+      for(const [name,node] of Object.entries(this.nodes))node.gain.volume.rampTo(!this.tempoHeld&&(this.active[name]||this.manualInstrument===name)?this.volumes[name]:MIN_GAIN,.025);
+      this.ensureTransport();
+    }).catch(error=>console.warn('Audio resume requires a new user gesture',error)).finally(()=>{this.resumePromise=null;});
+    return this.resumePromise;
   }
 
   async createSampledInstrument(name) {
@@ -161,13 +230,13 @@ export class AudioEngine {
       this.onManualAutoplayEvent?.(null);
     }
     const node = this.nodes[name];
-    node.gain.volume.rampTo(!this.tempoHeld && (active || this.manualInstrument === name) ? this.volumes[name] : MIN_GAIN, FADE_SECONDS);
+    node.gain.volume.rampTo(!this.tempoHeld && !this.backgrounded && (active || this.manualInstrument === name) ? this.volumes[name] : MIN_GAIN, FADE_SECONDS);
     if (!active) {
       this.clearPendingEvents(name);
       node.synth.releaseAll();
     }
     this.ensureTransport();
-    if (active && transportWasPlaying && !this.tempoHeld) this.playPickup(name);
+    if (active && transportWasPlaying && !this.tempoHeld && !this.backgrounded) this.playPickup(name);
   }
 
   setManualInstrument(name) {
@@ -175,9 +244,9 @@ export class AudioEngine {
     this.stopManualVoices();
     const previous = this.manualInstrument;
     this.manualInstrument = name;
-    if (previous) this.nodes[previous].gain.volume.rampTo(!this.tempoHeld&&this.active[previous] ? this.volumes[previous] : MIN_GAIN, FADE_SECONDS);
+    if (previous) this.nodes[previous].gain.volume.rampTo(!this.tempoHeld&&!this.backgrounded&&this.active[previous] ? this.volumes[previous] : MIN_GAIN, FADE_SECONDS);
     if (name) {
-      this.nodes[name].gain.volume.rampTo(this.tempoHeld?MIN_GAIN:this.volumes[name], FADE_SECONDS);
+      this.nodes[name].gain.volume.rampTo(this.tempoHeld||this.backgrounded?MIN_GAIN:this.volumes[name], FADE_SECONDS);
     }
     this.ensureTransport();
   }
@@ -187,7 +256,18 @@ export class AudioEngine {
   }
 
   manualNoteOn(note, token, velocity = 0.65, legato = false) {
-    if(this.tempoHeld)return;
+    if(this.tempoHeld||document.hidden)return;
+    if(this.backgrounded){
+      if(!this.ready)return;
+      const pending={note,token,velocity,legato,instrument:this.manualInstrument};
+      this.pendingManualNotes.set(token,pending);
+      this.resumePlayback().then(()=>{
+        if(this.pendingManualNotes.get(token)!==pending)return;
+        this.pendingManualNotes.delete(token);
+        if(!this.backgrounded&&!document.hidden&&this.manualInstrument===pending.instrument)this.manualNoteOn(note,token,velocity,legato);
+      });
+      return;
+    }
     if (this.manualAutoplay) this.setManualAutoplay(false);
     const name = this.manualInstrument;
     if (!this.ready || !name) return;
@@ -240,6 +320,7 @@ export class AudioEngine {
   }
 
   manualNoteOff(token, quick = false) {
+    this.pendingManualNotes.delete(token);
     const voice = this.manualVoices.get(token);
     if (!voice) return;
     this.manualVoices.delete(token);
@@ -268,6 +349,7 @@ export class AudioEngine {
   }
 
   stopManualVoices() {
+    this.pendingManualNotes.clear();
     for (const token of [...this.manualVoices.keys()]) this.manualNoteOff(token, true);
   }
 
@@ -282,7 +364,7 @@ export class AudioEngine {
 
   ensureTransport() {
     if (!this.ready) return;
-    if(this.tempoHeld)return;
+    if(this.tempoHeld||this.backgrounded||document.hidden)return;
     if (this.transportEvent === null) {
       this.transportEvent = Tone.Transport.scheduleRepeat(time => this.scheduleBar(time), BAR);
     }
@@ -325,7 +407,7 @@ export class AudioEngine {
       this.onManualAutoplayEvent?.(null);
       for(const node of Object.values(this.nodes))node.gain.volume.rampTo(MIN_GAIN,.015);
     }else{
-      for(const [name,node] of Object.entries(this.nodes))node.gain.volume.rampTo(this.active[name]||this.manualInstrument===name?this.volumes[name]:MIN_GAIN,.025);
+      for(const [name,node] of Object.entries(this.nodes))node.gain.volume.rampTo(!this.backgrounded&&(this.active[name]||this.manualInstrument===name)?this.volumes[name]:MIN_GAIN,.025);
       this.ensureTransport();
     }
   }
@@ -342,6 +424,7 @@ export class AudioEngine {
   }
 
   scheduleBar(time) {
+    if(this.backgrounded||this.tempoHeld)return;
     const bar = this.barIndex++;
     const barPosition = bar * Tone.Transport.PPQ * 4;
     for (const name of instrumentNames) {
@@ -368,6 +451,7 @@ export class AudioEngine {
   }
 
   playEvent(name, event, time) {
+    if(this.backgrounded||this.tempoHeld)return;
     if (name === this.manualInstrument && this.manualAutoplay) {
       const version = this.manualAutoplayVersion;
       Tone.Draw.schedule(() => {
@@ -389,7 +473,12 @@ export class AudioEngine {
   }
 
   playSceneSound(type) {
-    if (!this.ready || !this.scenePlayers[type]) return;
+    if (!this.ready || document.hidden || !this.scenePlayers[type]) return;
+    if(this.backgrounded){
+      const version=this.playbackVersion;
+      this.resumePlayback().then(()=>{if(!this.backgrounded&&!document.hidden&&version===this.playbackVersion)this.playSceneSound(type);});
+      return;
+    }
     Tone.start().catch(console.error);
     const voice = this.sceneVoices[type]++ % this.scenePlayers[type].length;
     const player = this.scenePlayers[type][voice];
@@ -418,11 +507,14 @@ export class AudioEngine {
     for (const name of instrumentNames) {
       if (volumes[name] == null || !this.nodes[name]) continue;
       this.volumes[name] = Number(volumes[name]);
-      this.nodes[name].gain.volume.rampTo(!this.tempoHeld && (this.active[name] || name === this.manualInstrument) ? this.volumes[name] : MIN_GAIN, FADE_SECONDS);
+      this.nodes[name].gain.volume.rampTo(!this.tempoHeld && !this.backgrounded && (this.active[name] || name === this.manualInstrument) ? this.volumes[name] : MIN_GAIN, FADE_SECONDS);
     }
   }
 
   dispose() {
+    this.lifecycleCleanup?.();
+    this.lifecycleCleanup=null;
+    this.playbackVersion++;
     this.onMetronomeBeat = null;
     this.onActiveChange = null;
     this.manualAutoplayVersion++;

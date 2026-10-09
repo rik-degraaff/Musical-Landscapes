@@ -142,6 +142,8 @@ The downloader parses the soundfont data without executing remote JavaScript, ex
 - With all instruments off, the transport keeps running for the silent metronome; instruments rejoin the ongoing musical timeline when enabled.
 - Interactive scene sounds respond immediately, independently of the musical transport. Three voices per object support overlapping taps without cutting off other objects.
 - Audio unlock begins inside the Play gesture, and subsequent instrument/object gestures resume audio after a browser suspension.
+- Backgrounding, page hiding, or an audio-context interruption stops the transport, clears pending notes and UI cues, and releases held manual inputs and sounding samples. On return, active instruments and the metronome restart together at a fresh downbeat rather than trying to replay missed callbacks. Instrument selections, active states, tempo, and sound settings are retained. If the browser requires a gesture to resume audio, the next tap/key press retries recovery.
+- Trumpet lip and valve ownership is cleared on blur, backgrounding, and audio interruption. Window-level pointer release/cancel and mouse-button-loss handling prevent missed local releases from leaving an indefinitely looping wind voice.
 - Bar downbeats use the transport callback's audio timestamp directly; later notes use transport positions. Drum labels map to explicit sampler pitches and hit-specific durations.
 - All six scenes have at least two interactive objects.
 - Instrument volume settings are remembered when a muted instrument is switched back on.

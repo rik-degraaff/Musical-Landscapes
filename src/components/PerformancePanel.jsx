@@ -9,6 +9,7 @@ import { guitarInputs } from '../utils/autoplay';
 import {Flute as KeyFlute,Trumpet as LipTrumpet} from './WindControls';
 import {Guitar as FretboardGuitar} from './Guitar';
 import {PanFlute} from './PanFlute';
+import {useInputReset} from './useInputReset';
 
 function PressControl({ label, className='', onPress, onRelease=()=>{}, children, style, swipeNote, demoPressed=false }) {
   const owners=useRef(new Set());
@@ -16,6 +17,14 @@ function PressControl({ label, className='', onPress, onRelease=()=>{}, children
   const buttonRef=useRef(null);
   function down(token) { if(owners.current.has(token))return;flashInput(buttonRef.current); owners.current.add(token);setPressed(true);onPress(token); }
   function up(token) { if(!owners.current.delete(token))return;onRelease(token);setPressed(owners.current.size>0); }
+  const releaseRef=useRef(up);releaseRef.current=up;
+  useEffect(()=>{
+    const end=event=>releaseRef.current(`pointer-${event.pointerId}`);
+    const lostMouse=event=>{if(event.pointerType==='mouse'&&event.buttons===0)end(event);};
+    window.addEventListener('pointerup',end,true);window.addEventListener('pointercancel',end,true);window.addEventListener('pointermove',lostMouse,true);
+    return ()=>{window.removeEventListener('pointerup',end,true);window.removeEventListener('pointercancel',end,true);window.removeEventListener('pointermove',lostMouse,true);};
+  },[]);
+  useInputReset(()=>{const held=[...owners.current];owners.current.clear();setPressed(false);held.forEach(onRelease);});
   return <button ref={buttonRef} type="button" aria-label={label} aria-pressed={pressed||demoPressed} data-swipe-note={swipeNote} className={`${className} ${pressed||demoPressed?'pressed':''}`} style={style}
     onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();if(swipeNote!==undefined)return;event.currentTarget.setPointerCapture(event.pointerId);down(`pointer-${event.pointerId}`);}}
     onPointerUp={event=>up(`pointer-${event.pointerId}`)} onPointerCancel={event=>up(`pointer-${event.pointerId}`)} onLostPointerCapture={event=>up(`pointer-${event.pointerId}`)}

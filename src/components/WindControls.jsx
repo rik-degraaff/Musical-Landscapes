@@ -2,6 +2,7 @@ import React, {useEffect,useRef,useState} from 'react';
 import {FLUTE_KEYS,fluteNote,fluteInput,lipPosition} from '../utils/wind';
 import {TRUMPET_REGISTERS,trumpetNote} from '../utils/performance';
 import {trumpetInput} from '../utils/autoplay';
+import {useInputReset} from './useInputReset';
 
 export function Flute({audio,cue,PressControl,options}) {
   const owners=useRef(new Map());
@@ -10,6 +11,7 @@ export function Flute({audio,cue,PressControl,options}) {
   const [register,setRegister]=useState(0);
   const [pitch,setPitch]=useState(null);
   const demo=cue?.note?fluteInput(cue.note):null;
+  useInputReset(()=>{owners.current.clear();registerPointer.current=null;setPitch(null);audio.manualNoteOff('flute-keys',true);});
   useEffect(()=>{if(demo){registerRef.current=demo.register;setRegister(demo.register);}},[cue]);
   function update() {
     const held=[...owners.current].filter(([,tokens])=>tokens.size).map(([key])=>key);
@@ -59,6 +61,20 @@ export function Trumpet({audio,cue,PressControl,options}) {
   const [position,setPosition]=useState(.5/TRUMPET_REGISTERS.length);
   const [blowing,setBlowing]=useState(false);
   const demo=cue?.note?trumpetInput(cue.note):null;
+  useInputReset(()=>{
+    lips.current.clear();valves.current.forEach(held=>held.clear());
+    setBlowing(false);setFingering([false,false,false]);audio.manualNoteOff('trumpet-lips',true);
+  });
+  const releaseRef=useRef(null);
+  releaseRef.current=release;
+  useEffect(()=>{
+    const end=event=>releaseRef.current(event);
+    const lostMouse=event=>{if(event.pointerType==='mouse'&&event.buttons===0)end(event);};
+    window.addEventListener('pointerup',end,true);
+    window.addEventListener('pointercancel',end,true);
+    window.addEventListener('pointermove',lostMouse,true);
+    return ()=>{window.removeEventListener('pointerup',end,true);window.removeEventListener('pointercancel',end,true);window.removeEventListener('pointermove',lostMouse,true);};
+  },[]);
   function update() {
     const held=valves.current.map(tokens=>tokens.size>0);setFingering(held);
     if(lips.current.size){
