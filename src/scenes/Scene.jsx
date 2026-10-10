@@ -3,6 +3,7 @@ import { FarmScene } from './FarmScene';
 import { GardenScene } from './GardenScene';
 import { PondScene } from './PondScene';
 import { NightScene } from './NightScene';
+import { LateNightScene } from './LateNightScene';
 import { DawnScene } from './DawnScene';
 import { DuskScene } from './DuskScene';
 import { CelestialControl, useCelestialPhase } from './CelestialControl';
@@ -18,7 +19,7 @@ export const SCENES = [
   { id:'pond', name:'Pond Meadow', root:SCENE_ROOTS.pond, component:PondScene },
   { id:'dusk', name:'Evening Meadow', root:SCENE_ROOTS.dusk, component:DuskScene },
   { id:'night', name:'Sleepy Night', root:SCENE_ROOTS.night, component:NightScene },
-  { id:'late-night', name:'Moonlit Meadow', root:SCENE_ROOTS.lateNight, component:NightScene },
+  { id:'late-night', name:'Moonlit Meadow', root:SCENE_ROOTS.lateNight, component:LateNightScene },
   { id:'dawn', name:'First Light', root:SCENE_ROOTS.dawn, component:DawnScene },
 ];
 

@@ -9,7 +9,7 @@ test.beforeEach(async({page})=>{
 });
 
 const instruments = ['piano', 'drums', 'guitar', 'melody', 'marimba', 'flute'];
-const objects = [['Cow', 'Tractor'], ['Outdoor faucet', 'Bird'], ['Frog', 'Windmill'], ['Cricket','Airplane'], ['Little bell', 'Night owl'], ['Little bell', 'Night owl'], ['Rooster', 'Wind chimes']];
+const objects = [['Cow', 'Tractor'], ['Outdoor faucet', 'Bird'], ['Frog', 'Windmill'], ['Cricket','Airplane'], ['Little bell', 'Night owl'], ['Fluttering bat', 'Rustling hedgehog'], ['Rooster', 'Wind chimes']];
 
 test('all bundled recordings decode and a failed sample load can be retried', async ({ page }, testInfo) => {
   const viewport=page.viewportSize();

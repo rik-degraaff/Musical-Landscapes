@@ -6,7 +6,7 @@ import {noteMidi,trumpetInput} from '../src/utils/autoplay.js';
 import {fluteInput} from '../src/utils/wind.js';
 import {PIANO_NOTES,MARIMBA_NOTES,PANFLUTE_NOTES} from '../src/utils/performance.js';
 
-const ROOTS=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const ROOTS=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B','C#m','Am','Fm','Db'];
 
 function signature(phrase) {return JSON.stringify(phrase.events.map(event=>[event.time,event.dur,event.notes??event.note]));}
 function assertTier(phrase,name,level) {

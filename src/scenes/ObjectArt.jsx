@@ -2,6 +2,27 @@ import React from 'react';
 
 export function ObjectArt({ type }) {
   return <svg viewBox="0 0 160 140" className={`object-art art-${type}`} aria-hidden="true" fill="none" strokeLinecap="round" strokeLinejoin="round">
+    {type === 'bat' && <>
+      <g className="bat-wings" fill="#9297b5" stroke="#515b76" strokeWidth="3">
+        <path d="M75 72Q46 26 8 39Q26 52 17 80Q37 64 44 91Q59 72 72 96Z" /><path d="M85 72Q114 26 152 39Q134 52 143 80Q123 64 116 91Q101 72 88 96Z" />
+        <path d="M72 77L24 47m48 32L43 83m45-6l48-30m-48 32l29 4" fill="none" stroke="#c4c3d1" strokeWidth="2" />
+      </g>
+      <ellipse cx="80" cy="86" rx="16" ry="24" fill="#646a87" />
+      <path d="M65 61L61 33L77 50m6 0l16-17l-4 28" fill="#777e9e" stroke="#515b76" strokeWidth="3" />
+      <path d="M65 48l2-9l6 12m14 0l6-12l-2 9" stroke="#d6afbf" strokeWidth="3" />
+      <ellipse cx="80" cy="66" rx="20" ry="18" fill="#9297b5" /><ellipse cx="80" cy="76" rx="10" ry="7" fill="#c8c7d6" />
+      <g fill="#263e49"><circle cx="72" cy="63" r="3.5" /><circle cx="88" cy="63" r="3.5" /><path d="M76 72h8l-4 4Z" /></g>
+      <path d="M73 81q7 5 14 0" stroke="#515b76" strokeWidth="2" />
+    </>}
+    {type === 'hedgehog' && <>
+      <ellipse cx="80" cy="125" rx="63" ry="7" fill="#163c3544" />
+      <g className="hedgehog-leaves" fill="#bd9873" stroke="#8b7961" strokeWidth="2"><path d="M13 120q-7-22 18-16q7 15-18 16Z" /><path d="M128 125q-1-25 24-15q-1 17-24 15Z" /><path d="M98 131q-20-14-5-22q19 5 5 22Z" /></g>
+      <path d="M35 104v16h12m47-16v16h12" stroke="#a6947e" strokeWidth="8" />
+      <path d="M22 99L14 83L27 80L23 65L38 64L39 48L54 53L66 38L77 48L91 40L96 54L113 53L110 71L121 89L105 108H34Z" fill="#7c7c70" stroke="#4c6258" strokeWidth="3" />
+      <path d="M35 83l6-13m9 28l8-14m0-16l8-14m7 42l7-14m7-14l7-12m-5 45l7-13" stroke="#c8c0a3" strokeWidth="4" />
+      <path d="M92 79Q110 64 120 85L148 102Q143 117 116 116H78Q70 96 92 79Z" fill="#d5c6a6" stroke="#7c7c70" strokeWidth="3" />
+      <circle cx="109" cy="84" r="10" fill="#baa78e" /><circle cx="109" cy="84" r="5" fill="#e5c2b0" /><circle cx="126" cy="96" r="4" fill="#304b42" /><circle cx="127" cy="95" r="1.3" fill="#fff7da" /><ellipse cx="147" cy="104" rx="6" ry="4" fill="#304b42" />
+    </>}
     {type==='cricket' && <>
       <ellipse cx="78" cy="123" rx="49" ry="5" fill="#1b403833"/>
       <path d="M54 89L30 68L18 115m67-26l28-29l24 56M55 105l-7 20h-21m61-20l10 20h24" stroke="#586943" strokeWidth="6"/>

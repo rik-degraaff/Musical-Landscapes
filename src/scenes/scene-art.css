@@ -21,6 +21,18 @@
 .scene .rooster { left: 28%; bottom: 24%; }
 .scene .chimes { right: 5%; top: 44%; }
 .scene .cricket { left:28%;bottom:17%; }
+.scene .bat { left: 62%; top: 25%; width: 144px; height: 126px; }
+.scene .hedgehog { left: 28%; bottom: 17%; }
+.bat .reacting { animation: batFlight 1.8s ease-in-out; transform-origin: 50% 50%; }
+.hedgehog .reacting { animation: hedgehogShuffle 2s ease-in-out; }
+.is-tapped .bat-wings { transform-origin: 80px 76px; animation: batFlutter .12s ease-in-out 14 alternate; }
+.is-tapped .hedgehog-leaves { transform-origin: 80px 122px; animation: leafRustle .2s ease-in-out 9 alternate; }
+.effect-bat i { background: none; border: 2px solid #d2dce1; border-bottom: 0; width: 16px; height: 8px; }
+.effect-hedgehog i { background: #bfad7c; border-radius: 0 70%; top: 80%; }
+@keyframes batFlight { 0%,100% { transform: translate(0) rotate(0); } 30% { transform: translate(-25px,-18px) rotate(-8deg); } 65% { transform: translate(18px,-12px) rotate(7deg); } }
+@keyframes batFlutter { to { transform: scaleY(.48); } }
+@keyframes hedgehogShuffle { 0%,100% { transform: translateX(0); } 25%,65% { transform: translate(14px,-3px) rotate(-3deg); } 45%,80% { transform: translate(22px,0) rotate(2deg); } }
+@keyframes leafRustle { to { transform: translateY(-6px) rotate(5deg); } }
 .scene .airplane { left:65%;top:16%;width:155px;height:125px; }
 .cricket .reacting { animation:cricketHop 2.4s ease-in-out; }
 .airplane .reacting { animation:airplaneFlyby 3s ease-in-out; }
@@ -102,6 +114,8 @@
   .scene .rooster { left: 4%; bottom: 9%; }
   .scene .chimes { right: 4%; top: 45%; }
   .scene .cricket { left:4%;bottom:9%; }
+  .scene .bat { left: 57%; top: 24%; width: 104px; height: 96px; }
+  .scene .hedgehog { left: 4%; bottom: 9%; }
   .scene .airplane { left:56%;top:17%;width:108px;height:94px; }
 }
 @media (max-height: 550px) and (orientation: landscape) {
@@ -118,6 +132,8 @@
   .scene .rooster { left: 28%; bottom: 18%; }
   .scene .chimes { right: 28%; top: 43%; }
   .scene .cricket { left:28%;bottom:14%; }
+  .scene .bat { left: 61%; top: 24%; width: 85px; height: 75px; }
+  .scene .hedgehog { left: 28%; bottom: 14%; }
   .scene .airplane { left:61%;top:20%;width:85px;height:65px; }
   .scene .bell { right: 28%; top: 43%; }
   .scene .faucet, .scene .frog { left: 22%; bottom: 14%; }

@@ -28,7 +28,7 @@ async function configure(page,name) {await page.getByRole('combobox',{name:'Conf
 async function chordCount(page,name,complexity) {
   return page.evaluate(async({name,complexity})=>{
     const {equippedProfile}=await import('/src/utils/difficulty.js');
-    return equippedProfile(name,'C',{complexity}).chords.length;
+    return equippedProfile(name,window.audioEngine.root,{complexity}).chords.length;
   },{name,complexity});
 }
 
@@ -49,7 +49,7 @@ test('guitar buttons overlay the neck with diagrams off by default and display o
   await page.getByLabel('Show chord fingering charts').check();
   await page.keyboard.press('Escape');
   await expect(page.locator('.chord-diagram')).toHaveCount(await chordCount(page,'guitar',1.5));
-  const chord=page.getByRole('button',{name:'Hold guitar chord C',exact:true});
+  const chord=page.getByRole('button',{name:'Hold guitar chord A',exact:true});
   await chord.focus();await page.keyboard.down('Space');await expect(page.locator('.fingering-dot').first()).toBeVisible();
   await page.screenshot({path:`test-results/${testInfo.project.name}-guitar-advanced-settings.png`});await page.keyboard.up('Space');
   await start(page);await equip(page,'guitar');

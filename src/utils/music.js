@@ -5,20 +5,33 @@ export const BAR = '1m';
 export const DRUM_HITS = new Set(['kick', 'snare', 'hat', 'shaker', 'tom', 'clap', 'rim', 'crash', 'ride', 'floorTom']);
 
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+export function musicalKey(root) {
+  const minor=root.endsWith('m');
+  const tonic=minor?root.slice(0,-1):root;
+  const aliases={Db:'C#',Eb:'D#',Gb:'F#',Ab:'G#',Bb:'A#'};
+  const pitch=NOTE_NAMES.indexOf(aliases[tonic]??tonic);
+  if(pitch<0)throw new Error(`Unknown musical key: ${root}`);
+  return {pitch,minor,scale:minor?[0,2,3,5,7,8,10]:[0,2,4,5,7,9,11]};
+}
+function modalOffset(semitones,key) {
+  const degree=((semitones%12)+12)%12;
+  return semitones-(key.minor&&[4,9,11].includes(degree)?1:0);
+}
 export function note(root, semitones, octave) {
-  const midi = NOTE_NAMES.indexOf(root) + 12 * (octave + 1) + semitones;
+  const key=musicalKey(root);
+  const midi = key.pitch + 12 * (octave + 1) + modalOffset(semitones,key);
   const name = NOTE_NAMES[((midi % 12) + 12) % 12];
   const oct = Math.floor(midi / 12) - 1;
   return `${name}${oct}`;
 }
 
-export function transposeEvents(events, root) {
+export function transposeEvents(events, root, {preserveUnisons=false}={}) {
   return events.map(e => ({
     ...e,
-    notes: e.notes ? [...new Set(e.notes.map(n => {
+    notes: e.notes ? ((notes)=>preserveUnisons?notes:[...new Set(notes)])(e.notes.map(n => {
       const transposed=transposeNote(n,root);
       return e.compactPiano?compactPianoNote(transposed):e.compactMarimba?compactMarimbaNote(transposed):e.compactPanflute?compactPanfluteNote(transposed):transposed;
-    }))] : undefined,
+    })) : undefined,
     note: e.note && !DRUM_HITS.has(e.note) ? (()=>{
       const transposed=transposeNote(e.note,root);
       return e.compactMarimba?compactMarimbaNote(transposed):e.compactPanflute?compactPanfluteNote(transposed):transposed;
@@ -49,9 +62,10 @@ function transposeNote(value, root) {
   const match = /^([A-G]#?)(-?\d+)$/.exec(value);
   if (!match) return value;
   const midi = (parseInt(match[2], 10) + 1) * 12 + NOTE_NAMES.indexOf(match[1]);
-  const rootMidi = 12 * 5 + NOTE_NAMES.indexOf(root);
+  const key=musicalKey(root);
+  const rootMidi = 12 * 5 + key.pitch;
   const relative = midi - (12 * 5 + NOTE_NAMES.indexOf('C'));
-  const transposedMidi = rootMidi + relative;
+  const transposedMidi = rootMidi + modalOffset(relative,key);
   return `${NOTE_NAMES[((transposedMidi % 12) + 12) % 12]}${Math.floor(transposedMidi / 12) - 1}`;
 }
 

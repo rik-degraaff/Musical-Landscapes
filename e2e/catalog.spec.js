@@ -43,7 +43,7 @@ test('defaults include ukulele and pan flute and six selectable slots persist wi
 test('ukulele plays every string of every chord with visible orange fret positions',async({page},testInfo)=>{
   const errors=await start(page);await equip(page,'ukulele');
   await expect(page.locator('.playable-string')).toHaveCount(4);await expect(page.locator('.fret-line')).toHaveCount(19);await expect(page.locator('.fingering-dot')).toHaveCount(4);
-  const chords=await page.evaluate(async()=> (await import('/src/utils/guitar.js')).UKULELE_LIBRARY.C.chords);
+  const chords=await page.evaluate(async()=> (await import('/src/utils/guitar.js')).UKULELE_LIBRARY.A.chords);
   for(const chord of chords){
     const hold=page.getByRole('button',{name:`Hold ukulele chord ${chord.name}`,exact:true});await hold.focus();await page.keyboard.down('Space');
     for(let string=0;string<4;string++){
@@ -52,7 +52,7 @@ test('ukulele plays every string of every chord with visible orange fret positio
     }
     await page.keyboard.up('Space');
   }
-  const button=page.getByRole('button',{name:'Hold ukulele chord C',exact:true});await button.focus();await page.keyboard.down('Space');
+  const button=page.getByRole('button',{name:'Hold ukulele chord A',exact:true});await button.focus();await page.keyboard.down('Space');
   await expect(page.locator('.fingering-dot:not(.open-string-dot)').first()).toHaveCSS('background-color','rgb(255, 121, 0)');
   expect(await level(page,'ukulele')).toBeGreaterThan(.0001);
   await page.screenshot({path:`test-results/${testInfo.project.name}-ukulele-performance.png`});await page.keyboard.up('Space');
@@ -74,7 +74,7 @@ test('pan flute uses real pan-pipe samples and sustains and swipes without stuck
 
 test('guitar remains optional and every chord sounds all six strings; piano uses wider orange keys',async({page},testInfo)=>{
   const errors=await start(page);await slots(page);await page.getByRole('combobox',{name:'Instrument slot 3',exact:true}).selectOption('guitar');await page.keyboard.press('Escape');await equip(page,'guitar');
-  const chords=await page.evaluate(async()=> (await import('/src/utils/guitar.js')).GUITAR_LIBRARY.C.chords);
+  const chords=await page.evaluate(async()=> (await import('/src/utils/guitar.js')).GUITAR_LIBRARY.A.chords);
   for(const chord of chords){
     const hold=page.getByRole('button',{name:`Hold guitar chord ${chord.name}`,exact:true});await hold.focus();await page.keyboard.down('Space');
     for(let string=0;string<6;string++)await expect(page.locator('.playable-string').nth(string)).toHaveAttribute('aria-label',`Guitar string ${string+1} ${chord.notes[string]}`);

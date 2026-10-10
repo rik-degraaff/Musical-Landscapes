@@ -1,4 +1,4 @@
-import {patterns,transposeEvents} from './music.js';
+import {patterns,transposeEvents,musicalKey} from './music.js';
 import {guitarInputs,noteMidi} from './autoplay.js';
 import {midiNote} from './performance.js';
 
@@ -7,7 +7,6 @@ export const GUITAR_FRETS = 24;
 export const UKULELE_STRINGS = ['G4','C4','E4','A4'];
 export const UKULELE_FRETS = 18;
 const names=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-const scale=[0,2,4,5,7,9,11];
 const qualities=['','m','m','','','m','dim'];
 const sevenths=['maj7','m7','m7','maj7','7','m7','m7b5'];
 
@@ -35,7 +34,12 @@ function shapeFor(tones,tuning,fretCount) {
 }
 
 function buildChords(root,tuning,fretCount) {
-  const tonic=names.indexOf(root);
+  const key=musicalKey(root);
+  const tonic=key.pitch;
+  const scale=key.scale;
+  const chordQualities=key.minor?['m','dim','','m','m','','']:qualities;
+  const chordSevenths=key.minor?['m7','m7b5','maj7','m7','m7','maj7','7']:sevenths;
+  const labels=root.includes('b')||root==='Fm'?['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B']:names;
   const chords=[];
   for(let degree=0;degree<7;degree++)for(const size of [3,4]) {
     const tones=Array.from({length:size},(_,index)=>(tonic+scale[(degree+index*2)%7])%12);
@@ -44,7 +48,7 @@ function buildChords(root,tuning,fretCount) {
     const pressed=frets.filter(fret=>fret>0);
     const averageFret=pressed.reduce((sum,fret)=>sum+fret,0)/Math.max(1,pressed.length);
     const distanceFromSoundhole=pressed.length?pressed.reduce((sum,fret)=>sum+1-(fretPosition(fret-1,fretCount)+fretPosition(fret,fretCount))/2,0)/pressed.length:1;
-    chords.push({name:names[chordRoot]+(size===3?qualities[degree]:sevenths[degree]),degree,size,tones,frets,averageFret,distanceFromSoundhole,notes:frets.map((fret,string)=>midiNote(noteMidi(tuning[string])+fret))});
+    chords.push({name:labels[chordRoot]+(size===3?chordQualities[degree]:chordSevenths[degree]),degree,size,tones,frets,averageFret,distanceFromSoundhole,notes:frets.map((fret,string)=>midiNote(noteMidi(tuning[string])+fret))});
   }
   return chords.sort((first,second)=>first.distanceFromSoundhole-second.distanceFromSoundhole||first.name.localeCompare(second.name));
 }
@@ -66,10 +70,10 @@ function annotate(events,chords,tuning,fretCount) {
 }
 
 function buildLibrary(name,tuning,fretCount) {
-  return Object.fromEntries(names.map(root=>{
+  return Object.fromEntries([...names,'C#m','Am','Fm','Db'].map(root=>{
     const chords=buildChords(root,tuning,fretCount);
     const phrases=patterns[name].map(phrase=>{
-      const events=transposeEvents(phrase.events,root).map((event,index)=>({...event,notes:phrase.events[index].notes?.map(note=>midiNote(noteMidi(note)+names.indexOf(root)))}));
+      const events=transposeEvents(phrase.events,root,{preserveUnisons:true});
       return {...phrase,events:annotate(events,chords,tuning,fretCount)};
     });
     return [root,{chords,phrases}];

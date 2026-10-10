@@ -19,7 +19,8 @@ test('instrument difficulty reduces equipped controls and only plays available c
 
 test('complexity leaves unequipped phrases unchanged and next phrase selects another compatible phrase',async({page})=>{
   await start(page);await difficulty(page,'ukulele','Simple');
-  expect(await page.evaluate(async()=>{const engine=window.audioEngine;const {nearestBar}=await import('/src/utils/music.js');const {UKULELE_LIBRARY}=await import('/src/utils/guitar.js');const bar=4;return JSON.stringify(engine.selectPhrase('ukulele',bar))===JSON.stringify(nearestBar(UKULELE_LIBRARY.C.phrases,engine.noise.ukulele.energyAt(bar),engine.noise.ukulele.complexityAt(bar)));})).toBe(true);
+  expect(await page.evaluate(()=>window.audioEngine.root)).toBe('A');
+  expect(await page.evaluate(async()=>{const engine=window.audioEngine;const {nearestBar}=await import('/src/utils/music.js');const {UKULELE_LIBRARY}=await import('/src/utils/guitar.js');const bar=4;return JSON.stringify(engine.selectPhrase('ukulele',bar))===JSON.stringify(nearestBar(UKULELE_LIBRARY.A.phrases,engine.noise.ukulele.energyAt(bar),engine.noise.ukulele.complexityAt(bar)));})).toBe(true);
   await equip(page,'ukulele');await page.locator('#instrument-ukulele').click();await expect.poll(()=>page.evaluate(()=>Boolean(window.audioEngine.equippedPhrase))).toBe(true);
   const before=await page.evaluate(()=>JSON.stringify(window.audioEngine.equippedPhrase.events));await page.getByRole('button',{name:'Next phrase'}).click();
   expect(await page.evaluate(()=>JSON.stringify(window.audioEngine.equippedPhrase.events))).not.toBe(before);

@@ -2016,16 +2016,16 @@
   },
   "scenery/moo.wav": {
     "group": "moo",
-    "sha256": "279544beec3efea868bc99777f89c4208e0735cf65b5485e308d1f3eb555a399",
-    "duration": 1.5,
-    "peakDb": -5.68,
-    "rmsDb": -10.58,
-    "activeRmsDb": -10.43,
-    "lufs": -11.17,
+    "sha256": "a58f687fe4cf5cdbc786cbcfa1da35df7c7aa06ff22c30b2a475aab2182b55df",
+    "duration": 2.62,
+    "peakDb": -25.05,
+    "rmsDb": -37.26,
+    "activeRmsDb": -37.3,
+    "lufs": -37.69,
     "target": -23,
-    "gainDb": -11.83,
+    "gainDb": 14.69,
     "correctedLufs": -23,
-    "correctedPeakDb": -17.51
+    "correctedPeakDb": -10.36
   },
   "scenery/tractor.wav": {
     "group": "tractor",
@@ -2146,16 +2146,16 @@
   },
   "scenery/cricket.wav": {
     "group": "cricket",
-    "sha256": "7dbd8093ef844732cd221236fd4f5f4455f3f04c184892f4734917ccce141f99",
+    "sha256": "8585c180e236c88d0bf93ebe7b21c14d513b8cbe44e4f79452cc0c72ad460329",
     "duration": 2.4,
-    "peakDb": -10.23,
-    "rmsDb": -22.89,
-    "activeRmsDb": -16.89,
-    "lufs": -19.64,
+    "peakDb": 1.05,
+    "rmsDb": -18.47,
+    "activeRmsDb": -17.69,
+    "lufs": -14.13,
     "target": -23,
-    "gainDb": -3.36,
+    "gainDb": -8.87,
     "correctedLufs": -23,
-    "correctedPeakDb": -13.59
+    "correctedPeakDb": -7.82
   },
   "scenery/airplane.wav": {
     "group": "airplane",
@@ -2169,5 +2169,31 @@
     "gainDb": -2.03,
     "correctedLufs": -23,
     "correctedPeakDb": -8.17
+  },
+  "scenery/bat.wav": {
+    "group": "bat",
+    "sha256": "013bd9cf3d504c877a11fd49e7015dbf46ffde5583da3bed669f6f11b20deaa1",
+    "duration": 1.8,
+    "peakDb": -6.48,
+    "rmsDb": -24.92,
+    "activeRmsDb": -23.35,
+    "lufs": -23.16,
+    "target": -23,
+    "gainDb": 0.16,
+    "correctedLufs": -23,
+    "correctedPeakDb": -6.32
+  },
+  "scenery/hedgehog.wav": {
+    "group": "hedgehog",
+    "sha256": "365b3fceb9e44fc728ec9386885eddc01014d649e3f7eb71ee47fd3642922918",
+    "duration": 2,
+    "peakDb": -6.9,
+    "rmsDb": -27.75,
+    "activeRmsDb": -25.38,
+    "lufs": -24.96,
+    "target": -23,
+    "gainDb": 1.9,
+    "correctedLufs": -23.06,
+    "correctedPeakDb": -5
   }
 }

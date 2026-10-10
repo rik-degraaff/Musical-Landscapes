@@ -1,10 +1,14 @@
-export const SCENE_SOUNDS = ['moo', 'tractor', 'water', 'bird', 'frog', 'windmill', 'bell', 'owl', 'rooster', 'chimes', 'cricket', 'airplane'];
+export const SCENE_SOUNDS = ['moo', 'tractor', 'water', 'bird', 'frog', 'windmill', 'bell', 'owl', 'rooster', 'chimes', 'cricket', 'airplane', 'bat', 'hedgehog'];
+export const FIELD_RECORDINGS = {
+  moo: { file: 'cow-moo.mp3', url: 'https://cdn.freesound.org/previews/546/546479_11588763-hq.mp3', source: 'https://freesound.org/people/invertedturtle/sounds/546479/', license: 'CC0-1.0', duration: 2.623, fadeIn: 0.015, fadeOut: 0.08 },
+  cricket: { file: 'cricket.mp3', url: 'https://cdn.freesound.org/previews/822/822935_14007850-hq.mp3', source: 'https://freesound.org/people/_sinny_/sounds/822935/', license: 'CC0-1.0', duration: 2.4, fadeIn: 0.015, fadeOut: 0.06 },
+};
 export const WATER_DROP_TIMES = [0.28, 0.93, 1.58];
 export const WATER_DROP_FALL = 0.28;
 export const WATER_DURATION = 2;
 
 export function createSceneSample(type, sampleRate = 44100) {
-  const duration = { moo: 1.5, tractor: 2.2, bird: 1.1, frog: 1.2, windmill: 2, bell: 2.4, owl: 1.8, chimes: 2.4, cricket:2.4, airplane:3 }[type];
+  const duration = { tractor: 2.2, bird: 1.1, frog: 1.2, windmill: 2, bell: 2.4, owl: 1.8, chimes: 2.4, airplane:3, bat:1.8, hedgehog:2 }[type];
   if (!duration) throw new Error(`Unknown landscape sound: ${type}`);
   const samples = new Float32Array(Math.ceil(sampleRate * duration));
   let phase = 0;
@@ -16,18 +20,18 @@ export function createSceneSample(type, sampleRate = 44100) {
     const noise = seed / 2147483648 - 1;
     filteredNoise += (noise - filteredNoise) * 0.08;
     let value = 0;
-    if (type === 'cricket') {
-      const phrase=time%0.6;
-      const pulse=phrase%0.1;
-      value=phrase<0.3&&pulse<0.055 ? (Math.sin(time*2*Math.PI*4200)+.18*Math.sin(time*2*Math.PI*6300))*Math.sin(Math.PI*pulse/.055)*.27 : 0;
+    if (type === 'bat') {
+      const flap = time % 0.16;
+      const flutter = Math.sin(Math.PI * Math.min(1, flap / 0.12)) ** 2;
+      value = (filteredNoise * 1.1 + noise * 0.08) * flutter * Math.sin(Math.PI * time / duration);
+    } else if (type === 'hedgehog') {
+      const step = time % 0.28;
+      const rustle = Math.exp(-step * 18) * Math.min(1, step / 0.008);
+      value = (noise * 0.32 + filteredNoise * 0.35) * rustle * (0.7 + 0.3 * Math.sin(time * 13));
     } else if (type === 'airplane') {
       const flyby=Math.sin(Math.PI*time/duration)**1.4;
       phase+=2*Math.PI*(90-28*time/duration)/sampleRate;
       value=(Math.sin(phase)*.2+Math.sin(phase*3)*.1+filteredNoise*.8)*(0.75+.25*Math.sin(time*2*Math.PI*23))*flyby;
-    } else if (type === 'moo') {
-      const pitch = 105 + 32 * Math.sin(Math.PI * time / duration) - 18 * time / duration;
-      phase += 2 * Math.PI * pitch / sampleRate;
-      value = (Math.sin(phase) * 0.5 + Math.sin(phase * 3) * 0.22 + Math.sin(phase * 5) * 0.1) * Math.sin(Math.PI * time / duration) ** 0.7;
     } else if (type === 'bird') {
       const chirp = time % 0.34;
       phase += 2 * Math.PI * (2400 + 1600 * Math.sin(chirp * 18)) / sampleRate;

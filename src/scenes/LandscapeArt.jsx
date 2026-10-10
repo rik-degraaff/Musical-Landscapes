@@ -23,6 +23,7 @@ export function LandscapeArt({ scene, phase }) {
     return () => observer.disconnect();
   }, []);
   const night = scene === 'night'||scene==='late-night';
+  const lateNight = scene === 'late-night';
   const pond = scene === 'pond';
   const garden = scene === 'garden';
   const dawn = scene === 'dawn';
@@ -31,7 +32,7 @@ export function LandscapeArt({ scene, phase }) {
   const celestialX = celestial.x * 14.4;
   const celestialY = Math.max(36 * 900 / (artRef.current?.getBoundingClientRect().height || window.innerHeight), celestial.y * 9);
   const celestialRadius = 30 * 900 / (artRef.current?.getBoundingClientRect().height || window.innerHeight);
-  const palette = dusk ? ['#6c88a0','#efb09a','#87978b','#617f72','#3e685d'] : dawn ? ['#b8b6d5', '#f9c5a0', '#9eaaa1', '#829b7c', '#5c856a'] : night ? ['#232b4d', '#79768e', '#465c66', '#345b58', '#234b47'] : pond ? ['#9edbdc', '#f5eed0', '#8ab6a0', '#659d78', '#4d8965'] : garden ? ['#96d9e7', '#f9e9c9', '#a6c399', '#7fb27e', '#54946b'] : ['#8cd3ed', '#fff0ca', '#a4bf8a', '#85ad65', '#60914c'];
+  const palette = lateNight ? ['#171f35', '#647d83', '#536d73', '#3c655e', '#244a42'] : dusk ? ['#6c88a0','#efb09a','#87978b','#617f72','#3e685d'] : dawn ? ['#879ab8', '#d4e4eb', '#95aeb6', '#7a999d', '#527d7b'] : night ? ['#232b4d', '#79768e', '#465c66', '#345b58', '#234b47'] : pond ? ['#9edbdc', '#f5eed0', '#8ab6a0', '#659d78', '#4d8965'] : garden ? ['#96d9e7', '#f9e9c9', '#a6c399', '#7fb27e', '#54946b'] : ['#8cd3ed', '#fff0ca', '#a4bf8a', '#85ad65', '#60914c'];
   return <svg ref={artRef} className="landscape-art" viewBox="0 0 1440 900" preserveAspectRatio="none" aria-hidden="true">
     <defs>
       <linearGradient id={`${scene}-sky`} x2="0" y2="1"><stop stopColor={palette[0]} /><stop offset="1" stopColor={palette[1]} /></linearGradient>
@@ -43,7 +44,7 @@ export function LandscapeArt({ scene, phase }) {
     <g className={`celestial-art ${celestial.moon ? 'is-moon' : 'is-sun'}`} transform={`translate(${celestialX} ${celestialY})`} opacity={celestial.opacity}>
       <g transform={`scale(${stretch} 1)`}>
         <circle className="celestial-halo" r={celestialRadius * 1.18} fill={celestial.moon ? '#f8edc3' : '#fff4ce'} opacity=".24" />
-        {celestial.moon ? <g className="celestial-pulse"><path d={`M${celestialRadius * .52} ${-celestialRadius * .9} A${celestialRadius} ${celestialRadius} 0 1 0 ${celestialRadius * .74} ${celestialRadius * .55} A${celestialRadius * .78} ${celestialRadius * .78} 0 0 1 ${celestialRadius * .52} ${-celestialRadius * .9}Z`} fill="#f8edc3" /></g> : <g className="celestial-pulse"><circle r={celestialRadius} fill={dusk ? '#ffd4a2' : dawn ? '#ffe5a2' : '#ffd875'} /></g>}
+        {celestial.moon ? <g className="celestial-pulse"><path d={`M${celestialRadius * .52} ${-celestialRadius * .9} A${celestialRadius} ${celestialRadius} 0 1 0 ${celestialRadius * .74} ${celestialRadius * .55} A${celestialRadius * .78} ${celestialRadius * .78} 0 0 1 ${celestialRadius * .52} ${-celestialRadius * .9}Z`} fill="#f8edc3" /></g> : <g className="celestial-pulse"><circle r={celestialRadius} fill={dusk ? '#ffd4a2' : dawn ? '#edf2dd' : '#ffd875'} /></g>}
       </g>
     </g>
     {night ? <>
@@ -57,7 +58,7 @@ export function LandscapeArt({ scene, phase }) {
     <path d="M0 482 Q220 332 474 463 Q699 521 923 417 T1440 481 V900H0Z" fill={palette[3]} />
     <g opacity=".6">{[0, 80, 148, 1270, 1340, 1440].map((position, index) => <Tree key={position} stretch={stretch} x={position} y={465 + index % 2 * 35} size={0.55 + index % 3 * 0.1} color={night ? '#3e5960' : '#6c9b7a'} />)}</g>
     <path d="M0 577 Q205 502 423 561 T940 532 T1440 559 V900H0Z" fill={`url(#${scene}-ground)`} />
-    {!pond && <path d="M915 510 Q1040 623 750 709 Q604 766 641 900 H925 Q803 780 921 725 Q1152 618 945 510Z" fill={night ? '#6e7970' : '#ded4aa'} opacity=".7" />}
+    {!pond && !lateNight && <path d="M915 510 Q1040 623 750 709 Q604 766 641 900 H925 Q803 780 921 725 Q1152 618 945 510Z" fill={night ? '#6e7970' : '#ded4aa'} opacity=".7" />}
     {scene === 'farm' && <>
       <path d="M0 678Q262 580 535 640L331 900H0Z" fill="#adc168" /><path d="M0 730Q226 622 487 675 M0 791Q210 670 433 727 M0 853Q166 749 379 790" stroke="#6e944c" strokeWidth="13" fill="none" />
       <g transform={`translate(1055 448) scale(${stretch} 1)`}><path d="M-118 12H118V154H-118Z" fill="#cc6c59" /><path d="M-143 15L0-108L143 15Z" fill="#764a49" /><path d="M-111 15L0-79L111 15Z" fill="#dd8970" /><path d="M-41 154V58H41V154" fill="#854b43" stroke="#ffe3b9" strokeWidth="7" /><path d="M-37 63L37 150 M37 63L-37 150" stroke="#ffe3b9" strokeWidth="5" /><rect x="-17" y="-31" width="34" height="34" fill="#f3dba2" /><path d="M-110 36H-67 M66 36H110" stroke="#ecb091" strokeWidth="6" /></g>
@@ -102,7 +103,29 @@ export function LandscapeArt({ scene, phase }) {
       <g stroke="#486f49" strokeWidth="5" fill="none">{[285, 311, 338, 362, 1202, 1231, 1254].map((position, index) => <path key={position} d={`M${position} 742q${index % 2 ? 23 : -20}-35 5-${65 + index % 3 * 18}`} />)}</g>
       <g stroke="#886e4c" strokeWidth="12" strokeLinecap="round"><path d="M290 658v22 M316 640v23 M343 627v24 M1207 635v28 M1259 647v23" /></g>
     </>}
-    {night && <>
+    {lateNight && <g className="moonlit-meadow-art">
+      <path d="M860 510Q700 578 899 632T775 760Q650 822 1080 900H1440Q980 796 1000 760Q1230 666 990 620T887 510Z" fill="#78a4a8" />
+      <path d="M860 510Q700 578 899 632T775 760Q650 822 1080 900" fill="none" stroke="#b1c7b1" strokeWidth="12" opacity=".55" />
+      <g className="pond-reflections" stroke="#d8e6cf" strokeWidth="4" strokeLinecap="round" opacity=".65"><path d="M834 577h51m10 58h92m-50 50h71m-151 67h69m-22 58h104m26 48h126" /></g>
+      <g transform={`translate(215 631) scale(${stretch} 1)`}>
+        <path d="M-18 0Q23-99 5-243L24-244Q44-105 4 0Z" fill="#797d72" />
+        <path d="M9-167q-77-113-134-3m140-44q90-75 141 22" fill="none" stroke="#797d72" strokeWidth="9" />
+        <path d="M-153-128Q-151-302 4-290Q170-308 173-123Q109-185 24-182Q-81-172-153-128Z" fill="#396b64" />
+        <g stroke="#81a293" strokeWidth="7" opacity=".65" fill="none">{[-124,-91,-58,-25,40,73,106,139].map((position,index) => <path key={position} d={`M${position} -190q-19 70 -8 ${103 + index % 3 * 25}`} />)}</g>
+      </g>
+      <g transform={`translate(1160 535) scale(${stretch * .7} .7)`}>
+        <path d="M-17 0L0-195H19L12 0Z" fill="#6a786e" />
+        <path d="M-140-90Q-137-251 9-241Q146-255 153-83Q72-137 11-137Q-65-128-140-90Z" fill="#365f5b" />
+        <g stroke="#739184" strokeWidth="6" fill="none">{[-100,-60,-20,30,70,110].map(position => <path key={position} d={`M${position} -157q-12 43 -8 105`} />)}</g>
+      </g>
+      <g transform={`translate(540 735) scale(${stretch} 1)`}>
+        <ellipse rx="102" ry="17" fill="#183c35" opacity=".5" />
+        <path d="M-84-9Q-52-60 8-36L92-5Q52 12-84-9Z" fill="#78877e" /><path d="M-63-12q40-22 95 0" stroke="#b4bd9e" strokeWidth="5" fill="none" />
+        <g fill="#bf9879">{[-67,-33,10,57,92].map((position,index) => <path key={position} d={`M${position} ${index % 2 * 12}q-15-22 12-14q13 13-12 14Z`} />)}</g>
+      </g>
+      <g fill="#e1e6c8" stroke="#92b399" strokeWidth="2">{[75,130,340,398,1110,1200,1308,1375].map((position,index) => <g key={position} transform={`translate(${position} ${790 + index % 3 * 32}) scale(${stretch} 1)`}><path d="M0 20v-32m0 20q-16-15-20-4m20-5q12-18 22-9" fill="none" /><path d="M0-8q-24-4-15-18q12-8 15 5q4-18 16-8q9 13-16 21Z" /><circle cy="-14" r="3" fill="#e8c780" stroke="none" /></g>)}</g>
+    </g>}
+    {night && !lateNight && <>
       <g fill="#283e46">{[80, 164, 250, 1210, 1300, 1400].map((position, index) => <path key={position} d={`M${position} ${310 + index % 2 * 50}l-68 178h40l-61 89h178l-61-89h40Z`} />)}</g>
       <g transform={`translate(1040 485) scale(${stretch} 1)`}><path d="M-115 0H115V159H-115Z" fill="#8d7068" /><path d="M-145 8L0-100L145 8Z" fill="#39454c" /><path d="M-110 29H110 M-110 61H110 M-110 93H110 M-110 125H110" stroke="#72595b" strokeWidth="5" /><rect x="-78" y="48" width="57" height="58" rx="2" fill="#f9d990" stroke="#51464d" strokeWidth="7" /><path d="M-49 49V104 M-77 77H-23" stroke="#51464d" strokeWidth="5" /><path d="M29 159V61Q56 30 83 61V159" fill="#51464d" /><path d="M72-56V-108H96V-36" fill="#72595b" /></g>
       <Tree stretch={stretch} x={190} y={625} size={1.4} color="#294f50" />

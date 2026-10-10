@@ -4,10 +4,13 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import ffmpeg from 'ffmpeg-static';
 import { SAMPLE_LIBRARY, DRUM_SAMPLES, sampleUrls } from '../src/audio/sampleLibrary.js';
-import { SCENE_SOUNDS, createSceneSample, WATER_DROP_TIMES, WATER_DURATION } from '../src/audio/sceneSounds.js';
+import { SCENE_SOUNDS, FIELD_RECORDINGS, createSceneSample, WATER_DROP_TIMES, WATER_DURATION } from '../src/audio/sceneSounds.js';
 
 const root = new URL('../', import.meta.url);
 const rate = 48000;
+const requested = process.argv.find(argument => argument.startsWith('--sounds='))?.slice(9).split(',');
+if (requested?.some(name => !SCENE_SOUNDS.includes(name))) throw new Error('Unknown scenery sound requested');
+const shouldRender = type => !requested || requested.includes(type);
 const path = relative => fileURLToPath(new URL(relative, root));
 const run = args => {
   const result = spawnSync(ffmpeg, args, { maxBuffer: 32 * 1024 * 1024 });
@@ -29,6 +32,7 @@ const wav = (samples, file) => {
 };
 
 mkdirSync(path('public/audio/scenery'), { recursive: true });
+if (shouldRender('water')) {
 const rawDrop = decode(path('public/audio/scenery/source/water-drop.mp3'));
 const dropPeak = rawDrop.reduce((peak, value) => Math.max(peak, Math.abs(value)), 0);
 const onset = Math.max(0, rawDrop.findIndex(value => Math.abs(value) > dropPeak * 0.08) - 48);
@@ -39,11 +43,23 @@ drop.forEach((value, index) => {
 const water = new Float32Array(Math.ceil(WATER_DURATION * rate));
 for (const impact of WATER_DROP_TIMES) water.set(drop, Math.round(impact * rate));
 wav(water, path('public/audio/scenery/water.wav'));
+}
+if (shouldRender('rooster')) {
 const rooster = decode(path('public/audio/scenery/source/rooster.mp3'));
 rooster.forEach((value, index) => { rooster[index] = value * Math.min(1, index / (rate * 0.015), (rooster.length - index - 1) / (rate * 0.05)); });
 wav(rooster, path('public/audio/scenery/rooster.wav'));
+}
+for (const [type, recording] of Object.entries(FIELD_RECORDINGS)) {
+  if (!shouldRender(type)) continue;
+  const samples = decode(path(`public/audio/scenery/source/${recording.file}`)).slice(0, Math.round(recording.duration * rate));
+  if (samples.length < Math.round(recording.duration * rate)) throw new Error(`Recording too short: ${type}`);
+  samples.forEach((value, index) => {
+    samples[index] = value * Math.min(1, index / (rate * recording.fadeIn), (samples.length - index - 1) / (rate * recording.fadeOut));
+  });
+  wav(samples, path(`public/audio/scenery/${type}.wav`));
+}
 for (const type of SCENE_SOUNDS) {
-  if (type === 'water' || type === 'rooster') continue;
+  if (!shouldRender(type) || type === 'water' || type === 'rooster' || Object.hasOwn(FIELD_RECORDINGS, type)) continue;
   wav(createSceneSample(type, rate), path(`public/audio/scenery/${type}.wav`));
 }
 
@@ -55,6 +71,11 @@ const files = [
 const report = {};
 const previous = process.argv.includes('--preserve-existing') ? JSON.parse(readFileSync(path('src/audio/audioLevels.json'),'utf8')) : {};
 for (const { file, group, target } of files) {
+  const sha256 = createHash('sha256').update(readFileSync(path(`public/audio/${file}`))).digest('hex');
+  if (previous[file]?.sha256 === sha256) {
+    report[file] = previous[file];
+    continue;
+  }
   const samples = decode(path(`public/audio/${file}`));
   let peak = 0;
   let energy = 0;
@@ -80,8 +101,7 @@ for (const { file, group, target } of files) {
   const measured = Number.isFinite(lufs) && lufs > -65 ? lufs : activeRmsDb;
   const peakDb = Math.max(db(peak), Number(stats.input_tp));
   const gainDb = Math.max(-24, Math.min(18, target - measured, -5 - peakDb));
-  report[file] = { group, sha256: createHash('sha256').update(readFileSync(path(`public/audio/${file}`))).digest('hex'), duration: samples.length / rate, peakDb, rmsDb: db(Math.sqrt(energy / samples.length)), activeRmsDb, lufs: Number.isFinite(lufs) ? lufs : null, target, gainDb, correctedLufs: Number.isFinite(lufs) ? lufs + gainDb : null, correctedPeakDb: peakDb + gainDb };
-  if(previous[file]?.sha256 === report[file].sha256) report[file]=previous[file];
+  report[file] = { group, sha256, duration: samples.length / rate, peakDb, rmsDb: db(Math.sqrt(energy / samples.length)), activeRmsDb, lufs: Number.isFinite(lufs) ? lufs : null, target, gainDb, correctedLufs: Number.isFinite(lufs) ? lufs + gainDb : null, correctedPeakDb: peakDb + gainDb };
 }
 writeFileSync(path('src/audio/audioLevels.json'), `${JSON.stringify(report, (_, value) => typeof value === 'number' ? Math.round(value * 100) / 100 : value, 2)}\n`);
 console.table(files.map(({ file }) => ({ file, LUFS: report[file].lufs?.toFixed(1), RMS: report[file].rmsDb.toFixed(1), peak: report[file].peakDb.toFixed(1), gain: report[file].gainDb.toFixed(1) })));

@@ -154,23 +154,23 @@ test('guitar labels and sounding chords follow key changes without enabling play
   await page.getByRole('button',{name:'Change landscape'}).click({force:true});
   const library=await page.evaluate(async()=>{
     const {GUITAR_LIBRARY,OPEN_STRINGS}=await import('/src/utils/guitar.js');
-    return {G:GUITAR_LIBRARY.G,D:GUITAR_LIBRARY.D,open:OPEN_STRINGS};
+    return {E:GUITAR_LIBRARY.E,A:GUITAR_LIBRARY.A,open:OPEN_STRINGS};
   });
   const expectStrings=async notes=>{
     for(const [index,note] of notes.entries())await expect(page.locator('.playable-string').nth(index)).toHaveAttribute('aria-label',`Guitar string ${index+1}${note?` ${note}`:' muted'}`);
   };
-  await expect(page.locator('.chord-name')).toHaveText(library.G.chords.map(chord=>chord.name));
-  for(const chord of library.G.chords)await expect(page.getByRole('button',{name:`Hold guitar chord ${chord.name}`,exact:true})).toBeVisible();
+  await expect(page.locator('.chord-name')).toHaveText(library.E.chords.map(chord=>chord.name));
+  for(const chord of library.E.chords)await expect(page.getByRole('button',{name:`Hold guitar chord ${chord.name}`,exact:true})).toBeVisible();
   await page.evaluate(()=>{
     window.playedNotes=[];const engine=window.audioEngine;const original=engine.manualStrike;
     engine.manualStrike=function(note,...args){window.playedNotes.push(note);return original.call(this,note,...args);};
   });
-  const chord=page.getByRole('button',{name:'Hold guitar chord G',exact:true});
+  const chord=page.getByRole('button',{name:'Hold guitar chord E',exact:true});
   const session=await page.context().newCDPSession(page);
   const bounds=await chord.boundingBox();
   const held={id:1,x:bounds.x+bounds.width/2,y:bounds.y+bounds.height/2};
   await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[held]});
-  const notes=library.G.chords.find(chord=>chord.name==='G').notes;
+  const notes=library.E.chords.find(chord=>chord.name==='E').notes;
   await expectStrings(notes);
   const board=await page.locator('.guitar-stringboard').boundingBox();
   const pluck={id:2,x:board.x+board.width*.82,y:board.y+board.height/12};
@@ -182,8 +182,8 @@ test('guitar labels and sounding chords follow key changes without enabling play
   await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   await expectStrings(library.open);
   await page.getByRole('button',{name:'Change landscape'}).click({force:true});
-  await expect(page.locator('.chord-name')).toHaveText(library.D.chords.map(chord=>chord.name));
-  for(const chord of library.D.chords)await expect(page.getByRole('button',{name:`Hold guitar chord ${chord.name}`,exact:true})).toBeVisible();
+  await expect(page.locator('.chord-name')).toHaveText(library.A.chords.map(chord=>chord.name));
+  for(const chord of library.A.chords)await expect(page.getByRole('button',{name:`Hold guitar chord ${chord.name}`,exact:true})).toBeVisible();
   expect(await page.evaluate(()=>window.audioEngine.active.guitar)).toBe(false);
 });
 
@@ -199,7 +199,7 @@ test('guitar fretboard diagrams, full neck and chord and autoplay dots fit compa
   await expect(page.locator('.guitar-stringboard .guitar-chords')).toHaveClass(/with-charts/);
   const library=await page.evaluate(async()=>{
     const {GUITAR_LIBRARY,OPEN_STRINGS}=await import('/src/utils/guitar.js');
-    return {chords:GUITAR_LIBRARY.C.chords,event:GUITAR_LIBRARY.C.phrases[0].events[0],open:OPEN_STRINGS};
+    return {chords:GUITAR_LIBRARY.A.chords,event:GUITAR_LIBRARY.A.phrases[0].events[0],open:OPEN_STRINGS};
   });
   const position=fret=>(1-2**(-fret/12))/(1-2**(-24/12));
   const expectDot=async(dot,string,fret)=>{
@@ -237,10 +237,10 @@ test('guitar fretboard diagrams, full neck and chord and autoplay dots fit compa
     expect(diagrams.x+diagrams.width).toBeLessThanOrEqual(neck.x+neck.width+1);
     expect(diagrams.y+diagrams.height).toBeLessThanOrEqual(neck.y+neck.height+1);
     expect(footer.y-board.y-board.height).toBeGreaterThanOrEqual(12);
-    const chord=library.chords.find(value=>value.name==='C');
-    const button=page.getByRole('button',{name:'Hold guitar chord C',exact:true});
+    const chord=library.chords.find(value=>value.name==='A');
+    const button=page.getByRole('button',{name:'Hold guitar chord A',exact:true});
     await button.focus();await page.keyboard.down('Space');
-    await expect(page.locator('.neck-chord-name')).toHaveText('C');
+    await expect(page.locator('.neck-chord-name')).toHaveText('A');
     await expect(page.locator('.fingering-dot')).toHaveCount(6);
     for(const [string,fret] of chord.frets.entries()){
       await expectDot(page.locator(`.fingering-dot[data-string="${string+1}"][data-fret="${fret}"]`),string,fret);

@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {UKULELE_LIBRARY,UKULELE_STRINGS,UKULELE_FRETS,fretPosition,guitarChord,guitarEvent} from '../src/utils/guitar.js';
 import {guitarInput,guitarInputs,noteMidi} from '../src/utils/autoplay.js';
-import {patterns} from '../src/utils/music.js';
+import {patterns,transposeEvents} from '../src/utils/music.js';
 
-test('ukulele has fourteen all-string diatonic shapes in each of twelve keys',()=>{
-  assert.equal(Object.keys(UKULELE_LIBRARY).length,12);
+test('ukulele has fourteen all-string diatonic shapes in every supported major and minor key',()=>{
+  assert.equal(Object.keys(UKULELE_LIBRARY).length,16);
   assert.deepEqual(UKULELE_STRINGS,['G4','C4','E4','A4']);
   for(const [root,library] of Object.entries(UKULELE_LIBRARY)) {
     assert.equal(library.chords.length,14);
@@ -26,11 +26,10 @@ test('ukulele has fourteen all-string diatonic shapes in each of twelve keys',()
 
 test('ukulele events retain every transposed note occurrence on a distinct playable string',()=>{
   for(const [root,library] of Object.entries(UKULELE_LIBRARY)) {
-    const offset=noteMidi(`${root}4`)-noteMidi('C4');
     library.phrases.forEach((phrase,phraseIndex)=>phrase.events.forEach((event,eventIndex)=>{
-      const source=patterns.ukulele[phraseIndex].events[eventIndex];
+      const source=transposeEvents(patterns.ukulele[phraseIndex].events,root,{preserveUnisons:true})[eventIndex];
       const notes=event.notes??[event.note];
-      assert.deepEqual(notes.map(noteMidi),(source.notes??[source.note]).map(note=>noteMidi(note)+offset));
+      assert.deepEqual(notes,source.notes??[source.note]);
       const chord=library.chords.find(value=>value.name===event.chord);
       assert.ok(notes.every(note=>chord.tones.includes(noteMidi(note)%12)));
       assert.equal(event.fingering.length,notes.length);

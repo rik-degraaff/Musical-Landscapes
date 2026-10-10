@@ -216,7 +216,7 @@ test('multitouch guitar chords and crossing all strings play their correct notes
   const errors=await start(page);await equip(page,'guitar');
   const shapes=await page.evaluate(async()=>{
     const {GUITAR_LIBRARY,OPEN_STRINGS}=await import('/src/utils/guitar.js');
-    return {chords:GUITAR_LIBRARY.C.chords,open:OPEN_STRINGS};
+    return {chords:GUITAR_LIBRARY.A.chords,open:OPEN_STRINGS};
   });
   const expectStrings=async notes=>{
     for(const [index,note] of notes.entries())await expect(page.locator('.playable-string').nth(index)).toHaveAttribute('aria-label',`Guitar string ${index+1}${note?` ${note}`:' muted'}`);
@@ -226,12 +226,12 @@ test('multitouch guitar chords and crossing all strings play their correct notes
     engine.manualNoteOn=function(note,...args){window.playedNotes.push(note);return original.call(this,note,...args);};
   });
   const session=await page.context().newCDPSession(page);
-  const chord=await page.getByRole('button',{name:'Hold guitar chord C',exact:true}).boundingBox();
+  const chord=await page.getByRole('button',{name:'Hold guitar chord A',exact:true}).boundingBox();
   const strings=await page.locator('.guitar-stringboard').boundingBox();
   const chordTouch={id:1,x:chord.x+chord.width/2,y:chord.y+chord.height/2};
   const stringTouch={id:2,x:strings.x+strings.width*.82,y:strings.y+strings.height/12};
   await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[chordTouch]});
-  const expected=shapes.chords.find(value=>value.name==='C').notes;
+  const expected=shapes.chords.find(value=>value.name==='A').notes;
   await expectStrings(expected);
   await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[chordTouch,stringTouch]});
   for(let index=1;index<=5;index++)await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[chordTouch,{...stringTouch,y:strings.y+strings.height*(index+.5)/6}]});
@@ -247,7 +247,7 @@ test('multitouch guitar chords and crossing all strings play their correct notes
   const openStringBounds=await openString.boundingBox();
   await openString.click({position:{x:openStringBounds.width*.82,y:openStringBounds.height/2}});
   expect((await page.evaluate(()=>window.playedNotes)).at(-1)).toBe('E2');
-  for(const value of ['G','Am','F']){
+  for(const value of ['E','F#m','D']){
     const button=page.getByRole('button',{name:`Hold guitar chord ${value}`,exact:true});await button.focus();await page.keyboard.down('Space');
     await expect(page.locator('.neck-chord-name')).toHaveText(value);
     await expectStrings(shapes.chords.find(chord=>chord.name===value).notes);
@@ -306,9 +306,10 @@ test('trumpet six harmonic columns and valves change held lips across the playab
 test('piano multitouch, all drum hits and chromatic marimba produce sampled audio',async({page})=>{
   const errors=await start(page);await equip(page,'piano');
   const session=await page.context().newCDPSession(page);
-  const keys=await Promise.all(['C4','E4','G4'].map(note=>page.getByRole('button',{name:`Piano key ${note}`,exact:true}).boundingBox()));
+  const keys=await Promise.all(['A4','C#5','E5'].map(note=>page.getByRole('button',{name:`Piano key ${note}`,exact:true}).boundingBox()));
   await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:keys.map((rect,index)=>({id:index+1,x:rect.x+rect.width/2,y:rect.y+rect.height*.87}))});
   expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBe(3);
+  expect(await page.evaluate(()=>[...window.audioEngine.manualVoices.values()].map(voice=>voice.note).sort())).toEqual(['A4','C#5','E5']);
   expect(await soundLevel(page,'piano')).toBeGreaterThan(.001);
   await session.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});
   expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBe(0);
@@ -412,8 +413,7 @@ test('sun and moon advance the day, remain circular, and keep controls aligned t
   expect(skyLayers).toEqual({sunBeforeTerrain:true,pulse:'celestialPulse'});
   await page.emulateMedia({reducedMotion:'reduce'});
   const sceneKeys=await page.evaluate(async()=>{const {SCENES}=await import('/src/scenes/Scene.jsx');return SCENES.map(({id,root})=>({id,root}));});
-  expect(sceneKeys).toEqual([{id:'farm',root:'C'},{id:'garden',root:'G'},{id:'pond',root:'D'},{id:'dusk',root:'A'},{id:'night',root:'E'},{id:'late-night',root:'B'},{id:'dawn',root:'F#'}]);
-  expect(new Set(sceneKeys.map(value=>value.root)).size).toBe(sceneKeys.length);
+  expect(sceneKeys).toEqual([{id:'farm',root:'A'},{id:'garden',root:'E'},{id:'pond',root:'A'},{id:'dusk',root:'C#m'},{id:'night',root:'Am'},{id:'late-night',root:'Fm'},{id:'dawn',root:'Db'}]);
   const positions = [];
   for (const [index,scene] of ['farm','garden','pond','dusk','night','late-night','dawn'].entries()) {
     await expect(page.locator(`.scene-${scene}`)).toBeVisible();
@@ -458,6 +458,69 @@ test('sun and moon advance the day, remain circular, and keep controls aligned t
     }
     await page.screenshot({path:`test-results/${testInfo.project.name}-farmjam-${viewport.width}.png`});
   }
+  expect(errors).toEqual([]);
+});
+
+test('day cycle plays exact major and minor piano triads and tonic guitar chords before wrapping',async({page})=>{
+  const errors=await start(page);
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.evaluate(()=>{
+    const engine=window.audioEngine;engine.setTempo(208);
+    engine.noise.piano.energyAt=()=>.08;engine.noise.piano.complexityAt=()=>.08;
+    window.cycleSamples={piano:[],guitar:[]};
+    const sampler=engine.nodes.piano.synth;const original=sampler.triggerAttackRelease;
+    sampler.triggerAttackRelease=function(note,...args){window.cycleSamples.piano.push(note);return original.call(this,note,...args);};
+    const strike=engine.manualStrike;
+    engine.manualStrike=function(note,token,...args){
+      const result=strike.call(this,note,token,...args);const voice=this.manualVoices.get(token);
+      if(voice?.name==='guitar'&&voice.source.buffer&&voice.source.playbackRate.value>0)window.cycleSamples.guitar.push(voice.note);
+      return result;
+    };
+  });
+  await page.locator('#instrument-piano').click();
+  await equip(page,'guitar');
+  const cycle=[
+    {scene:'farm',root:'A',triad:['A4','C#5','E5'],pitches:[1,4,9]},
+    {scene:'garden',root:'E',triad:['E4','G#4','B4'],pitches:[4,8,11]},
+    {scene:'pond',root:'A',triad:['A4','C#5','E5'],pitches:[1,4,9]},
+    {scene:'dusk',root:'C#m',triad:['C#4','E4','G#4'],pitches:[1,4,8]},
+    {scene:'night',root:'Am',triad:['A4','C5','E5'],pitches:[0,4,9]},
+    {scene:'late-night',root:'Fm',triad:['F4','G#4','C5'],pitches:[0,5,8]},
+    {scene:'dawn',root:'Db',triad:['C#4','F4','G#4'],pitches:[1,5,8]},
+  ];
+  for(const {scene,root,triad,pitches} of cycle){
+    await expect(page.locator(`.scene-${scene}`)).toBeVisible();
+    await expect.poll(()=>page.evaluate(()=>window.audioEngine.root)).toBe(root);
+    await page.evaluate(()=>{window.cycleSamples.piano=[];window.cycleSamples.guitar=[];});
+    await expect.poll(()=>page.evaluate(()=>window.cycleSamples.piano.slice(0,3))).toEqual(triad);
+    expect(await soundLevel(page,'piano'),`${scene} piano triad sounds`).toBeGreaterThan(.0001);
+    const notes=await page.evaluate(async root=>{
+      const {GUITAR_LIBRARY}=await import('/src/utils/guitar.js');
+      return GUITAR_LIBRARY[root].chords.find(chord=>chord.name===root).notes;
+    },root);
+    const chord=page.getByRole('button',{name:`Hold guitar chord ${root}`,exact:true});
+    await chord.focus();await page.keyboard.down('Space');
+    await expect(page.locator('.neck-chord-name')).toHaveText(root);
+    for(const [index,note] of notes.entries()){
+      const string=page.locator('.playable-string').nth(index);
+      await expect(string).toHaveAttribute('aria-label',`Guitar string ${index+1} ${note}`);
+      await string.dispatchEvent('keydown',{key:'Enter'});await string.dispatchEvent('keyup',{key:'Enter'});
+    }
+    expect(await page.evaluate(()=>window.cycleSamples.guitar)).toEqual(notes);
+    expect(await page.evaluate(async()=>{
+      const {noteMidi}=await import('/src/utils/autoplay.js');
+      return [...new Set(window.cycleSamples.guitar.map(note=>noteMidi(note)%12))].sort((first,second)=>first-second);
+    }),`${scene} tonic chord quality`).toEqual(pitches);
+    expect(await soundLevel(page,'guitar'),`${scene} guitar chord sounds`).toBeGreaterThan(.0001);
+    await page.keyboard.up('Space');
+    await expect(page.locator('.neck-chord-name')).toHaveCount(0);
+    await page.getByRole('button',{name:'Change landscape'}).click({force:true});
+  }
+  await expect(page.locator('.scene-farm')).toBeVisible();
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.root)).toBe('A');
+  await page.evaluate(()=>{window.cycleSamples.piano=[];});
+  await expect.poll(()=>page.evaluate(()=>window.cycleSamples.piano.slice(0,3))).toEqual(cycle[0].triad);
+  expect(await page.evaluate(()=>window.audioEngine.active.piano)).toBe(true);
   expect(errors).toEqual([]);
 });
 
@@ -585,7 +648,7 @@ test('equipped autoplay shares the transport with other instruments and follows 
   expect(await soundLevel(page,'drums',1.4)).toBeGreaterThan(.0001);
   await page.getByRole('button',{name:'Change landscape'}).click({force:true});
   await expect(page.locator('.scene-garden')).toBeVisible();
-  await expect.poll(()=>page.evaluate(()=>window.phraseChecks.some(check=>check.root==='G'))).toBe(true);
+  await expect.poll(()=>page.evaluate(()=>window.phraseChecks.some(check=>check.root==='E'))).toBe(true);
   const checks=await page.evaluate(()=>window.phraseChecks);
   for(const check of checks)expect(check.expected).toContainEqual(check.event);
   await page.getByRole('button',{name:'Piano key C4',exact:true}).click();

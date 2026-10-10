@@ -23,11 +23,12 @@ test('double-tapping the girl opens the farm room with equipped instrument and r
 
 test('learn waits for each right note and feedback leads into rhythm and accompanied attempts',async({page},testInfo)=>{
   const errors=await start(page);await enter(page);await expect(page.getByRole('combobox',{name:'Practice instrument'})).toHaveValue('piano');
-  await expect(page.locator('.practice-target strong')).toHaveText('C4 + E4 + G4');
+  expect(await page.evaluate(()=>window.audioEngine.root)).toBe('A');
+  await expect(page.locator('.practice-target strong')).toHaveText('A4 + C#5 + E5');
   await expect(page.locator('.practice-surface-host .note-key[aria-pressed="true"]')).toHaveCount(3);
-  await key(page,'D4');await expect(page.locator('.practice-feedback-display')).toHaveText('Try again');await expect(page.locator('.practice-target strong')).toHaveText('C4 + E4 + G4');
-  await key(page,'C4');await expect(page.locator('.practice-feedback-display')).toHaveText('Good note, finish the chord');await expect(page.locator('.practice-target strong')).toHaveText('C4 + E4 + G4');
-  for(const note of ['C4','E4','G4'])await key(page,note);
+  await key(page,'D4');await expect(page.locator('.practice-feedback-display')).toHaveText('Try again');await expect(page.locator('.practice-target strong')).toHaveText('A4 + C#5 + E5');
+  await key(page,'A4');await expect(page.locator('.practice-feedback-display')).toHaveText('Good note, finish the chord');await expect(page.locator('.practice-target strong')).toHaveText('A4 + C#5 + E5');
+  for(const note of ['A4','C#5','E5'])await key(page,note);
   await expect(page.locator('.practice-feedback-display')).toHaveText('Phrase learned!');await page.getByRole('button',{name:'2. Rhythm'}).click();await expect(page.getByRole('button',{name:'2. Rhythm'})).toHaveAttribute('aria-pressed','true');
   await page.evaluate(()=>{
     const engine=window.audioEngine;engine.setTempo(208);window.accompaniment=[];window.accompanimentCycles=[];window.practiceHints=[];window.loopCycles=[];window.practiceInputs=[];window.practiceClock=null;
@@ -45,7 +46,7 @@ test('learn waits for each right note and feedback leads into rhythm and accompa
     await page.getByRole('button',{name:'Start repeating',exact:true}).click();
     await page.evaluate(()=>new Promise(resolve=>{
       const engine=window.audioEngine;const delay=Math.max(0,(window.practiceClock.startTime-engine.practiceTime())*1000);
-      setTimeout(()=>{for(const [index,note] of ['C4','E4','G4'].entries()){engine.manualNoteOn(note,`test-${index}`);setTimeout(()=>engine.manualNoteOff(`test-${index}`),120);}resolve();},delay);
+      setTimeout(()=>{for(const [index,note] of ['A4','C#5','E5'].entries()){engine.manualNoteOn(note,`test-${index}`);setTimeout(()=>engine.manualNoteOff(`test-${index}`),120);}resolve();},delay);
     }));
     await expect(page.locator('.practice-phrase-track .is-current')).toHaveCount(1);
     await expect(page.locator('.practice-score')).toHaveText('3/3 · 100%',{timeout:8000});

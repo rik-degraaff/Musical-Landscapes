@@ -111,7 +111,7 @@ Every hand-written bar has an `(energy, complexity)` coordinate. At each bar the
 
 This means the music can move gradually through the pattern library while still being constrained to known, musical phrases. Instruments do not all follow the same path because their noise fields use different seeds and speeds.
 
-Changing the landscape also changes the musical root. The pattern library is written around C and transposed through a unique seven-key circle-of-fifths route at each stop. Marimba and pan-flute pitches fold by octave inside their existing fixed note banks, retaining each transposed pitch class. Percussion labels are kept intact during transposition.
+Changing the landscape changes both the tonic and mode: Morning (Sunny Farm) **A major**, Midday (Little Garden) **E major**, Afternoon (Pond Meadow) **A major**, Dusk **C-sharp minor**, Early Night **A minor**, Late Night **F minor**, Pre-Dawn (First Light) **D-flat major**, then back to Morning and Midday. Minor scenes use natural-minor melodies and diatonic minor chord libraries, not major phrases with a different root label. D-flat is displayed in chord labels; internal sampler pitches use its enharmonic C-sharp spelling. Marimba and pan-flute pitches fold by octave inside their existing fixed note banks, retaining each transposed pitch class. Percussion labels are kept intact during transposition.
 
 ## Instrument sounds
 
@@ -194,12 +194,12 @@ Switch instruments, phrases, or stages at any time. Ready/Repeat and Restart con
 3. **Pond Meadow** — frog and windmill
 4. **Evening Meadow** — a setting sun, early stars and fireflies, a chirping cricket and a banking propeller airplane
 5. **Sleepy Night** — the first moonrise, with bell and owl
-6. **Moonlit Meadow** — the moon continues rightward through a starry meadow with bell and owl
-7. **First Light** — a rising sun over misty fields, a recorded rooster crow and swaying wind chimes
+6. **Moonlit Meadow** — a distinct late-night willow grove, silver stream and moonflowers, with a fluttering bat and rustling hedgehog
+7. **First Light** — pale, cold pre-dawn light over blue-grey misty fields, a recorded rooster crow and swaying wind chimes
 
 The circular arrow control in the bottom-right rotates through the scenes. The illustrations include rolling fields, a flower garden, reflective pond water, and a moonlit woodland with fireflies. Scenery proportions adapt to portrait and landscape screens.
 
-In Evening Meadow, tapping the cricket makes it hop and rub its wings with rhythmic chirps. Tapping the airplane triggers a short banking flyby, spinning propeller and a soft tapered engine sound. Both are original procedural effects rendered to local WAVs and calibrated through the same offline loudness analysis and shared scenery mixer as the other objects. Reduced-motion preferences apply to both interactions.
+In Evening Meadow, tapping the cricket makes it hop and rub its wings to a real CC0 cricket recording. The farm cow also plays a real CC0 moo recording. Source credits and reproducible processing commands are in [the scenery attribution file](public/audio/scenery/ATTRIBUTION.md). The airplane triggers a short banking flyby, spinning propeller and a soft tapered engine sound. Late-night bat wings and hedgehog footsteps have distinct original foley rendered to local WAVs. All effects use offline loudness analysis and the shared scenery mixer; reduced-motion preferences apply to their visual reactions.
 
 ## Interactive objects
 
