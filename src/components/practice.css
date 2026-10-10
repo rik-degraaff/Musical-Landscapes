@@ -51,8 +51,6 @@
 .practice-neighbors button { display: grid; place-items: center; flex: none; width: 39px; height: 40px; padding: 3px; border: 1px solid #6fae96; border-radius: 4px; background: #effff5; }
 .practice-neighbors .instrument-illustration { width: 33px; height: 29px; }
 .practice-neighbors button.is-accompanying { border-color: #a34b19; background: #ffcf91; animation: companionPulse .5s ease-out; }
-.practice-room .practice-topbar .metronome-widget:not(.is-open) { position: relative; left: auto; bottom: auto; z-index: 1; flex: 0 0 46px; width: 46px; height: 62px; }
-.practice-topbar .metronome-widget.is-open { position: fixed; left: 12px; bottom: 12px; z-index: 190; }
 .practice-select { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 300px; font-size: 12px; font-weight: 700; }
 .practice-select > span { min-width: 0; overflow-wrap: anywhere; }
 .practice-select select { min-width: 0; width: 100%; max-width: 200px; height: 36px; padding: 4px 24px 4px 8px; border: 1px solid var(--practice-line); border-radius: 4px; background: var(--practice-paper); text-overflow: ellipsis; }
@@ -115,6 +113,13 @@
 .practice-room .sharp-key span { color: #f3fff5; }
 .practice-room .performance-panel { position: relative; inset: auto; display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; flex: 1; z-index: auto; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .practice-count-in { color: #843916; font-weight: 800; font-variant-numeric: tabular-nums; }
+.practice-room > .practice-metronome { position: fixed; left: 12px; bottom: 12px; z-index: 175; width: 46px; height: 62px; pointer-events: none; }
+.practice-room .practice-metronome .metronome-widget { position: absolute; left: 0; bottom: 0; pointer-events: auto; }
+.practice-room .practice-metronome .metronome-widget.is-open { position: fixed; left: 12px; bottom: 12px; z-index: 190; }
+.practice-control-dock { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: none; min-height: 42px; padding: 4px 12px; background: #edf8ed; border-bottom: 1px solid #8eb4a0; }
+.practice-control-dock button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 76px; min-height: 34px; padding: 5px 11px; border: 1px solid #397762; border-radius: 4px; background: #fafff7; color: #245d4c; font-weight: 800; }
+.practice-control-dock .practice-run-button { border-color: #195d4a; background: #21785e; color: #fff; }
+.practice-control-dock button svg { width: 17px; height: 17px; }
 
 @media (hover: hover) {
   .practice-actions button:not(:disabled):not([aria-disabled="true"]):hover { border-color: #a44132; box-shadow: inset 0 0 0 1px #a44132; }
@@ -146,10 +151,6 @@
   .practice-select > span { font-size: 11px; }
   .practice-select .instrument-illustration { display: none; }
   .practice-select select { max-width: none; height: 28px; padding: 2px 16px 2px 5px; font-size: 10px; }
-  .practice-topbar .metronome-widget .metronome-mini { width: 27px; height: 36px; }
-  .practice-topbar .metronome-widget { flex-basis: 27px; width: 27px; height: 36px; }
-  .practice-topbar .metronome-widget .mini-pendulum { top: 4px; height: 24px; }
-  .practice-topbar .metronome-widget .metronome-mini span { bottom: 3px; font-size: 7px; }
   .practice-exit { width: 30px; height: 30px; padding: 1px; }
   .practice-exit svg { width: 23px!important; height: 23px!important; }
   .practice-exit span { display: none; }
@@ -168,6 +169,10 @@
   .practice-actions { gap: 2px; }
   .practice-actions button { min-width: 24px; min-height: 24px; padding: 2px; }
   .practice-actions button svg { width: 14px; height: 14px; }
+  .practice-control-dock { min-height: 34px; height: 34px; padding: 2px 6px; }
+  .practice-control-dock button { min-width: 62px; min-height: 28px; padding: 2px 7px; font-size: 11px; }
+  .practice-control-dock button svg { width: 14px; height: 14px; }
+  .practice-room > .practice-metronome { left: 7px; bottom: 5px; scale: .72; transform-origin: bottom left; }
   .practice-beat-strip { gap: 2px; }
   .practice-beat-strip > * { width: 15px; height: 15px; border-width: 1px; font-size: 8px; }
   .practice-phrase-track { min-height: 17px; height: 17px; gap: 2px; padding: 1px 5px; }
@@ -189,9 +194,6 @@
   .practice-musician > .instrument-illustration { left: 75%; top: 69%; width: 20px; height: 17px; }
   .practice-neighbors button { width: 19px; height: 21px; }
   .practice-neighbors .instrument-illustration { width: 17px; height: 16px; }
-  .practice-room .practice-topbar .metronome-widget:not(.is-open) .metronome-mini { width: 20px; height: 29px; }
-  .practice-room .practice-topbar .metronome-widget:not(.is-open) { flex-basis: 20px; width: 20px; height: 29px; }
-  .practice-topbar .metronome-widget .mini-pendulum { height: 21px; }
   .practice-select { flex: 0 1 104px; flex-basis: 104px; max-width: 104px; }
   .practice-select > span, .practice-select .practice-instrument-tools { display: none; }
   .practice-select select { max-width: 100%; height: 24px; font-size: 9px; }
@@ -199,6 +201,10 @@
   .practice-exit span { display: none; }
   .practice-stages { min-height: 18px; height: 18px; padding-block: 0; }
   .practice-stages button { font-size: 9px; }
+  .practice-control-dock { min-height: 28px; height: 28px; padding: 1px 5px; }
+  .practice-control-dock button { min-width: 53px; min-height: 24px; padding: 1px 5px; font-size: 10px; }
+  .practice-control-dock button svg { width: 14px; height: 14px; }
+  .practice-room > .practice-metronome { scale: .58; }
   .practice-guide { grid-template-columns:minmax(42px,.5fr) minmax(100px,1.3fr) auto; min-height: 22px; height: 22px; padding-block: 1px; }
   .practice-tools { gap: 1px; }
   .practice-target strong { font-size: 13px; }

@@ -179,11 +179,13 @@ Piano, guitar and marimba also respond to swipes that begin outside playable key
 
 Double-tap the girl to enter the full-viewport practice room inside the farm. An equipped instrument is selected initially; otherwise practice starts with the first landscape instrument. Keyboard users can focus the girl and press Enter or Space. All eight instruments are available in the instrument selector, with phrases filtered to the instrument's saved difficulty and the current scene key. Practice always shows note/control labels and string fingering charts.
 
+The start screen's **?** button opens an optional parent/caregiver guide. It asks for an age band, the child's music and instrument experience, and the adult's familiarity with music, then offers a one-tap Simple or Standard setup recommendation. The guide explains instruments and Settings, the landscape/key cycle and metronome, practice stages, and ways to play together. Later explanations adjust their music vocabulary to the caregiver's familiarity. Age bands and experience choices are stored locally in a separate, non-identifying profile; skipping leaves settings unchanged. The guide can be scrolled by touch on short screens.
+
 1. **Learn** highlights one note or string at a time, waits for the correct input, and gives correct/incorrect feedback. Chords are learned note by note.
 2. **Rhythm** gives a four-beat count-in, then repeats the selected phrase indefinitely with live highlights and scoring. Correct pitches are accepted within 0.42 beats; stop or pause the run whenever you are ready.
 3. **Together** repeats the same exercise with two quieter accompaniment instruments, rotating each through different phrases every bar. The selected instrument's phrase stays fixed and is never automatically played for you.
 
-Switch instruments, phrases, or stages at any time. Timed attempts can be paused or restarted; the exit icon or Escape returns to the landscape. Backgrounding or losing focus pauses practice and clears held inputs. Leaving restores the farm's active parts, equipment, pinned phrase, tempo, and metronome sound, restarting on a fresh shared downbeat. String guidance retains the exact phrase pitches even while holding the highlighted chord; a different held chord still sounds its own notes.
+Switch instruments, phrases, or stages at any time. Ready/Repeat and Restart controls have their own row above the playable surface on small screens; the metronome stays at bottom left like it does on the landscape. Timed attempts can be stopped or restarted; the open door or Escape returns to the landscape. Backgrounding or losing focus pauses practice and clears held inputs. Leaving restores the farm's active parts, equipment, pinned phrase, tempo, and metronome sound, restarting on a fresh shared downbeat. String guidance retains the exact phrase pitches even while holding the highlighted chord; a different held chord still sounds its own notes.
 
 ## Environments
 

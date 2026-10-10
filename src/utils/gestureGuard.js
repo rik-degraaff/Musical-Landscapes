@@ -1,7 +1,7 @@
 const ZOOM_KEYS = new Set(['+', '=', '-', '_', '0']);
 
 function inScrollableArea(event) {
-  return event.target instanceof Element && Boolean(event.target.closest('.mixer'));
+  return event.target instanceof Element && Boolean(event.target.closest('.mixer,.parent-guide-content'));
 }
 
 function block(event) {

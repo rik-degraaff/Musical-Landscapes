@@ -21,8 +21,15 @@ test('parent guide applies age-aware setup and explains features, shared play an
   const profile=await page.evaluate(()=>JSON.parse(localStorage.getItem('farmjam-parent-guide-v1')));
   expect(profile).toEqual({age:'3to4',music:'some',instrument:'new',parent:'confident'});
   await page.getByRole('button',{name:'Next step'}).click();
-  for(const feature of ['Make a little landscape band.','Follow the sun and moon.','Change the setup any time.','Open the metronome.','Visit the practice room.'])await expect(page.getByText(feature,{exact:false})).toBeVisible();
+  await expect(page.getByText(/Tap a landscape instrument/)).toBeVisible();
+  await expect(page.getByText(/pitch center/)).toBeVisible();
   await page.screenshot({path:`test-results/${testInfo.project.name}-parent-guide-features.png`});
+  await page.getByRole('button',{name:'Next step'}).click();
+  await expect(page.getByText(/Tap the sun or moon/)).toBeVisible();await expect(page.locator('.parent-feature-list strong').filter({hasText:'Settings'})).toBeVisible();await expect(page.getByText(/metronome/)).toBeVisible();
+  await expect(page.getByText(/same idea in a different pitch center/)).toBeVisible();
+  await page.screenshot({path:`test-results/${testInfo.project.name}-parent-guide-landscapes.png`});
+  await page.getByRole('button',{name:'Next step'}).click();
+  await expect(page.getByText(/Double-tap the girl/)).toBeVisible();await expect(page.getByText(/musical terms/)).toBeVisible();
   await page.getByRole('button',{name:'Next step'}).click();
   await expect(page.getByText(/Keep sessions short and responsive/)).toBeVisible();
   await expect(page.getByText(/borrow one, or meet a patient music teacher/)).toBeVisible();
@@ -44,5 +51,24 @@ test('parent guide skips without changing setup, can be dismissed, and remains k
   await page.getByRole('button',{name:'Next step'}).click();await page.getByRole('radio',{name:'Already plays or sings'}).first().check();
   await page.getByRole('button',{name:'Next step'}).click();await page.getByRole('radio',{name:'New to music'}).check();
   await page.getByRole('button',{name:'Next step'}).click();await expect(page.getByRole('heading',{name:'Standard is a good place to begin.'})).toBeVisible();
-  await page.getByRole('button',{name:'Previous step'}).click();await expect(page.getByRole('heading',{name:'How familiar are you with music?'})).toBeVisible();
+  await expect(page.locator('.parent-guide-content > section > .parent-guide-note')).toContainText('everyday language');
+  await page.getByRole('button',{name:'Next step'}).click();await expect(page.getByText(/A phrase is a short musical idea that repeats/)).toBeVisible();
+  await expect(page.getByText(/there is no need to read notes/)).toBeVisible();
+  await page.getByRole('button',{name:'Previous step'}).click();await expect(page.getByRole('heading',{name:'Standard is a good place to begin.'})).toBeVisible();
+});
+
+test('parent guide content scrolls by touch on a short landscape screen',async({page})=>{
+  await page.setViewportSize({width:780,height:284});await page.goto('/');
+  await page.getByRole('button',{name:'Parent guide and setup'}).click();
+  for(let step=0;step<8;step++)await page.getByRole('button',{name:'Next step'}).click();
+  const content=page.locator('.parent-guide-content');
+  const metrics=await content.evaluate(element=>({scrollHeight:element.scrollHeight,clientHeight:element.clientHeight,rect:element.getBoundingClientRect().toJSON()}));
+  expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
+  const client=await page.context().newCDPSession(page);
+  const point={id:4,x:metrics.rect.left+metrics.rect.width*.7,y:metrics.rect.bottom-18};
+  await client.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point]});
+  await client.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{...point,y:metrics.rect.top+15}]});
+  await client.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await expect.poll(()=>content.evaluate(element=>element.scrollTop)).toBeGreaterThan(0);
+  await client.detach();
 });

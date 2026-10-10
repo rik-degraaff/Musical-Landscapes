@@ -10,6 +10,7 @@ test('double-tapping the girl opens the farm room with equipped instrument and r
   await enter(page);await expect(page.getByRole('combobox',{name:'Practice instrument'})).toHaveValue('ukulele');await expect(page.locator('.practice-room-art')).toBeVisible();
   await expect(page.locator('.practice-musician')).toBeVisible();await expect(page.locator('.practice-musician .instrument-illustration')).toHaveClass(/illustration-ukulele/);await expect(page.locator('.practice-neighbors button')).toHaveCount(5);
   await expect(page.getByRole('button',{name:'Leave practice through the open door'})).toBeVisible();await expect(page.locator('.practice-room .metronome-widget')).toBeVisible();
+  const metronome=await page.getByRole('button',{name:'Open metronome'}).boundingBox();expect(metronome.x).toBeLessThan(30);expect(metronome.y+metronome.height).toBeLessThanOrEqual(page.viewportSize().height-4);
   await page.getByRole('button',{name:'Open metronome'}).click();await expect(page.getByRole('dialog',{name:'Metronome'})).toBeVisible();await page.mouse.click(page.viewportSize().width-8,page.viewportSize().height/2);await expect(page.getByRole('button',{name:'Open metronome'})).toBeVisible();
   expect(await page.evaluate(()=>window.audioEngine.practiceSession.active.drums)).toBe(true);expect(await page.evaluate(()=>Object.values(window.audioEngine.active).some(Boolean))).toBe(false);
   await page.getByRole('combobox',{name:'Practice instrument'}).selectOption('panflute');await expect(page.locator('.panflute-pipes')).toBeVisible();
@@ -79,6 +80,12 @@ test('all eight instruments guide playable notes and fit the practice surface',a
     await expect.poll(()=>page.evaluate(()=>window.audioEngine.manualInstrument)).toBe(name);
     await expect(page.locator('.practice-feedback-display')).toHaveText('Ready');
     const surface=await page.locator('.practice-surface-host').boundingBox();expect(surface.height).toBeGreaterThan(90);expect(surface.height/page.viewportSize().height).toBeLessThanOrEqual(.72);
+    await expect(page.locator('.practice-control-dock')).toBeVisible();
+    const surfaceTop=surface.y;
+    for(const button of await page.locator('.practice-control-dock button').all()){
+      const bounds=await button.boundingBox();expect(bounds.y+bounds.height).toBeLessThanOrEqual(surfaceTop+1);
+      expect(bounds.x).toBeGreaterThanOrEqual(0);expect(bounds.x+bounds.width).toBeLessThanOrEqual(page.viewportSize().width);
+    }
     if(['piano','marimba','drums','guitar','ukulele','panflute'].includes(name)){
       const guided=page.locator('.practice-surface-host .note-key[aria-pressed="true"],.practice-surface-host .drum-pad[aria-pressed="true"],.practice-surface-host .playable-string[aria-pressed="true"],.practice-surface-host .panflute-pipe[aria-pressed="true"]').first();
       await expect(guided).toBeVisible();await guided.focus();await page.keyboard.press('Space');
@@ -107,6 +114,8 @@ test('all eight instruments guide playable notes and fit the practice surface',a
     await page.screenshot({path:`test-results/${testInfo.project.name}-practice-${name}.png`});
     expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBeLessThanOrEqual(1);
   }
+  await page.getByRole('button',{name:'2. Rhythm'}).click();await expect(page.getByRole('button',{name:'Start repeating'})).toBeVisible();
+  const ready=await page.getByRole('button',{name:'Start repeating'}).boundingBox();const board=await page.locator('.practice-surface-host').boundingBox();expect(ready.y+ready.height).toBeLessThanOrEqual(board.y+1);
   await page.getByRole('button',{name:'Leave practice through the open door'}).click();expect(errors).toEqual([]);
 });
 

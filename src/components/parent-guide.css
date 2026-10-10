@@ -29,7 +29,8 @@
   display: flex;
   flex-direction: column;
   width: min(720px, 100%);
-  max-height: min(780px, 100%);
+  height: min(780px, 100%);
+  max-height: 100%;
   overflow: hidden;
   border: 2px solid #39776b;
   border-radius: 8px;
@@ -52,6 +53,8 @@
 .parent-guide-progress > div { position: absolute; inset: 0 auto 0 0; width: var(--guide-progress); background: #91cfac; transition: width .22s ease; }
 .parent-guide-progress > span { position: relative; z-index: 1; }
 .parent-guide-content { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 20px 24px; scrollbar-color: #6b9e89 #e3f0e6; }
+.parent-guide-backdrop { touch-action: pan-y; }
+.parent-guide-content { flex: 1 1 0; max-height: 100%; overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; touch-action: pan-y; }
 .parent-guide-content section { max-width: 620px; margin: 0 auto; animation: parentStepIn .18s ease-out; }
 .parent-guide-content h3 { margin: 4px 0 12px; color: #245d52; font-size: 25px; line-height: 1.2; }
 .parent-guide-content p { margin: 8px 0 14px; }
