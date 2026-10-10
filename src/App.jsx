@@ -14,6 +14,7 @@ import { LandscapeGuard, requestLandscape } from './components/LandscapeGuard';
 import {loadSettings,SETTINGS_KEY} from './utils/settings';
 import {Metronome} from './components/Metronome';
 import {PracticeRoom} from './components/PracticeRoom';
+import {ParentGuide} from './components/ParentGuide';
 
 function initialInstruments(selected) {
   return Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,value])=>[name,{...value,...(selected.includes(name)?INSTRUMENT_SLOTS[selected.indexOf(name)]:{}),active:false}]));
@@ -28,6 +29,7 @@ export default function App() {
   const [mixer,setMixer] = useState(false);
   const [metronomeOpen,setMetronomeOpen] = useState(false);
   const [practice,setPractice]=useState(null);
+  const [parentGuide,setParentGuide]=useState(false);
   const [settings,setSettings] = useState(()=>loadSettings(localStorage));
   const [sceneVolume,setSceneVolume] = useState(-4);
   const mixerTap = useRef(null);
@@ -233,7 +235,8 @@ export default function App() {
     {equipped&&!practice&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={SCENES[sceneIndex].root} options={settings.instruments[equipped]} settingsOpen={mixer} onClose={()=>equip(null)}/>}
     {practice&&<PracticeRoom audio={audioRef.current} initialInstrument={practice} settings={settings} root={SCENES[sceneIndex].root} onClose={()=>setPractice(null)}/>}
 
-    {!started && <StartScreen loading={loading} error={error} onStart={start}/>}
+    {!started && <StartScreen loading={loading} error={error} onStart={start} onParentGuide={()=>setParentGuide(true)}/>}
+    {!started&&parentGuide&&<ParentGuide settings={settings} onApply={setSettings} onClose={()=>setParentGuide(false)}/>}
     <LandscapeGuard/>
   </main>;
 }
