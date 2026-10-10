@@ -245,6 +245,15 @@ export default function App() {
 
   function enterPractice(playback){if(playback)audioRef.current.setInstrumentActive(playback.name,playback.active);drag.current=null;setDragging(null);setNearChild(false);setMixer(false);setMetronomeOpen(false);setPractice(equippedRef.current??settings.selected[0]);}
 
+  function returnToMenu() {
+    window.dispatchEvent(new Event('farmjam-input-reset'));
+    audioRef.current?.dispose();audioRef.current=null;
+    drag.current=null;equippedRef.current=null;mixerTap.current=null;
+    setEquipped(null);setDragging(null);setNearChild(false);setPractice(null);
+    setMixer(false);setMetronomeOpen(false);setStarted(false);setSceneIndex(0);setError(null);
+    const next=initialInstruments(settings.selected);stateRef.current=next;setInstruments(next);
+  }
+
   return <main className={`app-shell ${equipped?'manual-open':''}`}>
     <div className="landscape-world" ref={worldRef} inert={mixer||Boolean(practice)}>
     <Scene sceneIndex={sceneIndex} audio={audioRef.current} onRotate={rotateScene} onCelestialSettled={()=>{if(started)for(const name of Object.keys(INSTRUMENTS))settle(name);}}/>
@@ -259,7 +268,7 @@ export default function App() {
       {started && <button className="mixer-button" onClick={activateMixer} aria-expanded={mixer} aria-controls="landscape-mixer" aria-label={mixer?'Close settings':'Open settings'} title={mixer?'Close settings':'Double-click or double-tap to open settings'}>{mixer?<X size={22}/>:<Menu size={22}/>}</button>}
     </div>
 
-    {started && mixer && <Mixer instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} settings={settings} onSettings={updateSettings} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
+    {started && mixer && <Mixer instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} settings={settings} onSettings={updateSettings} onMenu={returnToMenu} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
     {started&&<Metronome audio={audioRef.current} open={metronomeOpen} disabled={mixer||Boolean(practice)} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}
 
     {equipped&&!practice&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={SCENES[sceneIndex].root} options={settings.instruments[equipped]} settingsOpen={mixer} onClose={()=>equip(null)}/>}

@@ -1,10 +1,10 @@
 import React, {useEffect,useRef,useState} from 'react';
-import {X,Trees,Volume2,Music,Settings2,Sprout,Layers,Sparkles,Eye,Tag,AudioLines,Hand} from 'lucide-react';
+import {X,Trees,Volume2,Music,Settings2,Sprout,Layers,Sparkles,Eye,Tag,AudioLines,Hand,Home} from 'lucide-react';
 import {InstrumentArt} from './InstrumentArt';
 import './settings.css';
 import {useDismissible} from './useDismissible';
 
-export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onClose,settings,onSettings}) {
+export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onClose,onMenu,settings,onSettings}) {
   const [tab,setTab]=useState('Sound');
   const [selected,setSelected]=useState(settings.selected[2]);
   const modal=useRef(null);
@@ -60,6 +60,7 @@ export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onClose,se
           </div>
         </>}
       </div>
+      <footer className="settings-footer"><button onClick={onMenu} aria-label="Return to main menu"><Home size={18}/>Main menu</button></footer>
     </section>
   </div>;
 }

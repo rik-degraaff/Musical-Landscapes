@@ -32,6 +32,25 @@ async function chordCount(page,name,complexity) {
   },{name,complexity});
 }
 
+test('Settings returns to the child menu, stops all audio and permits a fresh play session',async({page})=>{
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await start(page);await equip(page,'piano');
+  const note=page.getByRole('button',{name:'Piano key C4',exact:true});await note.focus();await page.keyboard.down('Space');await page.keyboard.up('Space');
+  await page.locator('#instrument-drums').click();
+  await settings(page,'Instruments');await configure(page,'piano');await page.getByRole('radio',{name:'Simple',exact:true}).check();
+  const saved=await stored(page);const children=await page.evaluate(()=>localStorage.getItem('farmjam-children-v1'));
+  await page.evaluate(()=>window.previousEngine=window.audioEngine);
+  await page.getByRole('button',{name:'Return to main menu'}).click();
+  await expect(page.locator('.start-overlay')).toBeVisible();await expect(page.locator('.performance-panel,.settings-dialog')).toHaveCount(0);
+  await expect(page.getByRole('radio',{name:'Select Player',exact:true})).toBeChecked();
+  expect(await stored(page)).toEqual(saved);expect(await page.evaluate(()=>localStorage.getItem('farmjam-children-v1'))).toEqual(children);
+  expect(await page.evaluate(()=>({ready:window.previousEngine.ready,voices:window.previousEngine.manualVoices.size,pending:window.previousEngine.pendingEvents.size,transport:window.previousEngine.transportEvent,metronome:window.previousEngine.metronomeEvent}))).toEqual({ready:false,voices:0,pending:0,transport:null,metronome:null});
+  await page.getByRole('button',{name:'Tap to play'}).click();await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:20000});
+  expect(await page.evaluate(()=>window.audioEngine!==window.previousEngine&&window.audioEngine.ready)).toBe(true);
+  expect(await page.evaluate(()=>Object.values(window.audioEngine.active).some(Boolean))).toBe(false);
+  await page.locator('#instrument-piano').click();await expect(page.locator('#instrument-piano')).toHaveAttribute('aria-pressed','true');expect(errors).toEqual([]);
+});
+
 test('guitar buttons overlay the neck with diagrams off by default and display options persist',async({page},testInfo)=>{
   await start(page);await equip(page,'guitar');
   await expect(page.locator('.chord-diagram')).toHaveCount(0);
@@ -103,7 +122,7 @@ test('settings modal keeps sound controls, traps focus, and hides advanced infor
   await expect(page.getByRole('slider',{name:'Scenery sounds volume',exact:true})).toBeVisible();
   await page.getByRole('slider',{name:'Piano volume',exact:true}).fill('-18');await expect(page.getByRole('slider',{name:'Piano volume',exact:true})).toHaveValue('-18');
   await page.getByRole('button',{name:'Close settings',exact:true}).focus();await page.keyboard.press('Shift+Tab');
-  await expect(page.getByRole('slider',{name:'Scenery sounds volume',exact:true})).toBeFocused();
+  await expect(page.getByRole('button',{name:'Return to main menu'})).toBeFocused();
   await page.keyboard.press('Tab');await expect(page.getByRole('button',{name:'Close settings',exact:true})).toBeFocused();
   await page.screenshot({path:testInfo.outputPath('settings-sound.png')});
   await page.keyboard.press('Escape');await expect(page.locator('.settings-dialog')).toHaveCount(0);

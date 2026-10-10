@@ -33,7 +33,7 @@ export function ParentGuide({settings,onComplete,onClose}) {
     const media=window.matchMedia('(display-mode: standalone)');
     const checkInstalled=()=>setInstalled(isInstalled({standalone:navigator.standalone,displayMode:media.matches}));
     const beforeInstall=event=>{event.preventDefault();setInstallPrompt(event);};
-    const didInstall=()=>{setInstalled(true);setInstallPrompt(null);setInstallStatus('FarmJam is installed. Find its icon, then pin it using the steps below.');};
+    const didInstall=()=>{setInstalled(true);setInstallPrompt(null);setInstallStatus('FarmJam is installed. Installation does not prevent exiting; use the device restrictions below for restricted play.');};
     media.addEventListener('change',checkInstalled);
     window.addEventListener('beforeinstallprompt',beforeInstall);
     window.addEventListener('appinstalled',didInstall);
@@ -52,7 +52,7 @@ export function ParentGuide({settings,onComplete,onClose}) {
     const keydown=event=>{
       if(event.key==='Escape'){event.preventDefault();closeRef.current();return;}
       if(event.key!=='Tab'||!dialog.current)return;
-      const controls=[...dialog.current.querySelectorAll('button:not(:disabled),select,input')].filter(element=>element.getClientRects().length);
+      const controls=[...dialog.current.querySelectorAll('button:not(:disabled),select,input,a[href]')].filter(element=>element.getClientRects().length);
       const first=controls[0],last=controls.at(-1);
       if(!controls.includes(document.activeElement)){event.preventDefault();(event.shiftKey?last:first)?.focus();}
       else if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
@@ -84,7 +84,7 @@ export function ParentGuide({settings,onComplete,onClose}) {
     try {
       await installPrompt.prompt();
       const result=await installPrompt.userChoice;
-      setInstallStatus(result.outcome==='accepted'?'Installation requested. Once it finishes, find FarmJam and pin its icon.':'Installation was not selected. You can keep playing in the browser or use the steps below later.');
+      setInstallStatus(result.outcome==='accepted'?'Installation requested. Once it finishes, open FarmJam. Installation does not prevent exiting; set up device restrictions separately.':'Installation was not selected. You can keep playing in the browser or use the steps below later.');
     } catch {
       setInstallStatus('The browser could not open installation. Use its menu and the steps below instead.');
     } finally {
@@ -108,7 +108,22 @@ export function ParentGuide({settings,onComplete,onClose}) {
       <div className="parent-guide-progress" aria-label={`Step ${step+1} of ${STEPS.length}`}><div style={{'--guide-progress':`${(step+1)/STEPS.length*100}%`}}/><span>{step+1} / {STEPS.length}</span></div>
       <main className="parent-guide-content" key={step}>
         {step===0&&<section><span className="parent-guide-icon"><Users size={27}/></span><p className="parent-guide-eyebrow">A short orientation for parents and caregivers</p><h3>Make room for curiosity, not a perfect performance.</h3><p>FarmJam is a playful way to listen, explore sounds and try musical ideas together. This guide can suggest a gentle starting point and show where the app’s tools live.</p><p className="parent-guide-note"><Info size={17}/> Your child’s name, avatar and setup answers are stored only in this browser on this device when you finish. A nickname is fine. We ask for an age band, never a birthday; nothing is sent to a server.</p></section>}
-        {step===1&&<section><span className="parent-guide-icon"><Download size={27}/></span><p className="parent-guide-eyebrow">{installation.label} setup · optional</p><h3>Give FarmJam a place beside your apps.</h3><p>Installing adds an app icon and, where supported, a separate app window. Pinning keeps that icon easy to find, so you can start together without hunting through browser tabs. Installation is optional; playing in the browser still works.</p>{installed&&<p className="parent-guide-note"><Check size={17}/> FarmJam is already running as an installed app. No need to install again; use the pinning steps below.</p>}<ol className="parent-install-steps">{installation.steps.map(text=><li key={text}>{text}</li>)}</ol>{!installed&&installPrompt&&<button className="parent-apply" onClick={install} disabled={installPending}><Download size={18}/>{installPending?'Opening installation…':'Install FarmJam'}</button>}<p role="status" className="parent-install-status">{installStatus}</p><p className="parent-guide-note"><Info size={17}/> Menus vary by browser version. Use this same website address when switching browsers. Setup answers stay local to each browser or app; they may not carry over when you switch. If installation is unavailable, save a bookmark instead.</p></section>}
+        {step===1&&<section>
+          <span className="parent-guide-icon"><Download size={27}/></span><p className="parent-guide-eyebrow">{installation.label} setup · optional</p><h3>Give FarmJam a place beside your apps.</h3>
+          <h4>Install FarmJam</h4><p>Installing adds an app icon and, where supported, a separate app window. Installation does not prevent your child from leaving the app. It is optional; playing in the browser still works.</p>
+          {installed&&<p className="parent-guide-note"><Check size={17}/> FarmJam is already running as an installed app. No need to install again. You can still set up restricted play below.</p>}
+          <ol className="parent-install-steps">{installation.steps.map(text=><li key={text}>{text}</li>)}</ol>
+          {!installed&&installPrompt&&<button className="parent-apply" onClick={install} disabled={installPending}><Download size={18}/>{installPending?'Opening installation…':'Install FarmJam'}</button>}
+          <p role="status" className="parent-install-status">{installStatus}</p>
+          <p><a href={installation.installUrl} target="_blank" rel="noopener noreferrer">Official installation help for {installation.label}</a></p>
+          <p><a href={installation.installSearchUrl} target="_blank" rel="noopener noreferrer">Search Google for installation on {installation.label} and your browser</a></p>
+          <p className="parent-guide-note"><Info size={17}/> Menus vary by browser and device version. If these steps do not match, use the search link with your device model and browser version. Use this same website address when switching browsers. Setup answers stay local to each browser or app; they may not carry over when you switch. If installation is unavailable, save a bookmark instead.</p>
+          <h4>Keep your child in the app</h4><p>Use your device’s restrictions to keep your child from switching to other apps during play. FarmJam cannot enable these restrictions. A parent must set them up on the device; installing an app or using fullscreen is not a lock.</p>
+          <h4>{installation.restriction.title}</h4>
+          <ol className="parent-install-steps parent-restriction-steps">{installation.restriction.steps.map(text=><li key={text}>{text}</li>)}</ol>
+          {installation.restriction.url&&<p><a href={installation.restriction.url} target="_blank" rel="noopener noreferrer">Official help: {installation.restriction.title}</a></p>}
+          <p><a href={installation.restriction.searchUrl} target="_blank" rel="noopener noreferrer">Search Google for {installation.restriction.title}</a></p>
+        </section>}
         {step===2&&<section><span className="parent-guide-icon"><Compass size={27}/></span><p className="parent-guide-eyebrow">Your comfort level</p><h3>How familiar are you with music?</h3>{choice('parent',FAMILIARITY,'Parent or caregiver familiarity')}<p className="parent-guide-note">{parentNote}</p></section>}
         {step===3&&<section><span className="parent-guide-icon"><Users size={27}/></span><p className="parent-guide-eyebrow">A name and age band</p><h3>Who is joining the band?</h3><label className="parent-child-name" htmlFor="parent-child-name">Child name or nickname<input id="parent-child-name" name="childName" type="text" value={name} onChange={event=>setName(event.target.value)} maxLength={40} required autoComplete="off" aria-describedby="parent-child-name-note"/></label><p id="parent-child-name-note" className="parent-child-name-note">A nickname is fine. Up to 40 characters, stored only on this device.</p><p>Choose the closest age range. This is only used to suggest a starting complexity, not to judge readiness.</p>{choice('age',AGE_OPTIONS,'Child age range')}</section>}
         {step===4&&<section><p className="parent-guide-eyebrow">Their musical companion</p><h3>A look of their own.</h3><AvatarDesigner avatar={avatar} age={profile.age} name={name.trim()} onChange={setAvatar}/></section>}

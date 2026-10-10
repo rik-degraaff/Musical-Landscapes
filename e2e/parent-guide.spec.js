@@ -19,7 +19,7 @@ test('parent guide applies age-aware setup and explains features, shared play an
   await expect(page.getByText(/stored only in this browser on this device when you finish/)).toBeVisible();
   await page.getByRole('button',{name:'Next step'}).click();
   await expect(page.getByRole('heading',{name:'Give FarmJam a place beside your apps.'})).toBeVisible();
-  await expect(page.locator('.parent-install-steps')).not.toBeEmpty();
+  await expect(page.locator('.parent-install-steps').first()).not.toBeEmpty();
   await page.locator('.parent-install-steps li').last().scrollIntoViewIfNeeded();
   await page.screenshot({path:`test-results/${testInfo.project.name}-parent-guide-install.png`});
   await page.getByRole('button',{name:'Next step'}).click();
@@ -145,7 +145,7 @@ test('instrument checklist is conditional, multiple choice, and resets for a new
   expect((await savedChildren(page)).children[0].profile.instruments).toEqual([]);
 });
 
-test('installed display mode suppresses reinstallation and keeps pinning guidance',async({page})=>{
+test('installed display mode suppresses reinstallation and keeps restriction guidance',async({page})=>{
   await page.addInitScript(()=>{
     const original=window.matchMedia.bind(window);
     window.matchMedia=query=>query==='(display-mode: standalone)'?{matches:true,addEventListener(){},removeEventListener(){}}:original(query);
@@ -153,7 +153,9 @@ test('installed display mode suppresses reinstallation and keeps pinning guidanc
   await start(page);await page.getByRole('button',{name:'Add child',exact:true}).click();await page.getByRole('button',{name:'Next step'}).click();
   await expect(page.getByText(/already running as an installed app/)).toBeVisible();
   await expect(page.getByRole('button',{name:'Install FarmJam',exact:true})).toHaveCount(0);
-  await expect(page.locator('.parent-install-steps')).toContainText(/Home screen|taskbar/);
+  await expect(page.locator('.parent-restriction-steps')).not.toBeEmpty();
+  await expect(page.getByRole('heading',{name:'Keep your child in the app',exact:true})).toBeVisible();
+  await expect(page.getByText(/FarmJam cannot enable these restrictions/)).toBeVisible();
 });
 
 test('optional browser install prompt handles dismissal, failure and completion',async({page})=>{
@@ -167,8 +169,51 @@ test('optional browser install prompt handles dismissal, failure and completion'
     },outcome);
     await page.getByRole('button',{name:'Install FarmJam',exact:true}).click();
     await expect(page.getByRole('status')).toContainText(outcome==='dismissed'?'not selected':outcome==='failure'?'could not open':'Installation requested');
+    if(outcome==='accepted')await expect(page.getByRole('status')).toContainText('Installation does not prevent exiting');
     await expect(page.getByRole('button',{name:'Install FarmJam',exact:true})).toHaveCount(0);
   }
   await page.evaluate(()=>window.dispatchEvent(new Event('appinstalled')));
   await expect(page.getByText(/already running as an installed app/)).toBeVisible();
+  await expect(page.getByRole('status')).toContainText('Installation does not prevent exiting');
+  await expect(page.getByRole('status')).not.toContainText('pin its icon');
+  await expect(page.locator('.parent-restriction-steps')).not.toBeEmpty();
+});
+
+for(const [label,userAgent,title,expected] of [
+  ['iPhone or iPad','Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) Version/26.0 Mobile Safari/604.1','Guided Access on iPhone or iPad','parent-only passcode privately'],
+  ['Android','Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36','App pinning on Android','require your PIN'],
+  ['Windows','Mozilla/5.0 (Windows NT 10.0) Chrome/130.0 Safari/537.36 Edg/130.0','Restricted play on Windows','not an arbitrary Chrome-installed web app'],
+  ['macOS','Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Version/17.0 Safari/605.1.15','Restricted play on macOS','does not have iPhone/iPad Guided Access'],
+  ['Linux','Mozilla/5.0 (X11; Linux x86_64) Chrome/130.0 Safari/537.36','Restricted play on Linux','varies by distribution'],
+  ['Your device','Unrecognized device','Restricted play on your device','FarmJam cannot turn on a device lock']
+])test(`installation separates restricted play on ${label} with accessible help links`,async({page},testInfo)=>{
+  await page.addInitScript(userAgent=>{
+    Object.defineProperty(navigator,'userAgent',{get:()=>userAgent});
+    Object.defineProperty(navigator,'platform',{get:()=>''});
+  },userAgent);
+  await start(page);await page.getByRole('button',{name:'Add child',exact:true}).click();
+  if(testInfo.project.use.viewport)await page.setViewportSize(testInfo.project.use.viewport);
+  await advance(page,0,1);
+  const content=page.locator('.parent-guide-content');
+  await expect(page.getByRole('heading',{name:'Install FarmJam',exact:true})).toBeVisible();
+  await expect(content).toContainText('Installation does not prevent your child from leaving');
+  await expect(page.locator('.parent-restriction-steps')).toContainText(expected);
+  await expect(page.getByRole('heading',{name:'Keep your child in the app',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();
+  await expect(page.getByRole('link',{name:`Official installation help for ${label}`,exact:true})).toHaveAttribute('href',/^https:\/\/(support\.|learn\.)/);
+  const links=content.getByRole('link');
+  expect(await links.count()).toBe(['macOS','Linux','Your device'].includes(label)?3:4);
+  for(const link of await links.all()){
+    await expect(link).toHaveAttribute('target','_blank');
+    await expect(link).toHaveAttribute('rel','noopener noreferrer');
+  }
+  const search=page.getByRole('link',{name:`Search Google for ${title}`,exact:true});
+  await expect(search).toHaveAttribute('href',/^https:\/\/www.google.com\/search\?q=/);
+  await search.focus();await expect(search).toBeFocused();await page.keyboard.press('Tab');
+  await expect(page.getByRole('button',{name:'Cancel setup',exact:true})).toBeFocused();
+  await search.scrollIntoViewIfNeeded();
+  const layout=await content.evaluate(element=>({width:element.clientWidth,scroll:element.scrollWidth}));
+  expect(layout.scroll).toBeLessThanOrEqual(layout.width);
+  await page.screenshot({path:`test-results/${testInfo.project.name}-parent-guide-install-${label.replaceAll(' ','-')}.png`});
+  await expectNoChild(page);
 });
