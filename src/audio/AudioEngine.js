@@ -476,7 +476,7 @@ export class AudioEngine {
     this.stopPracticeRun();window.dispatchEvent(new Event('farmjam-input-reset'));this.setManualInstrument(name);
   }
 
-  startPracticeRun(phrase,accompaniment,onStep,onCycle,onBeat,onAccompaniment) {
+  startPracticeRun(phrase,accompaniment,onStep,onCycle,onBeat,onAccompaniment,{demo=false}={}) {
     if(!this.practiceSession||this.backgrounded)return null;
     this.stopPracticeRun();
     const version=this.practiceRunVersion;
@@ -512,6 +512,7 @@ export class AudioEngine {
       let eventCycle=0;
       repeat(time=>{
         const current=eventCycle++;
+        if(demo)this.playEvent(this.manualInstrument,event,time);
         draw(()=>onStep?.({...event,eventIndex,cycle:current,duration:Tone.Time(event.dur??'16n').toSeconds()}),time);
       },'1m',`${startTick}i`);
     }

@@ -23,13 +23,14 @@ test('double-tapping the girl opens the farm room with equipped instrument and r
 
 test('learn waits for each right note and feedback leads into rhythm and accompanied attempts',async({page},testInfo)=>{
   const errors=await start(page);await enter(page);await expect(page.getByRole('combobox',{name:'Practice instrument'})).toHaveValue('piano');
+  await page.getByRole('button',{name:'2. Learn',exact:true}).click();
   expect(await page.evaluate(()=>window.audioEngine.root)).toBe('A');
   await expect(page.locator('.practice-target strong')).toHaveText('A4 + C#5 + E5');
   await expect(page.locator('.practice-surface-host .note-key[aria-pressed="true"]')).toHaveCount(3);
   await key(page,'D4');await expect(page.locator('.practice-feedback-display')).toHaveText('Try again');await expect(page.locator('.practice-target strong')).toHaveText('A4 + C#5 + E5');
   await key(page,'A4');await expect(page.locator('.practice-feedback-display')).toHaveText('Good note, finish the chord');await expect(page.locator('.practice-target strong')).toHaveText('A4 + C#5 + E5');
   for(const note of ['A4','C#5','E5'])await key(page,note);
-  await expect(page.locator('.practice-feedback-display')).toHaveText('Phrase learned!');await page.getByRole('button',{name:'2. Rhythm'}).click();await expect(page.getByRole('button',{name:'2. Rhythm'})).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('.practice-feedback-display')).toHaveText('Phrase learned!');await expect(page.getByRole('button',{name:'Next practice step'})).toBeEnabled();await page.getByRole('button',{name:'Next practice step'}).click();await expect(page.getByRole('button',{name:'3. Rhythm'})).toHaveAttribute('aria-pressed','true');
   await page.evaluate(()=>{
     const engine=window.audioEngine;engine.setTempo(208);window.accompaniment=[];window.accompanimentCycles=[];window.practiceHints=[];window.loopCycles=[];window.practiceInputs=[];window.practiceClock=null;
     const input=engine.onPracticeInput;engine.onPracticeInput=value=>{window.practiceInputs.push({note:value.note,ticks:value.ticks});return input(value);};
@@ -54,7 +55,7 @@ test('learn waits for each right note and feedback leads into rhythm and accompa
   await playTimed();expect(await page.evaluate(()=>window.accompaniment.length)).toBe(0);
   await expect.poll(()=>page.evaluate(()=>window.loopCycles.length)).toBeGreaterThan(1);
   await expect.poll(()=>page.evaluate(()=>window.practiceHints.some(value=>value.cycle>=1))).toBe(true);
-  await page.getByRole('button',{name:'3. Together'}).click();await expect(page.getByRole('button',{name:'3. Together'})).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByRole('button',{name:'Next practice step'})).toBeEnabled();await page.getByRole('button',{name:'Next practice step'}).click();await expect(page.getByRole('button',{name:'4. Together'})).toHaveAttribute('aria-pressed','true');
   await playTimed();
   await expect.poll(()=>page.evaluate(()=>window.accompanimentCycles.filter(value=>value.instrument==='drums').length)).toBeGreaterThan(1);
   await expect.poll(()=>page.evaluate(()=>window.accompanimentCycles.filter(value=>value.instrument==='ukulele').length)).toBeGreaterThan(1);
@@ -67,7 +68,7 @@ test('learn waits for each right note and feedback leads into rhythm and accompa
 });
 
 test('switching instrument or phrase and leaving cancels timed guidance and background interruption pauses practice',async({page})=>{
-  await start(page);await enter(page);await page.getByRole('button',{name:'2. Rhythm'}).click();await page.getByRole('button',{name:'Start repeating',exact:true}).click();
+  await start(page);await enter(page);await page.getByRole('button',{name:'3. Rhythm'}).click();await page.getByRole('button',{name:'Start repeating',exact:true}).click();
   await page.getByRole('combobox',{name:'Practice instrument'}).selectOption('marimba');expect(await page.evaluate(()=>window.audioEngine.practiceRun)).toBe(null);expect(await page.evaluate(()=>window.audioEngine.manualInstrument)).toBe('marimba');
   await page.getByRole('combobox',{name:'Practice phrase'}).selectOption('1');await page.getByRole('button',{name:'Start repeating',exact:true}).click();
   await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
@@ -79,6 +80,7 @@ test('switching instrument or phrase and leaving cancels timed guidance and back
 
 test('all eight instruments guide playable notes and fit the practice surface',async({page},testInfo)=>{
   const errors=await start(page);await enter(page);
+  await page.getByRole('button',{name:'2. Learn',exact:true}).click();
   for(const name of ['piano','marimba','drums','guitar','ukulele','panflute','flute','melody']){
     await page.getByRole('combobox',{name:'Practice instrument'}).selectOption(name);
     await expect.poll(()=>page.evaluate(()=>window.audioEngine.manualInstrument)).toBe(name);
@@ -119,7 +121,7 @@ test('all eight instruments guide playable notes and fit the practice surface',a
     await page.screenshot({path:`test-results/${testInfo.project.name}-practice-${name}.png`});
     expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBeLessThanOrEqual(1);
   }
-  await page.getByRole('button',{name:'2. Rhythm'}).click();await expect(page.getByRole('button',{name:'Start repeating'})).toBeVisible();
+  await page.getByRole('button',{name:'3. Rhythm'}).click();await expect(page.getByRole('button',{name:'Start repeating'})).toBeVisible();
   const ready=await page.getByRole('button',{name:'Start repeating'}).boundingBox();const board=await page.locator('.practice-surface-host').boundingBox();expect(ready.y+ready.height).toBeLessThanOrEqual(board.y+1);
   await page.getByRole('button',{name:'Leave practice through the open door'}).click();expect(errors).toEqual([]);
 });
@@ -132,4 +134,69 @@ test('outside taps interrupt the entry gesture and keyboard entry contains focus
   await expect(page.getByRole('combobox',{name:'Practice instrument'})).toBeFocused();await page.keyboard.press('Shift+Tab');
   expect(await page.evaluate(()=>document.activeElement.closest('.practice-room')!==null)).toBe(true);
   await page.keyboard.press('Escape');await expect(page.locator('.practice-room')).toHaveCount(0);await expect(page.locator('#young-musician')).toBeFocused();
+});
+
+test('Listen repeats the phrase with receding orange duration and unlocks Next after a full loop',async({page},testInfo)=>{
+  const errors=await start(page);await enter(page);
+  await expect(page.getByRole('button',{name:'1. Listen',exact:true})).toHaveAttribute('aria-pressed','true');
+  const next=page.getByRole('button',{name:'Next practice step'});await expect(next).toBeDisabled();
+  await page.evaluate(()=>{
+    const engine=window.audioEngine;engine.setTempo(160);window.demoEvents=[];
+    const play=engine.playEvent;engine.playEvent=function(name,event,time){window.demoEvents.push({name,notes:event.notes??[event.note],time});return play.call(this,name,event,time);};
+  });
+  await page.getByRole('button',{name:'Start repeating'}).click();
+  await expect(page.locator('.practice-surface-host[data-timed-cue="true"]')).toBeVisible();
+  const meter=page.getByRole('progressbar',{name:'Note hold duration'});
+  await expect.poll(()=>meter.getAttribute('aria-valuenow')).not.toBe('100');
+  const first=Number(await meter.getAttribute('aria-valuenow'));
+  await expect.poll(async()=>Number(await meter.getAttribute('aria-valuenow'))).toBeLessThan(first);
+  await page.screenshot({path:testInfo.outputPath('listen-duration.png')});
+  await expect(next).toBeEnabled({timeout:10000});
+  await expect.poll(()=>page.evaluate(()=>window.demoEvents.length)).toBeGreaterThan(1);
+  expect(await page.evaluate(()=>window.demoEvents.every(event=>event.name==='piano'))).toBe(true);
+  await next.click();await expect(page.getByRole('button',{name:'2. Learn',exact:true})).toHaveAttribute('aria-pressed','true');
+  expect(await page.evaluate(()=>window.audioEngine.practiceRun)).toBe(null);await expect(next).toBeDisabled();expect(errors).toEqual([]);
+});
+
+test('Learn accepts every action after the first and reinitializes on restart and phrase changes',async({page})=>{
+  const errors=await start(page);await enter(page);await page.getByRole('button',{name:'2. Learn',exact:true}).click();
+  const index=await page.evaluate(async()=>{
+    const {equippedProfile}=await import('/src/utils/difficulty.js');
+    return equippedProfile('piano',window.audioEngine.root,{complexity:1.5}).phrases.findIndex(phrase=>phrase.events.length>=3);
+  });
+  expect(index).toBeGreaterThanOrEqual(0);await page.getByRole('combobox',{name:'Practice phrase'}).selectOption(String(index));
+  const next=page.getByRole('button',{name:'Next practice step'});await expect(next).toBeDisabled();
+  for(let action=0;action<16;action++){
+    const target=await page.locator('.practice-target strong').innerText();if(target==='Finished')break;
+    for(const note of target.split(' + '))await key(page,note);
+    await expect(page.locator('.practice-feedback-display')).toHaveText(/Correct!|Phrase learned!/);
+  }
+  await expect(page.locator('.practice-target strong')).toHaveText('Finished');await expect(next).toBeEnabled();
+  await page.getByRole('button',{name:'Restart practice'}).click();await expect(next).toBeDisabled();
+  const first=(await page.locator('.practice-target strong').innerText()).split(' + ');for(const note of first)await key(page,note);
+  await expect(page.locator('.practice-feedback-display')).toHaveText('Correct!');
+  await page.getByRole('combobox',{name:'Practice phrase'}).selectOption('0');await expect(page.locator('.practice-feedback-display')).toHaveText('Ready');expect(errors).toEqual([]);
+});
+
+test('double-tapping the held instrument enters practice and preserves its pre-tap playback state',async({page},testInfo)=>{
+  const errors=await start(page);
+  const instrument=page.locator('#instrument-ukulele');await instrument.focus();await page.keyboard.press('e');
+  await expect(instrument).toHaveClass(/equipped-instrument/);
+  await instrument.click();await expect(page.locator('.practice-room')).toHaveCount(0);
+  await expect(instrument).toHaveAttribute('aria-pressed','true');
+  await page.waitForTimeout(500);
+  const bounds=await instrument.boundingBox();const point={x:bounds.x+bounds.width/2,y:bounds.y+bounds.height/2};
+  if(testInfo.project.use.hasTouch){
+    const client=await page.context().newCDPSession(page);
+    for(let tap=0;tap<2;tap++){
+      await client.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...point,id:1}]});
+      await client.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});if(tap===0)await page.waitForTimeout(120);
+    }
+    await client.detach();
+  }else await page.mouse.dblclick(point.x,point.y);
+  await expect(page.getByRole('dialog',{name:'Farm practice room'})).toBeVisible();
+  await expect(page.getByRole('combobox',{name:'Practice instrument'})).toHaveValue('ukulele');
+  expect(await page.evaluate(()=>window.audioEngine.practiceSession.active.ukulele)).toBe(true);
+  await page.getByRole('button',{name:'Leave practice through the open door'}).click();
+  await expect(instrument).toHaveAttribute('aria-pressed','true');expect(errors).toEqual([]);
 });

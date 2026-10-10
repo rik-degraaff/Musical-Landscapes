@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {INSTRUMENTS} from '../src/utils/music.js';
+import {INSTRUMENTS,patterns,transposeEvents} from '../src/utils/music.js';
 import {equippedProfile} from '../src/utils/difficulty.js';
 import {noteMidi,trumpetInput} from '../src/utils/autoplay.js';
 import {fluteInput} from '../src/utils/wind.js';
@@ -49,9 +49,16 @@ test('every equipped phrase is playable with its controls and chord pool in ever
       if(name==='piano'&&complexity<=.5)assert.ok((event.notes?.length??1)<=2,`${root} Simple piano chord exceeds two notes`);
       if(['guitar','ukulele'].includes(name)){
         const chord=profile.chords.find(value=>value.name===event.chord);assert.ok(chord,`${name} ${root} missing ${event.chord}`);
+        const source=transposeEvents(patterns[name][phrase.tierSource].events,root,{preserveUnisons:true})[phrase.events.indexOf(event)];
+        assert.deepEqual((event.notes??[event.note]).map(note=>noteMidi(note)%12),(source.notes??[source.note]).map(note=>noteMidi(note)%12));
         for(const note of event.notes??[event.note])assert.ok(chord.tones.includes(noteMidi(note)%12));
         assert.equal(event.fingering.length,(event.notes??[event.note]).length);
-        event.fingering.forEach((input,index)=>assert.equal(input.note,(event.notes??[event.note])[index]));
+        assert.equal(new Set(event.fingering.map(input=>input.string)).size,event.fingering.length);
+        event.fingering.forEach((input,index)=>{
+          assert.equal(input.note,(event.notes??[event.note])[index]);
+          assert.equal(input.note,chord.notes[input.string]);
+          assert.equal(input.fret,chord.frets[input.string]);
+        });
       }
       else if(name==='drums')assert.ok(profile.hits.includes(event.note));
       else if(name==='melody')assert.ok(trumpetInput(event.note).partial<profile.registers);

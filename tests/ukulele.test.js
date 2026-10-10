@@ -29,13 +29,15 @@ test('ukulele events retain every transposed note occurrence on a distinct playa
     library.phrases.forEach((phrase,phraseIndex)=>phrase.events.forEach((event,eventIndex)=>{
       const source=transposeEvents(patterns.ukulele[phraseIndex].events,root,{preserveUnisons:true})[eventIndex];
       const notes=event.notes??[event.note];
-      assert.deepEqual(notes,source.notes??[source.note]);
+      assert.deepEqual(notes.map(note=>noteMidi(note)%12),(source.notes??[source.note]).map(note=>noteMidi(note)%12));
       const chord=library.chords.find(value=>value.name===event.chord);
       assert.ok(notes.every(note=>chord.tones.includes(noteMidi(note)%12)));
       assert.equal(event.fingering.length,notes.length);
       assert.equal(new Set(event.fingering.map(input=>input.string)).size,notes.length);
       event.fingering.forEach((input,index)=>{
         assert.equal(input.note,notes[index]);
+        assert.equal(input.note,chord.notes[input.string]);
+        assert.equal(input.fret,chord.frets[input.string]);
         assert.ok(input.fret>=0&&input.fret<=UKULELE_FRETS);
         assert.equal(noteMidi(input.note),noteMidi(UKULELE_STRINGS[input.string])+input.fret);
       });

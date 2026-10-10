@@ -1,4 +1,4 @@
-export const PRACTICE_STAGES=['Learn','Rhythm','Together'];
+export const PRACTICE_STAGES=['Listen','Learn','Rhythm','Together'];
 export const PRACTICE_TIMING_TOLERANCE=.5;
 
 export function beatOffset(time) {

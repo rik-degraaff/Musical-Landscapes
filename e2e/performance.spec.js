@@ -573,7 +573,9 @@ test('equipped autoplay uses compatible selected phrases and manual input takes 
     if(['piano','flute','melody'].includes(name))expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBeGreaterThan(0);
     if(name==='melody')await expect(page.locator('.lip-indicator.is-demo')).toHaveCount(0);
     await page.keyboard.up('Space');
+    await page.waitForTimeout(500);
     await toggle.click();await expect(toggle).toHaveAttribute('aria-pressed','true');
+    await page.waitForTimeout(500);
     await toggle.click();await expect(toggle).toHaveAttribute('aria-pressed','false');
     await page.getByRole('button',{name:'Put instrument down'}).click();
     expect(await page.evaluate(()=>window.audioEngine.manualAutoplay)).toBe(false);

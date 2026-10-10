@@ -1,10 +1,15 @@
-export const PARENT_GUIDE_KEY='farmjam-parent-guide-v1';
+import {INSTRUMENTS} from './music.js';
 
-export function recommendParentSettings(profile,currentSettings) {
+export const PARENT_GUIDE_KEY='farmjam-parent-guide-v1';
+export const GUIDE_INSTRUMENTS=Object.entries(INSTRUMENTS).map(([id,{label}])=>[id,label]);
+export const GUIDE_LEVELS={Simple:.35,Standard:1,Advanced:1.5};
+
+export function recommendParentSettings(profile,currentSettings,selectedLevel) {
   const veryYoung=profile.age==='under3'||profile.age==='3to4';
-  const bothNew=profile.music==='new'&&profile.instrument==='new';
-  const level=veryYoung||profile.age==='5to7'&&bothNew?'Simple':'Standard';
-  const complexity=level==='Simple'?.35:1;
+  const starting=profile.music==='new'&&!normalizeInstruments(profile.instruments).length;
+  const level=veryYoung||profile.age==='5to7'&&starting?'Simple':'Standard';
+  const appliedLevel=Object.hasOwn(GUIDE_LEVELS,selectedLevel)?selectedLevel:level;
+  const complexity=GUIDE_LEVELS[appliedLevel];
   const instruments=Object.fromEntries(Object.entries(currentSettings.instruments).map(([name,options])=>[name,{
     ...options,
     complexity,
@@ -19,12 +24,25 @@ export function recommendParentSettings(profile,currentSettings) {
     :profile.parent==='new'
       ?'Standard offers a little more variety while keeping every part playable with the controls already on screen. We’ll use everyday language, and note names are switched on to help you explore together.'
       :'Standard adds a little more rhythmic and melodic variety without adding controls. Note names stay visible so you can talk about the patterns together.';
-  return {level,explanation,settings:{...currentSettings,instruments}};
+  return {level,appliedLevel,explanation,settings:{...currentSettings,instruments}};
+}
+
+function normalizeInstruments(value) {
+  return Array.isArray(value)?[...new Set(value.filter(id=>typeof id==='string'&&Object.hasOwn(INSTRUMENTS,id)))]:[];
+}
+
+function normalizeProfile(saved={}) {
+  return {
+    age:['under3','3to4','5to7','8plus'].includes(saved?.age)?saved.age:'5to7',
+    music:['new','some','familiar'].includes(saved?.music)?saved.music:'new',
+    instruments:normalizeInstruments(saved?.instruments),
+    parent:['new','some','confident'].includes(saved?.parent)?saved.parent:'some'
+  };
 }
 
 export function saveParentProfile(storage,profile) {
   try {
-    storage.setItem(PARENT_GUIDE_KEY,JSON.stringify({age:profile.age,music:profile.music,instrument:profile.instrument,parent:profile.parent}));
+    storage.setItem(PARENT_GUIDE_KEY,JSON.stringify(normalizeProfile(profile)));
     return true;
   } catch {
     return false;
@@ -32,17 +50,10 @@ export function saveParentProfile(storage,profile) {
 }
 
 export function loadParentProfile(storage) {
-  const fallback={age:'5to7',music:'new',instrument:'new',parent:'some'};
   try {
     const saved=JSON.parse(storage.getItem(PARENT_GUIDE_KEY)??'null');
-    if(!saved)return fallback;
-    return {
-      age:['under3','3to4','5to7','8plus'].includes(saved.age)?saved.age:fallback.age,
-      music:['new','some','familiar'].includes(saved.music)?saved.music:fallback.music,
-      instrument:['new','some','familiar'].includes(saved.instrument)?saved.instrument:fallback.instrument,
-      parent:['new','some','confident'].includes(saved.parent)?saved.parent:fallback.parent
-    };
+    return normalizeProfile(saved);
   } catch {
-    return fallback;
+    return normalizeProfile();
   }
 }

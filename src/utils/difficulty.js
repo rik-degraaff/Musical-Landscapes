@@ -1,5 +1,5 @@
 import {patterns,transposeEvents} from './music.js';
-import {STRING_INSTRUMENTS} from './guitar.js';
+import {STRING_INSTRUMENTS,voiceStringEvent} from './guitar.js';
 import {noteMidi,trumpetInput} from './autoplay.js';
 import {fluteInput} from './wind.js';
 import {midiNote,PANFLUTE_NOTES} from './performance.js';
@@ -64,7 +64,7 @@ function chordForEvent(event,available,allChords) {
   const notes=event.notes??[event.note];
   const pitches=notes.map(note=>noteMidi(note)%12);
   const original=allChords.find(chord=>chord.name===event.chord);
-  const candidates=available.filter(chord=>pitches.every(pitch=>chord.tones.includes(pitch)));
+  const candidates=available.filter(chord=>pitches.every(pitch=>chord.tones.includes(pitch))&&voiceStringEvent(event,chord));
   candidates.sort((first,second)=>{
     const firstMatch=first===original?1:0,secondMatch=second===original?1:0;
     if(firstMatch!==secondMatch)return secondMatch-firstMatch;
@@ -77,7 +77,7 @@ function chordForEvent(event,available,allChords) {
 function fitStringPhrase(phrase,chords,allChords) {
   const events=phrase.events.map(event=>{
     const chord=chordForEvent(event,chords,allChords);
-    return chord?{...event,chord:chord.name}:null;
+    return chord?voiceStringEvent(event,chord):null;
   });
   return events.some(event=>!event)?null:{...phrase,events};
 }

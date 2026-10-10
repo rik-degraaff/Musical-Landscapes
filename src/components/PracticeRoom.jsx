@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Music,Footprints,Timer,Users,Play,Pause,RotateCcw,Check,CircleAlert,DoorOpen} from 'lucide-react';
+import {Music,Headphones,Footprints,Timer,Users,Play,Pause,RotateCcw,Check,CircleAlert,DoorOpen,ArrowRight} from 'lucide-react';
 import {INSTRUMENTS} from '../utils/music';
 import {equippedProfile} from '../utils/difficulty';
 import {noteMidi} from '../utils/autoplay';
@@ -40,7 +40,7 @@ export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
   const phrase=profile.phrases[Math.min(phraseIndex,profile.phrases.length-1)];
   const steps=learningSteps(phrase);
   state.current={name,stage,step,steps,phrase,running,complete};
-  const target=stage===0&&!complete?steps[step]?.cue:cue;
+  const target=stage===1&&!complete?steps[step]?.cue:cue;
   const matchesNote=(instrument,actual,expected)=>['guitar','ukulele'].includes(instrument)?noteMidi(actual)%12===noteMidi(expected)%12:actual===expected;
 
   function cancel() {
@@ -60,6 +60,7 @@ export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
   }
   function advanceCycle(nextCycle,sourcePhrase) {
     if(nextCycle<=cycle.current)return;
+    if(state.current.stage===0){state.current.complete=true;setComplete(true);cycle.current=nextCycle;return;}
     const previous=attemptSummary(attempt.current);
     totals.current.hits+=previous.hits;totals.current.total+=previous.total;
     cycle.current=nextCycle;attempt.current=createTimingAttempt(sourcePhrase);setResults([]);updateSummary();
@@ -74,8 +75,9 @@ export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
   useEffect(()=>{
     audio.onPracticeInput=({note,ticks})=>{
       const current=state.current;
-      if(current.complete)return;
-      if(current.stage===0){
+      if(current.complete&&current.stage===1)return;
+      if(current.stage===0)return;
+      if(current.stage===1){
         const expected=current.steps[current.step];if(!expected)return;
         if(learned.current.step!==current.step)learned.current={step:current.step,remaining:[...expected.notes]};
         const matched=learned.current.remaining.findIndex(value=>matchesNote(current.name,note,value));
@@ -83,7 +85,7 @@ export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
         learned.current.remaining.splice(matched,1);
         if(learned.current.remaining.length){setFeedback({tone:'correct',text:'Good note, finish the chord'});return;}
         const next=current.step+1;current.step=next;setStep(next);setFeedback({tone:'correct',text:'Correct!'});
-        learned.current={step:next,remaining:[]};
+        learned.current={step:-1,remaining:[]};
         if(next===current.steps.length){current.complete=true;setComplete(true);setFeedback({tone:'correct',text:'Phrase learned!'});}
       }else if(current.running&&session.current){
         const elapsedTicks=ticks-session.current.startTick;
@@ -95,6 +97,7 @@ export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
         setFeedback({tone:result.correct?'correct':'wrong',text:result.correct?'On time!':'Try the highlighted note'});
         setResults(attempt.current.map(value=>value.missed?'missed':value.remaining.length===0?'correct':'pending'));
         updateSummary();
+        if(attempt.current.every(value=>value.remaining.length===0)){current.complete=true;setComplete(true);setFeedback({tone:'correct',text:'Phrase complete!'});}
       }
     };
     audio.onPracticeInterrupt=()=>{cancel();setFeedback({tone:'pending',text:'Paused — restart when ready'});};
@@ -102,6 +105,20 @@ export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
     window.addEventListener('blur',blur);
     return ()=>{audio.onPracticeInput=null;audio.onPracticeInterrupt=null;window.removeEventListener('blur',blur);};
   },[audio]);
+  useEffect(()=>{
+    const host=room.current?.querySelector('.practice-surface-host');
+    if(!host)return;
+    if(!cue||stage===1){host.style.setProperty('--cue-remaining','0%');return;}
+    const started=performance.now();
+    let animation;
+    const tick=()=>{
+      const remaining=Math.max(0,1-(performance.now()-started)/Math.max(1,cue.duration*1000));
+      host.style.setProperty('--cue-remaining',`${remaining*100}%`);
+      host.querySelector('.practice-duration-track')?.setAttribute('aria-valuenow',String(Math.round(remaining*100)));
+      if(remaining>0)animation=requestAnimationFrame(tick);
+    };
+    tick();return ()=>cancelAnimationFrame(animation);
+  },[cue,stage]);
   useEffect(()=>{
     const escape=event=>{
       if(event.key==='Escape'){event.preventDefault();onClose();}
@@ -120,15 +137,15 @@ export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
     totals.current.hits+=current.hits;totals.current.total+=current.total;
     const hits=totals.current.hits,total=totals.current.total;
     cancel();state.current.running=false;setRunning(false);setCountingIn(false);
-    setSummary(total?{hits,total,percent:Math.round(hits/total*100)}:null);setFeedback({tone:'pending',text:'Stopped'});
+    setSummary(stage===0?null:total?{hits,total,percent:Math.round(hits/total*100)}:null);setFeedback({tone:'pending',text:'Stopped'});
   }
   function startAttempt() {
     reset();attempt.current=createTimingAttempt(phrase);cycle.current=0;totals.current={hits:0,total:0};setSummary(null);setRunning(true);state.current.running=true;setCountingIn(true);setFeedback({tone:'pending',text:'Count in'});
-    session.current=audio.startPracticeRun(phrase,stage===2,event=>{
+    session.current=audio.startPracticeRun(phrase,stage===3,event=>{
       window.clearTimeout(cueTimer.current);
-      setCue(event);setFeedback({tone:'pending',text:'Your turn'});
+      setCue(event);setFeedback({tone:'pending',text:stage===0?'Listening':state.current.complete?'Phrase complete!':'Your turn'});
       setCountingIn(false);cueTimer.current=window.setTimeout(()=>setCue(null),Math.max(30,event.duration*1000));
-    },nextCycle=>advanceCycle(nextCycle,phrase),(value,_cycle,isCountIn)=>{setBeat(value);setCountingIn(isCountIn);},(instrument,phraseNumber)=>setCompanions(current=>({...current,[instrument]:phraseNumber})));
+    },nextCycle=>advanceCycle(nextCycle,phrase),(value,_cycle,isCountIn)=>{setBeat(value);setCountingIn(isCountIn);},(instrument,phraseNumber)=>setCompanions(current=>({...current,[instrument]:phraseNumber})),{demo:stage===0});
     if(!session.current){setRunning(false);state.current.running=false;setFeedback({tone:'pending',text:'Tap Start after audio resumes'});return;}
     const tick=()=>{
       if(!state.current.running)return;
@@ -137,16 +154,16 @@ export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
         const nextCycle=Math.floor(elapsedTicks/session.current.barTicks);
         advanceCycle(nextCycle,phrase);
         const beatInBar=(elapsedTicks-nextCycle*session.current.barTicks)/session.current.beatTicks;
-        expireSteps(attempt.current,beatInBar,PRACTICE_TIMING_TOLERANCE);
+        if(stage>1)expireSteps(attempt.current,beatInBar,PRACTICE_TIMING_TOLERANCE);
       }
       setResults(attempt.current.map(value=>value.missed?'missed':value.remaining.length===0?'correct':'pending'));
       frame.current=requestAnimationFrame(tick);
     };
     frame.current=requestAnimationFrame(tick);
   }
-  const stageIcons=[Footprints,Timer,Users];
+  const stageIcons=[Headphones,Footprints,Timer,Users];
   const targetNotes=target?.notes??(target?.note?[target.note]:[]);
-  const progress=stage===0?Math.min(step,steps.length):attempt.current.reduce((sum,value)=>sum+value.hits,0);
+  const progress=stage===1?Math.min(step,steps.length):stage===0?(complete?steps.length:0):attempt.current.reduce((sum,value)=>sum+value.hits,0);
   return <section ref={room} className="practice-room" role="dialog" aria-modal="true" aria-label="Farm practice room">
     <PracticeRoomArt/>
     <header className="practice-topbar"><h1 className="practice-room-title"><Music size={22}/>Farm Practice</h1>
@@ -161,13 +178,13 @@ export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
     </header>
     <nav className="practice-stages" aria-label="Practice stages">{PRACTICE_STAGES.map((label,index)=>{const Icon=stageIcons[index];return <button key={label} aria-pressed={stage===index} onClick={()=>{cancel();setStage(index);}}><Icon size={18}/>{index+1}. {label}</button>;})}</nav>
     <main className="practice-main">
-      <div className="practice-guide"><div className="practice-target"><strong>{complete?'Finished':countingIn?`Count ${beat+1}`:targetNotes.join(' + ')||'Listen'}</strong></div>
+      <div className="practice-guide"><div className="practice-target"><strong>{stage===1&&complete?'Finished':countingIn?`Count ${beat+1}`:targetNotes.join(' + ')||'Ready'}</strong></div>
         <div key={`${feedback.tone}:${feedback.text}`} className="practice-feedback-display" data-tone={feedback.tone} role="status" aria-live="polite">{feedback.tone==='correct'?<Check size={28}/>:feedback.tone==='wrong'?<CircleAlert size={28}/>:<Music size={24}/>}<strong>{feedback.text}</strong></div>
         <div className="practice-tools"><div className="practice-progress"><progress aria-label="Practice progress" max={steps.length} value={progress}/>{summary&&<span className="practice-score">{summary.hits}/{summary.total} · {summary.percent}%</span>}</div><div className="practice-beat-strip" aria-label="Beat">{[0,1,2,3].map(value=><i key={value} className={beat===value?'is-current':''}/>)}</div></div>
       </div>
-      <div className="practice-control-dock">{stage>0&&<button className="practice-run-button" aria-label={running?'Stop practice':'Start repeating'} onClick={()=>running?stopAttempt():startAttempt()}>{running?<Pause size={18}/>:<Play size={18}/>}<span>{running?'Stop':summary?'Repeat':'Ready'}</span></button>}<button className="practice-restart-button" aria-label="Restart practice" title="Restart practice" onClick={reset}><RotateCcw size={17}/><span>Restart</span></button></div>
-      <div className="practice-phrase-track" aria-label="Phrase actions">{(stage===0?steps:phrase.events).map((value,index)=><span key={index} className={`${stage===0&&index<step?'is-complete':''} ${(stage===0&&index===step&&!complete)||(stage>0&&cue?.eventIndex===index)?'is-current':''} ${stage>0&&results[index]==='correct'?'is-complete':''} ${results[index]==='missed'?'is-missed':''}`}>{stage===0?value.notes.join('+'):(value.notes??[value.note]).join('+')}</span>)}</div>
-      <div className="practice-surface-host"><InstrumentSurface key={`${name}:${phraseIndex}:${stage}`} name={name} audio={audio} root={root} options={options} profile={profile} cue={target} practice/></div>
+      <div className="practice-control-dock">{stage!==1&&<button className="practice-run-button" aria-label={running?'Stop practice':'Start repeating'} onClick={()=>running?stopAttempt():startAttempt()}>{running?<Pause size={18}/>:<Play size={18}/>}<span>{running?'Stop':summary?'Repeat':'Ready'}</span></button>}<button className="practice-restart-button" aria-label="Restart practice" title="Restart practice" onClick={reset}><RotateCcw size={17}/><span>Restart</span></button><button className="practice-next-button" aria-label={stage===3?'Finish practice':'Next practice step'} disabled={!complete} onClick={()=>{if(stage===3){onClose();return;}cancel();setStage(stage+1);}}><span>{stage===3?'Finish':'Next'}</span><ArrowRight size={17}/></button></div>
+      <div className="practice-phrase-track" aria-label="Phrase actions">{(stage===1?steps:phrase.events).map((value,index)=><span key={index} className={`${stage===1&&index<step?'is-complete':''} ${(stage===1&&index===step&&!complete)||(stage!==1&&cue?.eventIndex===index)?'is-current':''} ${stage>1&&results[index]==='correct'?'is-complete':''} ${results[index]==='missed'?'is-missed':''}`}>{stage===1?value.notes.join('+'):(value.notes??[value.note]).join('+')}</span>)}</div>
+      <div className="practice-surface-host" data-timed-cue={stage!==1&&Boolean(cue)}><div className="practice-duration-track" role="progressbar" aria-label="Note hold duration" aria-valuemin={0} aria-valuemax={100} aria-valuenow={cue?100:0}><i/></div><InstrumentSurface key={`${name}:${phraseIndex}:${stage}`} name={name} audio={audio} root={root} options={options} profile={profile} cue={target} practice/></div>
     </main>
   </section>;
 }

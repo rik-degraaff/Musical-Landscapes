@@ -33,13 +33,16 @@ test('transposition preserves every pitched event pitch class and leaves percuss
 });
 
 test('every guitar and ukulele phrase fingering matches its fixed-tuning string and fret',()=>{
-  for(const [name,instrument] of Object.entries(STRING_INSTRUMENTS))for(const root of ROOTS){
-    const library=instrument.library[root];
+  for(const [name,instrument] of Object.entries(STRING_INSTRUMENTS))for(const [root,library] of Object.entries(instrument.library)){
     for(const phrase of library.phrases)for(const event of phrase.events){
       const notes=event.notes??[event.note];
+      const chord=library.chords.find(value=>value.name===event.chord);
       assert.equal(event.fingering.length,notes.length);
+      assert.equal(new Set(event.fingering.map(input=>input.string)).size,notes.length);
       event.fingering.forEach((input,index)=>{
         assert.equal(input.note,notes[index]);
+        assert.equal(input.note,chord.notes[input.string]);
+        assert.equal(input.fret,chord.frets[input.string]);
         assert.ok(input.fret>=0&&input.fret<=instrument.frets,`${name} ${root} fret ${input.fret}`);
         assert.equal(noteMidi(input.note),noteMidi(instrument.tuning[input.string])+input.fret);
       });

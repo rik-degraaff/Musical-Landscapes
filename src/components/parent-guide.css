@@ -16,7 +16,7 @@
 .parent-guide-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 130;
+  z-index: 210;
   display: grid;
   place-items: center;
   padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
@@ -72,6 +72,13 @@
 .parent-recommendation strong { color: #245d45; }
 .parent-recommendation span { color: #405f52; }
 .parent-apply { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 8px 14px; border: 1px solid #1d664d; border-radius: 4px; background: #21785e; color: white; font-weight: 900; }
+.parent-apply:disabled { cursor: wait; opacity: .7; }
+.parent-install-steps { display: grid; gap: 12px; padding-left: 24px; }
+.parent-install-steps li { padding-left: 4px; overflow-wrap: anywhere; }
+.parent-install-status:empty,.parent-apply-status:empty { display: none; }
+.parent-instrument-choices > div { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.parent-instrument-choices p { margin-top: 8px; font-size: 13px; }
+.parent-guide-content h3:focus { outline: none; }
 .parent-feature-list,.parent-care-list { display: grid; gap: 10px; margin: 16px 0; padding: 0; list-style: none; }
 .parent-feature-list li { display: grid; grid-template-columns: 24px minmax(0,1fr); gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #d1e4d5; }
 .parent-feature-list li > svg { width: 20px; height: 20px; color: #28775e; }

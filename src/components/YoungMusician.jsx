@@ -23,8 +23,8 @@ export function YoungMusician({ equipped, accepting,onPractice }) {
   const practiceAction=useRef(onPractice);practiceAction.current=onPractice;
   useEffect(()=>{
     const pointers=new Map();
-    const inside=event=>{const node=element.current;if(!node||node.closest('[inert]'))return false;const box=node.getBoundingClientRect();return event.clientX>=box.left&&event.clientX<=box.right&&event.clientY>=box.top&&event.clientY<=box.bottom;};
-    const down=event=>{if(event.button===0&&inside(event)&&!event.target.closest('.instrument'))pointers.set(event.pointerId,{x:event.clientX,y:event.clientY,time:performance.now()});else previous.current=null;};
+    const inside=event=>{const node=element.current;if(!node||node.closest('[inert]'))return false;const instrument=event.target.closest('.instrument');if(instrument)return instrument.classList.contains('equipped-instrument');const box=node.getBoundingClientRect();return event.clientX>=box.left&&event.clientX<=box.right&&event.clientY>=box.top&&event.clientY<=box.bottom;};
+    const down=event=>{if(event.button===0&&inside(event)){const instrument=event.target.closest('.equipped-instrument');pointers.set(event.pointerId,{x:event.clientX,y:event.clientY,time:performance.now(),playback:instrument?{name:instrument.id.slice(11),active:instrument.getAttribute('aria-pressed')==='true'}:null});}else previous.current=null;};
     const up=event=>{
       const start=pointers.get(event.pointerId);pointers.delete(event.pointerId);if(!start)return;
       const now=performance.now();
@@ -32,8 +32,7 @@ export function YoungMusician({ equipped, accepting,onPractice }) {
       if(previous.current&&now-previous.current.time<450&&Math.hypot(event.clientX-previous.current.x,event.clientY-previous.current.y)<24){
         const playback=previous.current.playback;previous.current=null;event.preventDefault();event.stopImmediatePropagation();practiceAction.current?.(playback);
       }else{
-        const instrument=event.target.closest('.instrument');
-        previous.current={time:now,x:event.clientX,y:event.clientY,playback:instrument?{name:instrument.id.slice(11),active:instrument.getAttribute('aria-pressed')==='true'}:null};
+        previous.current={time:now,x:event.clientX,y:event.clientY,playback:start.playback};
       }
     };
     const cancel=event=>{pointers.delete(event.pointerId);previous.current=null;};

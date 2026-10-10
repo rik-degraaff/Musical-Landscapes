@@ -119,6 +119,10 @@
 .practice-control-dock button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 76px; min-height: 34px; padding: 5px 11px; border: 1px solid #397762; border-radius: 4px; background: #fafff7; color: #245d4c; font-weight: 800; }
 .practice-control-dock .practice-run-button { border-color: #195d4a; background: #21785e; color: #fff; }
 .practice-control-dock button svg { width: 17px; height: 17px; }
+.practice-duration-track { flex: none; width: 100%; height: 5px; background: #c5ddce; overflow: hidden; }
+.practice-duration-track i { display: block; width: var(--cue-remaining, 0%); height: 100%; background: #ff7900; }
+.practice-surface-host[data-timed-cue="true"] :is(button[aria-pressed="true"], .trumpet-embouchure.is-blowing, .flute-headjoint.is-demo)::after { content: ''; position: absolute; left: 0; bottom: 0; width: var(--cue-remaining, 0%); height: 5px; background: #ff7900; pointer-events: none; z-index: 4; }
+.practice-next-button:disabled { opacity: .45; }
 
 @media (hover: hover) {
   .practice-actions button:not(:disabled):not([aria-disabled="true"]):hover { border-color: #a44132; box-shadow: inset 0 0 0 1px #a44132; }
