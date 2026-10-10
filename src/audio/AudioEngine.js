@@ -293,7 +293,7 @@ export class AudioEngine {
     const name = this.manualInstrument;
     if (!this.ready || !name) return;
     const existing=this.manualVoices.get(token);
-    if(this.practiceSession&&(!['flute','melody','panflute'].includes(name)||existing?.note!==note))this.onPracticeInput?.({name,note,token,time:Tone.immediate()});
+    if(this.practiceSession&&(!['flute','melody','panflute'].includes(name)||existing?.note!==note))this.onPracticeInput?.({name,note,token,time:Tone.immediate(),ticks:Tone.Transport.ticks});
     Tone.start().catch(console.error);
     if (['flute','melody','panflute'].includes(name)) {
       const current=this.manualVoices.get(token);
@@ -476,7 +476,7 @@ export class AudioEngine {
     this.stopPracticeRun();window.dispatchEvent(new Event('farmjam-input-reset'));this.setManualInstrument(name);
   }
 
-  startPracticeRun(phrase,accompaniment,onStep,onDone,onBeat) {
+  startPracticeRun(phrase,accompaniment,onStep,onCycle,onBeat,onAccompaniment) {
     if(!this.practiceSession||this.backgrounded)return null;
     this.stopPracticeRun();
     const version=this.practiceRunVersion;
@@ -486,31 +486,58 @@ export class AudioEngine {
     const draw=(callback,time)=>Tone.Draw.schedule(()=>{if(valid())callback();},time);
     const beatSeconds=60/this.tempo;
     const startTime=Tone.now()+.12;
-    const phraseTime=startTime+4*beatSeconds;
-    const schedule=(beat,callback)=>{ids.push(Tone.Transport.scheduleOnce(time=>{if(valid())callback(time);},`${beat*Tone.Transport.PPQ}i`));};
-    for(let beat=0;beat<8;beat++)schedule(beat,time=>{
-      if(beat<4)this.metronomeSynth.triggerAttackRelease(beat===0?'C6':'G5',.035,time,.45);
-      draw(()=>onBeat?.(beat),time);
-    });
+    const ticksPerBeat=Tone.Transport.PPQ;
+    const ticksPerBar=ticksPerBeat*4;
+    const phraseStartTick=ticksPerBar;
+    const repeat=(callback,interval,start)=>ids.push(Tone.Transport.scheduleRepeat(time=>{if(valid())callback(time);},interval,start));
+    let beatCount=0;
+    let lastBeatTime=-Infinity;
+    repeat(time=>{
+      if(time<=lastBeatTime+.001)return;
+      lastBeatTime=time;
+      const count=beatCount++;
+      const countIn=count<4;
+      const beat=countIn?count:(count-4)%4;
+      const cycle=countIn?0:Math.floor((count-4)/4);
+      if(!this.metronomeSound)this.metronomeSynth.triggerAttackRelease(beat===0?'C6':'G5',.035,time,.45);
+      draw(()=>onBeat?.(beat,cycle,countIn),time);
+    },'4n','0i');
+    let cycle=0;
+    repeat(time=>{
+      const current=cycle++;
+      draw(()=>onCycle?.(current),time);
+    },'1m','1m');
     for(const [eventIndex,event] of phrase.events.entries()){
-      const offset=beatOffset(event.time);
-      schedule(4+offset,time=>draw(()=>onStep?.({...event,eventIndex,duration:Tone.Time(event.dur??'16n').toSeconds()}),time));
+      const startTick=phraseStartTick+Math.round(beatOffset(event.time)*ticksPerBeat);
+      let eventCycle=0;
+      repeat(time=>{
+        const current=eventCycle++;
+        draw(()=>onStep?.({...event,eventIndex,cycle:current,duration:Tone.Time(event.dur??'16n').toSeconds()}),time);
+      },'1m',`${startTick}i`);
     }
     if(accompaniment){
       const partners=this.manualInstrument==='drums'?['piano','ukulele']:['drums',this.manualInstrument==='piano'?'ukulele':'piano'];
       for(const name of partners){
         this.nodes[name].gain.volume.value=this.volumes[name]-6;
-        const selected=nearestBar(STRING_INSTRUMENTS[name]?.library[this.root].phrases??patterns[name],.25,.2);
-        const events=STRING_INSTRUMENTS[name]?selected.events:transposeEvents(selected.events,this.root);
-        for(const event of events)schedule(4+beatOffset(event.time),time=>this.playEvent(name,event,time));
+        const pool=STRING_INSTRUMENTS[name]?.library[this.root].phrases??patterns[name];
+        let phraseIndex=Math.max(0,pool.indexOf(nearestBar(pool,.25,.2)));
+        repeat(time=>{
+          const selected=pool[phraseIndex];
+          const selectedIndex=phraseIndex;
+          phraseIndex=(phraseIndex+1)%pool.length;
+          const events=STRING_INSTRUMENTS[name]?selected.events:transposeEvents(selected.events,this.root);
+          const secondsPerBeat=60/this.tempo;
+          for(const event of events)this.playEvent(name,event,time+beatOffset(event.time)*secondsPerBeat);
+          draw(()=>onAccompaniment?.(name,selectedIndex),time);
+        },'1m','1m');
       }
     }
-    schedule(8.5,time=>draw(()=>{this.stopPracticeRun();onDone?.();},time));
     Tone.start().catch(console.error);Tone.Transport.start(startTime,0);
-    return {startTime:phraseTime,beatSeconds};
+    return {startTime:startTime+4*beatSeconds,beatSeconds,startTick:phraseStartTick,beatTicks:ticksPerBeat,barTicks:ticksPerBar};
   }
 
   practiceTime() {return Tone.immediate();}
+  practiceTicks() {return Tone.Transport.ticks;}
 
   endPractice() {
     const saved=this.practiceSession;if(!saved)return;

@@ -18,7 +18,7 @@ export function timingSteps(phrase) {
 export function createTimingAttempt(phrase) {
   return timingSteps(phrase).map(step=>({...step,remaining:[...step.notes],hits:0,missed:false}));
 }
-export function scoreTimedInput(attempt,note,beat,tolerance=.32,matches=(expected,actual)=>expected===actual) {
+export function scoreTimedInput(attempt,note,beat,tolerance=.42,matches=(expected,actual)=>expected===actual) {
   const candidates=attempt.filter(step=>!step.missed&&step.remaining.some(expected=>matches(expected,note))&&Math.abs(step.beat-beat)<=tolerance);
   candidates.sort((first,second)=>Math.abs(first.beat-beat)-Math.abs(second.beat-beat));
   const target=candidates[0];

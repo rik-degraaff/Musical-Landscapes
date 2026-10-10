@@ -33,44 +33,62 @@
 .practice-topbar {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
   flex: none;
-  min-height: 64px;
-  padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
+  min-height: 72px;
+  padding: 5px max(12px, env(safe-area-inset-right, 0px)) 5px max(12px, env(safe-area-inset-left, 0px));
   background: #d9fff1ed;
   border-bottom: 2px solid var(--practice-line);
 }
-.practice-room-title { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 0 auto 0 0; font-size: 20px; line-height: 1.1; font-weight: 800; overflow-wrap: anywhere; }
+.practice-room-title { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 0 auto 0 0; font-size: 18px; line-height: 1.1; font-weight: 800; overflow-wrap: anywhere; }
 .practice-room-title > svg { width: 26px; height: 26px; flex: none; color: #a44132; }
+.practice-lineup { display: flex; align-items: center; gap: 6px; flex: 1 1 auto; min-width: 0; height: 60px; }
+.practice-musician { position: relative; display: flex; align-items: center; justify-content: center; flex: none; width: 54px; height: 58px; }
+.practice-musician > svg:first-child { width: 45px; height: 58px; overflow: visible; }
+.practice-musician > .instrument-illustration { position: absolute; left: 50%; top: 48%; width: 31px; height: 25px; translate: -50% -50%; filter: drop-shadow(0 1px 1px #244c3e66); }
+.practice-musician > span { position: absolute; bottom: -1px; left: 50%; max-width: 76px; translate: -50% 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 9px; font-weight: 800; }
+.practice-neighbors { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.practice-neighbors button { display: grid; place-items: center; flex: none; width: 39px; height: 40px; padding: 3px; border: 1px solid #6fae96; border-radius: 4px; background: #effff5; }
+.practice-neighbors .instrument-illustration { width: 33px; height: 29px; }
+.practice-neighbors button.is-accompanying { border-color: #a34b19; background: #ffcf91; animation: companionPulse .5s ease-out; }
+.practice-room .practice-topbar .metronome-widget:not(.is-open) { position: relative; left: auto; bottom: auto; z-index: 1; flex: 0 0 46px; width: 46px; height: 62px; }
+.practice-topbar .metronome-widget.is-open { position: fixed; left: 12px; bottom: 12px; z-index: 190; }
 .practice-select { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 300px; font-size: 12px; font-weight: 700; }
 .practice-select > span { min-width: 0; overflow-wrap: anywhere; }
 .practice-select select { min-width: 0; width: 100%; max-width: 200px; height: 36px; padding: 4px 24px 4px 8px; border: 1px solid var(--practice-line); border-radius: 4px; background: var(--practice-paper); text-overflow: ellipsis; }
 .practice-select .instrument-illustration { width: 44px; height: 36px; flex: none; }
-.practice-topbar > button, .practice-exit { display: grid; place-items: center; flex: none; width: 40px; height: 40px; padding: 0; border: 1px solid #a44132; border-radius: 4px; background: #fff6ee; color: #a44132; }
+.practice-exit { display: inline-flex; align-items: center; justify-content: center; gap: 5px; flex: none; width: 68px; height: 44px; padding: 4px 6px; border: 1px solid #a44132; border-radius: 4px; background: #fff6ee; color: #843916; font-weight: 800!important; }
+.practice-exit svg { width: 28px!important; height: 28px!important; transform-origin: 30% 90%; animation: doorInvite 2.8s ease-in-out infinite; }
+.practice-exit span { font-size: 11px; }
+@keyframes doorInvite { 0%,72%,100% { transform: perspective(40px) rotateY(0); } 82%,92% { transform: perspective(40px) rotateY(-13deg); } }
+@keyframes companionPulse { 0% { transform: scale(.9); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
 
-.practice-stages { display: flex; justify-content: center; gap: 0; flex: none; min-height: 44px; padding: 4px 16px; background: #a9eedee8; border-bottom: 1px solid var(--practice-line); }
+.practice-stages { display: flex; justify-content: center; gap: 0; flex: none; min-height: 40px; padding: 3px 16px; background: #a9eedee8; border-bottom: 1px solid var(--practice-line); }
 .practice-stages button { display: flex; align-items: center; justify-content: center; gap: 8px; flex: 0 1 220px; min-width: 0; padding: 5px 12px; border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; font-weight: 700; overflow-wrap: anywhere; }
 .practice-stages button + button { border-left: 1px solid #519e8c66; }
 .practice-stages button:is(.is-current, .is-active, [aria-selected="true"], [aria-pressed="true"], [aria-current="step"]) { background: #f1fff2; border-bottom-color: #c55d22; color: #843916; }
 .practice-stages button:is(.is-complete, .is-completed) { color: #196438; border-bottom-color: #2b8a50; }
 .practice-stages button > span { min-width: 0; }
 
-.practice-progress { display: flex; align-items: center; justify-content: center; gap: 12px; flex: none; min-height: 36px; padding: 4px 16px; background: #f0fff2ed; border-bottom: 1px solid #519e8c66; }
-.practice-feedback { min-width: 0; overflow-wrap: anywhere; font-weight: 700; }
-.practice-feedback[data-tone="correct"] { color: #196438; }
-.practice-feedback[data-tone="wrong"] { color: #a02e38; }
-.practice-feedback[data-tone="pending"] { color: #35625b; }
-.practice-progress progress { appearance: none; width: 180px; max-width: 25%; height: 8px; flex: 0 1 180px; overflow: hidden; border: 0; border-radius: 4px; background: #c0dfcf; accent-color: #238152; }
+.practice-progress { display: flex; align-items: center; justify-content: center; gap: 9px; flex: 0 1 180px; min-width: 70px; padding: 4px; }
+.practice-progress progress { appearance: none; width: 120px; max-width: 55%; height: 8px; flex: 0 1 120px; overflow: hidden; border: 0; border-radius: 4px; background: #c0dfcf; accent-color: #238152; }
 .practice-progress progress::-webkit-progress-bar { background: #c0dfcf; }
 .practice-progress progress::-webkit-progress-value { background: #238152; }
 .practice-progress progress::-moz-progress-bar { background: #238152; }
 .practice-score { flex: none; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 .practice-main { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; }
-.practice-guide { display: flex; align-items: center; justify-content: center; gap: 20px; flex: none; width: 100%; min-height: 76px; padding: 8px 20px; background: #e4fff2df; }
+.practice-guide { display: grid; grid-template-columns:minmax(0,1fr) minmax(180px,420px) minmax(0,1fr); align-items: center; gap: 12px; flex: none; width: 100%; min-height: 70px; padding: 6px 20px; background: #e4fff2df; }
 .practice-target { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; min-width: 0; max-width: 360px; overflow-wrap: anywhere; }
+.practice-guide > .practice-target { justify-self: start; }
 .practice-target strong { font-size: 28px; line-height: 1.1; color: #843916; }
 .practice-target span, .practice-target small { font-size: 12px; }
+.practice-feedback-display { display: flex; align-items: center; justify-content: center; justify-self: center; gap: 10px; width: 100%; min-width: 0; min-height: 50px; padding: 6px 14px; border: 2px solid #79a995; border-radius: 6px; background: #f3fff5; color: #35625b; font-size: 17px; text-align: center; overflow-wrap: anywhere; animation: feedbackArrive .24s ease-out; }
+.practice-feedback-display strong { line-height: 1.1; }
+.practice-feedback-display[data-tone="correct"] { border-color: #238152; background: #d8f7de; color: #145e35; }
+.practice-feedback-display[data-tone="wrong"] { border-color: #bd3948; background: #ffe2df; color: #8e2331; }
+.practice-feedback-display[data-tone="pending"] { border-color: #79a995; background: #f3fff5; color: #35625b; }
+@keyframes feedbackArrive { from { opacity: .9; scale: .98; } to { opacity: 1; scale: 1; } }
 .practice-beat-strip { display: flex; align-items: center; justify-content: center; gap: 8px; flex: none; }
 .practice-beat-strip > * { display: grid; place-items: center; width: 28px; height: 28px; flex: none; border: 2px solid #519e8c; border-radius: 50%; background: #f3fff5; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .practice-beat-strip > :is(.is-current, .is-active, [aria-current="true"]) { background: var(--practice-current); color: #663014; border-color: #a34b19; }
@@ -79,6 +97,7 @@
 .practice-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; min-width: 36px; max-width: 100%; padding: 6px 10px; border: 1px solid #387b69; border-radius: 4px; background: #f3fff5; font-weight: 700; overflow-wrap: anywhere; }
 .practice-actions button:is(.practice-start, .practice-continue, .is-primary) { background: #21785e; color: #fff; border-color: #195d4a; }
 .practice-actions button > span { min-width: 0; }
+.practice-tools { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; }
 .practice-instrument-tools { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; flex: none; }
 .practice-instrument-tools .instrument-illustration { width: 58px; height: 46px; flex: none; }
 .practice-instrument-tools > span { font-size: 12px; overflow-wrap: anywhere; }
@@ -89,84 +108,105 @@
 .practice-phrase-track > :is(.is-complete, .is-completed) { background: #c5efca; border-color: #2b8a50; color: #196438; }
 .practice-phrase-track > .is-missed { background: #ffe1df; border-color: #b74550; color: #962936; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
 
-.practice-surface-host { display: flex; flex-direction: column; align-items: center; flex: 1; min-height: 0; min-width: 0; width: 100%; background: #edf5ebc7; border-top: 1px solid #519e8c; border-bottom: 1px solid #519e8c; }
+.practice-surface-host { display: flex; flex-direction: column; align-items: center; flex: 1 1 70dvh; min-height: 60px; max-height: 70dvh; min-width: 0; width: 100%; background: #edf5ebc7; border-top: 1px solid #519e8c; border-bottom: 1px solid #519e8c; }
 .practice-surface-host > .performance-surface { height: 100%; width: 100%; max-width: 1200px; flex: 1; min-height: 0; padding: 12px; }
 .practice-room .performance-surface { max-width: none; margin: 0; height: 100%; }
 .practice-room .manual-keyboard { height: 100%; }
 .practice-room .sharp-key span { color: #f3fff5; }
 .practice-room .performance-panel { position: relative; inset: auto; display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; flex: 1; z-index: auto; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
-.practice-footer { flex: none; height: calc(32px + env(safe-area-inset-bottom, 0px)); min-height: 32px; padding: 4px max(16px, env(safe-area-inset-right, 0px)) 4px max(16px, env(safe-area-inset-left, 0px)); display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 12px; overflow-wrap: anywhere; }
+.practice-count-in { color: #843916; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 @media (hover: hover) {
   .practice-actions button:not(:disabled):not([aria-disabled="true"]):hover { border-color: #a44132; box-shadow: inset 0 0 0 1px #a44132; }
   .practice-stages button:not(:disabled):not([aria-disabled="true"]):hover { background: #f1fff2; }
-  .practice-exit:not(:disabled):hover, .practice-topbar > button:not(:disabled):hover { background: #ffe1df; }
+  .practice-exit:not(:disabled):hover { background: #ffe1df; }
 }
 
 @media (max-width: 900px) {
-  .practice-topbar { gap: 10px; }
+  .practice-topbar { gap: 8px; }
   .practice-room-title { font-size: 17px; }
   .practice-select { max-width: 230px; gap: 5px; }
-  .practice-guide { gap: 12px; flex-wrap: wrap; }
+  .practice-guide { gap: 8px; }
   .practice-target strong { font-size: 24px; }
   .practice-instrument-tools .instrument-illustration { width: 44px; height: 36px; }
 }
 
 @media (max-width: 600px) {
-  .practice-topbar { flex-wrap: wrap; gap: 6px 10px; padding: 6px 10px; }
-  .practice-room-title { flex: 1 1 calc(100% - 60px); order: 0; }
-  .practice-topbar > button, .practice-exit { order: 1; }
-  .practice-select { order: 2; flex: 1 1 40%; max-width: none; }
+  .practice-topbar { flex-wrap: nowrap; gap: 4px; padding: 4px 6px; }
+  .practice-room-title { display: none; }
+  .practice-lineup { flex: 1 1 0; gap: 2px; height: 42px; }
+  .practice-musician { width: 35px; height: 40px; }
+  .practice-musician > svg:first-child { width: 31px; height: 39px; }
+  .practice-musician > .instrument-illustration { width: 23px; height: 19px; }
+  .practice-musician > span { display: none; }
+  .practice-neighbors { gap: 1px; }
+  .practice-neighbors button { width: 24px; height: 27px; padding: 1px; }
+  .practice-neighbors .instrument-illustration { width: 22px; height: 20px; }
+  .practice-select { flex: 0 1 110px; max-width: 110px; gap: 2px; font-size: 10px; }
   .practice-select > span { font-size: 11px; }
-  .practice-select .instrument-illustration { width: 30px; height: 30px; }
-  .practice-select select { max-width: none; height: 32px; }
-  .practice-stages { padding: 3px 6px; }
-  .practice-stages button { gap: 4px; padding: 4px; font-size: 12px; }
-  .practice-progress { gap: 6px; padding: 4px 10px; font-size: 12px; }
-  .practice-score { font-size: 11px; }
-  .practice-guide { padding: 6px 10px; gap: 8px; }
-  .practice-target { flex: 1 1 45%; }
-  .practice-target strong { font-size: 22px; }
-  .practice-beat-strip { gap: 4px; }
-  .practice-beat-strip > * { width: 24px; height: 24px; }
-  .practice-actions { flex: 1 1 100%; }
-  .practice-phrase-track { padding-inline: 10px; }
-  .practice-surface-host > .performance-surface { padding: 8px; }
+  .practice-select .instrument-illustration { display: none; }
+  .practice-select select { max-width: none; height: 28px; padding: 2px 16px 2px 5px; font-size: 10px; }
+  .practice-topbar .metronome-widget .metronome-mini { width: 27px; height: 36px; }
+  .practice-topbar .metronome-widget { flex-basis: 27px; width: 27px; height: 36px; }
+  .practice-topbar .metronome-widget .mini-pendulum { top: 4px; height: 24px; }
+  .practice-topbar .metronome-widget .metronome-mini span { bottom: 3px; font-size: 7px; }
+  .practice-exit { width: 30px; height: 30px; padding: 1px; }
+  .practice-exit svg { width: 23px!important; height: 23px!important; }
+  .practice-exit span { display: none; }
+  .practice-stages { min-height: 24px; height: 24px; padding: 1px 6px; }
+  .practice-stages button { gap: 3px; padding: 1px 5px; font-size: 10px; }
+  .practice-stages button svg { width: 12px; height: 12px; }
+  .practice-guide { grid-template-columns:minmax(48px,.5fr) minmax(110px,1.4fr) auto; gap: 4px; min-height: 29px; height: 29px; padding: 2px 5px; }
+  .practice-target { gap: 2px; }
+  .practice-target strong { font-size: 15px; }
+  .practice-feedback-display { gap: 4px; min-height: 24px; padding: 2px 5px; border-width: 1px; font-size: 11px; }
+  .practice-feedback-display svg { width: 16px!important; height: 16px!important; }
+  .practice-progress { gap: 3px; flex-basis: 65px; min-width: 50px; padding: 1px; font-size: 9px; }
+  .practice-progress progress { height: 5px; max-width: 30px; }
+  .practice-score { font-size: 9px; }
+  .practice-tools { gap: 2px; }
+  .practice-actions { gap: 2px; }
+  .practice-actions button { min-width: 24px; min-height: 24px; padding: 2px; }
+  .practice-actions button svg { width: 14px; height: 14px; }
+  .practice-beat-strip { gap: 2px; }
+  .practice-beat-strip > * { width: 15px; height: 15px; border-width: 1px; font-size: 8px; }
+  .practice-phrase-track { min-height: 17px; height: 17px; gap: 2px; padding: 1px 5px; }
+  .practice-phrase-track > * { min-width: 30px; max-width: 100px; padding: 1px 4px; font-size: 9px; }
+  .practice-phrase-track > .is-current, .practice-phrase-track > [aria-current="true"] { padding: 0 3px; }
+  .practice-surface-host > .performance-surface { padding: 4px 6px; }
 }
 
 @media (max-height: 550px) and (orientation: landscape) {
   .practice-room { font-size: 12px; }
-  .practice-topbar { flex-wrap: nowrap; gap: 8px; min-height: 40px; height: 40px; padding: 3px 10px; }
-  .practice-room-title { flex: 1 1 160px; order: 0; font-size: 14px; }
-  .practice-room-title > svg { width: 18px; height: 18px; }
-  .practice-select { order: 0; flex: 0 1 240px; max-width: 240px; font-size: 10px; }
-  .practice-select > span { font-size: 10px; }
-  .practice-select select { height: 28px; font-size: 11px; }
-  .practice-select .instrument-illustration { width: 30px; height: 26px; }
-  .practice-topbar > button, .practice-exit { order: 0; width: 30px; height: 30px; }
-  .practice-stages { min-height: 32px; height: 32px; padding: 1px 10px; }
-  .practice-stages button { gap: 5px; padding: 2px 8px; font-size: 11px; }
-  .practice-stages button svg { width: 14px; height: 14px; }
-  .practice-progress { min-height: 26px; padding: 2px 10px; gap: 8px; font-size: 11px; }
-  .practice-score { font-size: 10px; }
-  .practice-guide { flex-wrap: nowrap; min-height: 36px; padding: 3px 10px; gap: 10px; }
-  .practice-target { flex: 1 1 120px; gap: 5px; }
-  .practice-target strong { font-size: 18px; }
-  .practice-target span, .practice-target small { font-size: 10px; }
-  .practice-beat-strip { gap: 4px; }
-  .practice-beat-strip > * { width: 20px; height: 20px; font-size: 10px; }
-  .practice-actions { flex: 0 1 auto; flex-wrap: nowrap; gap: 4px; }
-  .practice-actions button { min-height: 28px; min-width: 28px; padding: 3px 6px; gap: 4px; font-size: 11px; }
-  .practice-actions button svg { width: 14px; height: 14px; }
-  .practice-instrument-tools { gap: 4px; }
-  .practice-instrument-tools .instrument-illustration { width: 30px; height: 26px; }
-  .practice-instrument-tools > span { font-size: 10px; }
-  .practice-phrase-track { min-height: 22px; height: 22px; gap: 4px; padding: 1px 10px; }
-  .practice-phrase-track > * { min-width: 36px; padding: 0 6px; font-size: 10px; }
-  .practice-phrase-track > .is-current, .practice-phrase-track > [aria-current="true"] { padding: 0 5px; }
-  .practice-surface-host > .performance-surface { padding: 6px 10px; }
+  .practice-topbar { min-height: 34px; height: 34px; padding: 1px 5px; }
+  .practice-room-title { display: none; }
+  .practice-lineup { flex: 1 1 230px; height: 31px; }
+  .practice-musician > span { display: none; }
+  .practice-musician { width: 27px; height: 31px; }
+  .practice-musician > svg:first-child { width: 24px; height: 30px; }
+  .practice-musician { width: 43px; justify-content: flex-start; }
+  .practice-musician > svg:first-child { width: 26px; }
+  .practice-musician > .instrument-illustration { left: 75%; top: 69%; width: 20px; height: 17px; }
+  .practice-neighbors button { width: 19px; height: 21px; }
+  .practice-neighbors .instrument-illustration { width: 17px; height: 16px; }
+  .practice-room .practice-topbar .metronome-widget:not(.is-open) .metronome-mini { width: 20px; height: 29px; }
+  .practice-room .practice-topbar .metronome-widget:not(.is-open) { flex-basis: 20px; width: 20px; height: 29px; }
+  .practice-topbar .metronome-widget .mini-pendulum { height: 21px; }
+  .practice-select { flex: 0 1 104px; flex-basis: 104px; max-width: 104px; }
+  .practice-select > span, .practice-select .practice-instrument-tools { display: none; }
+  .practice-select select { max-width: 100%; height: 24px; font-size: 9px; }
+  .practice-exit { width: 26px; height: 27px; }
+  .practice-exit span { display: none; }
+  .practice-stages { min-height: 18px; height: 18px; padding-block: 0; }
+  .practice-stages button { font-size: 9px; }
+  .practice-guide { grid-template-columns:minmax(42px,.5fr) minmax(100px,1.3fr) auto; min-height: 22px; height: 22px; padding-block: 1px; }
+  .practice-tools { gap: 1px; }
+  .practice-target strong { font-size: 13px; }
+  .practice-feedback-display { min-height: 21px; font-size: 10px; }
+  .practice-phrase-track { min-height: 13px; height: 13px; padding-block: 0; }
+  .practice-phrase-track > * { font-size: 8px; }
+  .practice-surface-host > .performance-surface { padding: 3px 5px; }
   .practice-room .flute-physical-key span { font-size: 7px; }
-  .practice-footer { font-size: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
