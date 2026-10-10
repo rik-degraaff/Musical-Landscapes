@@ -14,7 +14,23 @@ function phraseWithinLevel(phrase,name,level) {
   return phrase.events.every(event=>{
     const subdivision=Number(event.time.split(':')[2]);
     const notes=event.notes?.length??1;
-    return limits.subdivisions.includes(subdivision)&&notes<=(['guitar','ukulele'].includes(name)?4:name==='piano'?3:1);
+    const maxNotes=['guitar','ukulele'].includes(name)?4:name==='piano'?(level==='Simple'?2:3):1;
+    return limits.subdivisions.includes(subdivision)&&notes<=maxNotes;
+  });
+}
+
+function simplifyPianoPhrase(phrase) {
+  return {...phrase,events:phrase.events.map(event=>{
+    if(!event.notes||event.notes.length<=2)return event;
+    const notes=[event.notes[0],event.notes.at(-1)];
+    return {...event,notes};
+  })};
+}
+
+function simpleSource(name,source) {
+  return source.map((phrase,sourceIndex)=>{
+    const prepared=name==='piano'?simplifyPianoPhrase(phrase):phrase;
+    return {...prepared,tierSource:sourceIndex};
   });
 }
 
@@ -103,7 +119,7 @@ export function equippedProfile(name,root,options={}) {
   const fluteRegisters=level==='Simple'?1:level==='Standard'?2:3;
   const source=library?.phrases??patterns[name].map(phrase=>({...phrase,events:transposeEvents(phrase.events,root)}));
   const simpleHits=['kick','snare','hat'];
-  const simpleCompatible=compatiblePhrases(name,source,simpleChords,library,simpleHits,2,1);
+  const simpleCompatible=compatiblePhrases(name,simpleSource(name,source),simpleChords,library,simpleHits,2,1);
   const simple=uniquePhrases(simpleCompatible.filter(phrase=>phrase.complexity<=.3&&phraseWithinLevel(phrase,name,'Simple')));
   const standardCompatible=compatiblePhrases(name,source,standardChords,library,['kick','snare','hat','shaker','tom','clap','rim'],4,2);
   const standardOnly=uniquePhrases(standardCompatible.filter(phrase=>phrase.complexity<=.65&&phraseWithinLevel(phrase,name,'Standard')&&!simple.some(value=>value.tierSource===phrase.tierSource)));

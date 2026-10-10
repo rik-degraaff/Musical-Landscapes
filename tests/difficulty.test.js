@@ -46,6 +46,7 @@ test('every equipped phrase is playable with its controls and chord pool in ever
     const fixedRange=name==='piano'?PIANO_NOTES:name==='marimba'?MARIMBA_NOTES:name==='panflute'?PANFLUTE_NOTES:null;
     if(fixedRange)for(const note of profile.notes)assert.ok(fixedRange.includes(note),`${name} ${root} ${complexity} out of range ${note}`);
     for(const phrase of profile.phrases)for(const event of phrase.events){
+      if(name==='piano'&&complexity<=.5)assert.ok((event.notes?.length??1)<=2,`${root} Simple piano chord exceeds two notes`);
       if(['guitar','ukulele'].includes(name)){
         const chord=profile.chords.find(value=>value.name===event.chord);assert.ok(chord,`${name} ${root} missing ${event.chord}`);
         for(const note of event.notes??[event.note])assert.ok(chord.tones.includes(noteMidi(note)%12));

@@ -3,7 +3,7 @@ import {Music,Footprints,Timer,Users,Play,Pause,RotateCcw,Check,CircleAlert,Door
 import {INSTRUMENTS} from '../utils/music';
 import {equippedProfile} from '../utils/difficulty';
 import {noteMidi} from '../utils/autoplay';
-import {PRACTICE_STAGES,learningSteps,createTimingAttempt,scoreTimedInput,expireSteps,attemptSummary} from '../utils/practice';
+import {PRACTICE_STAGES,PRACTICE_TIMING_TOLERANCE,learningSteps,createTimingAttempt,scoreTimedInput,expireSteps,attemptSummary} from '../utils/practice';
 import {InstrumentSurface} from './PerformancePanel';
 import {InstrumentArt} from './InstrumentArt';
 import {PracticeRoomArt} from './PracticeRoomArt';
@@ -28,6 +28,7 @@ export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
   const [metronomeOpen,setMetronomeOpen]=useState(false);
   const state=useRef({});
   const attempt=useRef([]);
+  const learned=useRef({step:-1,remaining:[]});
   const session=useRef(null);
   const cycle=useRef(0);
   const totals=useRef({hits:0,total:0});
@@ -49,7 +50,7 @@ export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
     state.current.running=false;setRunning(false);setCue(null);setBeat(-1);
   }
   function reset() {
-    cancel();setStep(0);state.current.step=0;setComplete(false);state.current.complete=false;setSummary(null);setResults([]);setFeedback({tone:'pending',text:'Ready'});
+    cancel();learned.current={step:-1,remaining:[]};setStep(0);state.current.step=0;setComplete(false);state.current.complete=false;setSummary(null);setResults([]);setFeedback({tone:'pending',text:'Ready'});
   }
   function updateSummary() {
     const current=attemptSummary(attempt.current);
@@ -76,8 +77,13 @@ export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
       if(current.complete)return;
       if(current.stage===0){
         const expected=current.steps[current.step];if(!expected)return;
-        if(!matchesNote(current.name,note,expected.note)){setFeedback({tone:'wrong',text:'Try again'});return;}
+        if(learned.current.step!==current.step)learned.current={step:current.step,remaining:[...expected.notes]};
+        const matched=learned.current.remaining.findIndex(value=>matchesNote(current.name,note,value));
+        if(matched<0){setFeedback({tone:'wrong',text:'Try again'});return;}
+        learned.current.remaining.splice(matched,1);
+        if(learned.current.remaining.length){setFeedback({tone:'correct',text:'Good note, finish the chord'});return;}
         const next=current.step+1;current.step=next;setStep(next);setFeedback({tone:'correct',text:'Correct!'});
+        learned.current={step:next,remaining:[]};
         if(next===current.steps.length){current.complete=true;setComplete(true);setFeedback({tone:'correct',text:'Phrase learned!'});}
       }else if(current.running&&session.current){
         const elapsedTicks=ticks-session.current.startTick;
@@ -85,7 +91,7 @@ export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
         const nextCycle=Math.floor(elapsedTicks/session.current.barTicks);
         advanceCycle(nextCycle,current.phrase);
         const beatInBar=(elapsedTicks-nextCycle*session.current.barTicks)/session.current.beatTicks;
-        const result=scoreTimedInput(attempt.current,note,beatInBar,.42,(expected,actual)=>matchesNote(current.name,actual,expected));
+        const result=scoreTimedInput(attempt.current,note,beatInBar,PRACTICE_TIMING_TOLERANCE,(expected,actual)=>matchesNote(current.name,actual,expected));
         setFeedback({tone:result.correct?'correct':'wrong',text:result.correct?'On time!':'Try the highlighted note'});
         setResults(attempt.current.map(value=>value.missed?'missed':value.remaining.length===0?'correct':'pending'));
         updateSummary();
@@ -131,7 +137,7 @@ export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
         const nextCycle=Math.floor(elapsedTicks/session.current.barTicks);
         advanceCycle(nextCycle,phrase);
         const beatInBar=(elapsedTicks-nextCycle*session.current.barTicks)/session.current.beatTicks;
-        expireSteps(attempt.current,beatInBar,.42);
+        expireSteps(attempt.current,beatInBar,PRACTICE_TIMING_TOLERANCE);
       }
       setResults(attempt.current.map(value=>value.missed?'missed':value.remaining.length===0?'correct':'pending'));
       frame.current=requestAnimationFrame(tick);
@@ -150,6 +156,7 @@ export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
       </div>
       <label className="practice-select"><span className="practice-instrument-tools" aria-hidden="true"><InstrumentArt type={name}/></span><select aria-label="Practice instrument" value={name} onChange={event=>{cancel();setPhraseIndex(0);setName(event.target.value);}}>{Object.entries(INSTRUMENTS).map(([id,instrument])=><option key={id} value={id}>{instrument.label}</option>)}</select></label>
       <label className="practice-select"><select aria-label="Practice phrase" value={Math.min(phraseIndex,profile.phrases.length-1)} onChange={event=>{cancel();setPhraseIndex(Number(event.target.value));}}>{profile.phrases.map((value,index)=><option key={index} value={index}>Phrase {index+1} · {value.events.length} actions</option>)}</select></label>
+      <Metronome audio={audio} open={metronomeOpen} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>
       <button className="practice-exit" aria-label="Leave practice through the open door" title="Leave practice" onClick={onClose}><DoorOpen size={26}/><span>Leave</span></button>
     </header>
     <nav className="practice-stages" aria-label="Practice stages">{PRACTICE_STAGES.map((label,index)=>{const Icon=stageIcons[index];return <button key={label} aria-pressed={stage===index} onClick={()=>{cancel();setStage(index);}}><Icon size={18}/>{index+1}. {label}</button>;})}</nav>
@@ -159,9 +166,8 @@ export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
         <div className="practice-tools"><div className="practice-progress"><progress aria-label="Practice progress" max={steps.length} value={progress}/>{summary&&<span className="practice-score">{summary.hits}/{summary.total} · {summary.percent}%</span>}</div><div className="practice-beat-strip" aria-label="Beat">{[0,1,2,3].map(value=><i key={value} className={beat===value?'is-current':''}/>)}</div></div>
       </div>
       <div className="practice-control-dock">{stage>0&&<button className="practice-run-button" aria-label={running?'Stop practice':'Start repeating'} onClick={()=>running?stopAttempt():startAttempt()}>{running?<Pause size={18}/>:<Play size={18}/>}<span>{running?'Stop':summary?'Repeat':'Ready'}</span></button>}<button className="practice-restart-button" aria-label="Restart practice" title="Restart practice" onClick={reset}><RotateCcw size={17}/><span>Restart</span></button></div>
-      <div className="practice-phrase-track" aria-label="Phrase actions">{(stage===0?steps:phrase.events).map((value,index)=><span key={index} className={`${stage===0&&index<step?'is-complete':''} ${(stage===0&&index===step&&!complete)||(stage>0&&cue?.eventIndex===index)?'is-current':''} ${stage>0&&results[index]==='correct'?'is-complete':''} ${results[index]==='missed'?'is-missed':''}`}>{stage===0?value.note:(value.notes??[value.note]).join('+')}</span>)}</div>
+      <div className="practice-phrase-track" aria-label="Phrase actions">{(stage===0?steps:phrase.events).map((value,index)=><span key={index} className={`${stage===0&&index<step?'is-complete':''} ${(stage===0&&index===step&&!complete)||(stage>0&&cue?.eventIndex===index)?'is-current':''} ${stage>0&&results[index]==='correct'?'is-complete':''} ${results[index]==='missed'?'is-missed':''}`}>{stage===0?value.notes.join('+'):(value.notes??[value.note]).join('+')}</span>)}</div>
       <div className="practice-surface-host"><InstrumentSurface key={`${name}:${phraseIndex}:${stage}`} name={name} audio={audio} root={root} options={options} profile={profile} cue={target} practice/></div>
     </main>
-    <div className="practice-metronome"><Metronome audio={audio} open={metronomeOpen} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/></div>
   </section>;
 }
