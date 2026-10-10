@@ -2,6 +2,8 @@
 
 A touch-first React/Vite music toy for small children. Instruments can be dragged around the landscape and tapped on/off. Tap the sun or moon to move through the seven-stop day/night cycle: farm, garden, pond, dusk, two moonlit scenes, and dawn. The sun and moon follow their arc, with the first moon left of center and the second farther right. The keys follow A major, E major, A major, C-sharp minor, A minor, F minor, and D-flat major before returning to A major. The music is generated from a library of hand-written one-bar patterns rather than generated note-by-note.
 
+Play requires a selected child whose setup has been completed. The start menu shows every saved child's avatar and name as a radio selection, plus an **Add child** button. With no completed child selected, **Tap to play** is disabled. Adding a child requires the full eleven-step parent/caregiver setup below; installation itself remains optional.
+
 The default six are piano, drums, ukulele, trumpet, marimba, and pan flute. Settings > Instruments has six slot selectors drawn from an eight-instrument catalog: guitar and concert flute remain available as alternatives. Selections persist locally; choosing an instrument already in another slot swaps the two rather than duplicating it. Removing an active or equipped instrument stops its voices and closes its performance surface safely.
 
 FarmJam suppresses in-page context menus, selection, native dragging, pinch zoom, and page scrolling while preserving multi-finger instrument playing. Browser chrome and operating-system gestures cannot be intercepted by a web app. The mixer remains scrollable with a mouse wheel.
@@ -85,7 +87,7 @@ src/
     Instrument.jsx        Draggable/tappable instrument shell
     InstrumentArt.jsx     Instrument illustrations
     Mixer.jsx             Child-friendly mixer
-    StartScreen.jsx       Audio-unlock screen
+    StartScreen.jsx       Mandatory child selection and audio-unlock screen
     NoteParticles.jsx     Reusable particle component
   scenes/
     Scene.jsx             Scene registry and rotation control
@@ -177,7 +179,7 @@ Piano, guitar and marimba also respond to swipes that begin outside playable key
 
 ## Practice Room
 
-Double-tap the girl or the instrument she is holding to enter the full-viewport practice room inside the farm. Entry preserves the playback state from before the first tap; a single tap still toggles the equipped instrument's playback. An equipped instrument is selected initially; otherwise practice starts with the first landscape instrument. Keyboard users can focus the girl and press Enter or Space. All eight instruments are available in the instrument selector, with phrases filtered to the instrument's saved difficulty and the current scene key. Practice always shows note/control labels and string fingering charts.
+Double-tap the selected child's avatar or the instrument they are holding to enter the full-viewport practice room inside the farm. Entry preserves the playback state from before the first tap; a single tap still toggles the equipped instrument's playback. An equipped instrument is selected initially; otherwise practice starts with the first landscape instrument. Keyboard users can focus the avatar and press Enter or Space. All eight instruments are available in the instrument selector, with phrases filtered to the instrument's saved difficulty and the current scene key. Practice always shows note/control labels and string fingering charts.
 
 Practice has four stages:
 
@@ -190,20 +192,23 @@ Orange duration bars on the phrase track and playable controls shrink to show th
 
 ## Parent/Caregiver Setup
 
-The start screen's **?** button opens an optional ten-step guide:
+The start menu's **Add child** button opens the mandatory eleven-step guide. Complete every step and use the final **Add child** action to save the child and select them for play. Canceling setup, closing it, or pressing Escape discards the draft without creating a child or changing existing children, their selection, or their settings. Choosing **Use these settings** only updates the draft; nothing is saved until completion succeeds.
 
-1. **Welcome** introduces shared musical play and explains that setup answers stay on the device.
+1. **Welcome** introduces shared musical play and explains that the child's name, avatar and setup answers stay in this browser on this device.
 2. **Install FarmJam** offers optional installation and pinning instructions tailored to the detected OS and browser. An app icon makes launching easier without searching through browser tabs; supported installations open a separate app window. Browser play remains available, and a bookmark is an alternative when installation is unavailable.
 3. **Your familiarity** asks about the adult's comfort with music before later explanations, which adapt their vocabulary to that answer.
-4. **Your child** asks for an age band, not a name or birthday.
-5. **Music experience** asks about the child's musical experience, then conditionally shows an instrument checklist when some experience or familiarity is selected.
-6. **Recommended setup** suggests Simple or Standard. The adult can override it with Simple, Standard or Advanced before applying settings to all instruments; the current six instrument choices stay unchanged.
-7. **Instruments** explains playback toggles, equipping and manual playing.
-8. **Landscapes and sound** explains the key cycle, landscape metronome and sound settings. Double-tap the top-right Settings button to change instruments, per-instrument difficulty, labels and sound levels later.
-9. **Practice room** explains Listen, Learn, Rhythm and Together, duration hints and completion controls.
-10. **Play together** offers ideas for shared play and taking musical exploration off-screen.
+4. **Your child** requires a nonblank name or nickname of at most 40 characters and asks for an age band: Under 3, 3-4, 5-7 or 8+. No birthdate is requested.
+5. **Your avatar**, immediately after the age step, shows a live preview sized by the chosen age band. Choose short, bob, curls or ponytail hair; tee (T-shirt), sweater or overalls tops; and trousers, shorts or skirt bottoms. Color choices cover skin tone, hair and eyes, plus independent primary and secondary color channels for both the top and bottom.
+6. **Music experience** asks about the child's musical experience, then conditionally shows an instrument checklist when some experience or familiarity is selected.
+7. **Recommended setup** suggests Simple or Standard. The adult can override it with Simple, Standard or Advanced for all instruments in the child's saved settings; the current six instrument choices stay unchanged. These settings are not applied to an existing child while the guide is open.
+8. **Instruments** explains playback toggles, equipping and manual playing.
+9. **Landscapes and sound** explains the key cycle, landscape metronome and sound settings. Double-tap the top-right Settings button to change instruments, per-instrument difficulty, labels and sound levels later.
+10. **Practice room** explains Listen, Learn, Rhythm and Together, duration hints and completion controls.
+11. **Play together** offers ideas for shared play and taking musical exploration off-screen, followed by the final **Add child** action.
 
-Age bands and experience choices are stored locally in a separate, non-identifying profile. Skipping leaves settings unchanged. The guide can be scrolled by touch on short screens. Installation is optional, and setup answers may not carry over when switching browsers or app contexts.
+The selected child's age-sized avatar appears in both the landscape game and practice room. Each child has an independent saved profile and instrument settings, including instrument choices, per-instrument difficulty and display details. Selecting a child loads that child's settings; later changes to those settings are saved for that child without changing the others. Newly added children start selected, and the selected child is persisted locally and restored when the app is reopened.
+
+Child names or nicknames, age bands, avatars, setup answers and per-child settings are stored locally in this browser on this device. Names are stored, so these profiles are not non-identifying. There is no account or server-side child profile, and none of this child data is sent to a server. The guide can be scrolled by touch on short screens. Installation is optional, and saved children and settings may not carry over when switching browsers or app contexts.
 
 ## Environments
 

@@ -15,6 +15,7 @@ import {loadSettings,SETTINGS_KEY} from './utils/settings';
 import {Metronome} from './components/Metronome';
 import {PracticeRoom} from './components/PracticeRoom';
 import {ParentGuide} from './components/ParentGuide';
+import {CHILDREN_KEY,loadChildren,saveChildren,normalizeChild} from './utils/children';
 
 function initialInstruments(selected) {
   return Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,value])=>[name,{...value,...(selected.includes(name)?INSTRUMENT_SLOTS[selected.indexOf(name)]:{}),active:false}]));
@@ -30,7 +31,15 @@ export default function App() {
   const [metronomeOpen,setMetronomeOpen] = useState(false);
   const [practice,setPractice]=useState(null);
   const [parentGuide,setParentGuide]=useState(false);
-  const [settings,setSettings] = useState(()=>loadSettings(localStorage));
+  const [family,setFamily]=useState(()=>loadChildren(localStorage));
+  const selectedChild=family.children.find(child=>child.id===family.selectedId)??null;
+  const [settings,setSettings] = useState(()=>{
+    try{
+      const saved=JSON.parse(localStorage.getItem(CHILDREN_KEY)??'null');
+      if(saved?.children?.find(child=>child.id===family.selectedId)?.settings)return selectedChild.settings;
+    }catch{}
+    return loadSettings(localStorage);
+  });
   const [sceneVolume,setSceneVolume] = useState(-4);
   const mixerTap = useRef(null);
   const [instruments,setInstruments] = useState(()=>initialInstruments(settings.selected));
@@ -51,6 +60,7 @@ export default function App() {
   },[settings]);
 
   async function start() {
+    if(!selectedChild){setParentGuide(true);return;}
     if(startInProgress.current) return;
     requestLandscape();
     startInProgress.current=true;
@@ -96,6 +106,26 @@ export default function App() {
       stateRef.current=positions;setInstruments(positions);
     }
     setSettings(next);
+    if(selectedChild){
+      const nextFamily={...family,children:family.children.map(child=>child.id===selectedChild.id?{...child,settings:next}:child)};
+      saveChildren(localStorage,nextFamily);setFamily(nextFamily);
+    }
+  }
+
+  function selectChild(id) {
+    const child=family.children.find(value=>value.id===id);if(!child)return;
+    const nextFamily={...family,selectedId:id};
+    saveChildren(localStorage,nextFamily);setFamily(nextFamily);setSettings(child.settings);
+    const next=initialInstruments(child.settings.selected);stateRef.current=next;setInstruments(next);
+  }
+
+  function addChild(draft) {
+    const child=normalizeChild({...draft,id:crypto.randomUUID()});if(!child)return false;
+    const nextFamily={children:[...family.children,child],selectedId:child.id};
+    if(!saveChildren(localStorage,nextFamily))return false;
+    setFamily(nextFamily);setSettings(child.settings);
+    const next=initialInstruments(child.settings.selected);stateRef.current=next;setInstruments(next);
+    setParentGuide(false);return true;
   }
 
   function pointerDown(e,name) {
@@ -218,7 +248,7 @@ export default function App() {
   return <main className={`app-shell ${equipped?'manual-open':''}`}>
     <div className="landscape-world" ref={worldRef} inert={mixer||Boolean(practice)}>
     <Scene sceneIndex={sceneIndex} audio={audioRef.current} onRotate={rotateScene} onCelestialSettled={()=>{if(started)for(const name of Object.keys(INSTRUMENTS))settle(name);}}/>
-    {started&&<YoungMusician equipped={equipped?INSTRUMENTS[equipped].label:null} accepting={nearChild} onPractice={enterPractice}/>}
+    {started&&<YoungMusician child={selectedChild} equipped={equipped?INSTRUMENTS[equipped].label:null} accepting={nearChild} onPractice={enterPractice}/>}
     <div className="instrument-layer">
       {settings.selected.map(name=>{const i=instruments[name];return <Instrument key={name} name={name} label={i.label} x={i.x} y={i.y} active={i.active} equipped={equipped===name} sliding={dragging!==name} onEquip={()=>equip(name)} onToggle={toggle}
         onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}/>;}) }
@@ -233,10 +263,10 @@ export default function App() {
     {started&&<Metronome audio={audioRef.current} open={metronomeOpen} disabled={mixer||Boolean(practice)} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}
 
     {equipped&&!practice&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={SCENES[sceneIndex].root} options={settings.instruments[equipped]} settingsOpen={mixer} onClose={()=>equip(null)}/>}
-    {practice&&<PracticeRoom audio={audioRef.current} initialInstrument={practice} settings={settings} root={SCENES[sceneIndex].root} onClose={()=>setPractice(null)}/>}
+    {practice&&<PracticeRoom child={selectedChild} audio={audioRef.current} initialInstrument={practice} settings={settings} root={SCENES[sceneIndex].root} onClose={()=>setPractice(null)}/>}
 
-    {!started && <StartScreen loading={loading} error={error} onStart={start} onParentGuide={()=>setParentGuide(true)}/>}
-    {!started&&parentGuide&&<ParentGuide settings={settings} onApply={setSettings} onClose={()=>setParentGuide(false)}/>}
+    {!started && <StartScreen children={family.children} selectedId={family.selectedId} loading={loading} error={error} onStart={start} onSelect={selectChild} onAdd={()=>setParentGuide(true)}/>}
+    {!started&&parentGuide&&<ParentGuide settings={settings} onComplete={addChild} onClose={()=>setParentGuide(false)}/>}
     <LandscapeGuard/>
   </main>;
 }

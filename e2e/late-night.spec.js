@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 test('moonlit meadow has its own art and two audible, repeatable nocturnal objects', async ({ page }, testInfo) => {
   const viewport = page.viewportSize();

@@ -11,7 +11,7 @@ import {YoungMusicianArt} from './YoungMusician';
 import {Metronome} from './Metronome';
 import './practice.css';
 
-export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
+export function PracticeRoom({child,audio,initialInstrument,settings,root,onClose}) {
   const [name,setName]=useState(initialInstrument);
   const [phraseIndex,setPhraseIndex]=useState(0);
   const [stage,setStage]=useState(0);
@@ -168,7 +168,7 @@ export function PracticeRoom({audio,initialInstrument,settings,root,onClose}) {
     <PracticeRoomArt/>
     <header className="practice-topbar"><h1 className="practice-room-title"><Music size={22}/>Farm Practice</h1>
       <div className="practice-lineup" role="group" aria-label="Musician and instruments">
-        <div className="practice-musician"><YoungMusicianArt/><InstrumentArt type={name}/><span>{INSTRUMENTS[name].label}</span></div>
+        <div className="practice-musician" data-child-name={child?.name}><YoungMusicianArt child={child}/><InstrumentArt type={name}/><span>{INSTRUMENTS[name].label}</span></div>
         <div className="practice-neighbors" aria-label="Other landscape instruments">{settings.selected.filter(instrument=>instrument!==name).map(instrument=><button key={instrument} className={companions[instrument]!==undefined?'is-accompanying':''} aria-label={`Switch to ${INSTRUMENTS[instrument].label}`} title={companions[instrument]!==undefined?`${INSTRUMENTS[instrument].label}, phrase ${companions[instrument]+1}`:`Practice ${INSTRUMENTS[instrument].label}`} onClick={()=>{cancel();setPhraseIndex(0);setName(instrument);}}><InstrumentArt type={instrument}/></button>)}</div>
       </div>
       <label className="practice-select"><span className="practice-instrument-tools" aria-hidden="true"><InstrumentArt type={name}/></span><select aria-label="Practice instrument" value={name} onChange={event=>{cancel();setPhraseIndex(0);setName(event.target.value);}}>{Object.entries(INSTRUMENTS).map(([id,instrument])=><option key={id} value={id}>{instrument.label}</option>)}</select></label>

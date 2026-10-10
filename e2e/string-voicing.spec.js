@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './fixtures.js';
 
 async function start(page,complexity) {
   const size=page.viewportSize();

@@ -1,6 +1,9 @@
 import React,{useEffect,useRef} from 'react';
+import {ChildAvatar} from './ChildAvatar';
+import {AGE_SIZES} from '../utils/children';
 
-export function YoungMusicianArt() {
+export function YoungMusicianArt({child}={}) {
+  if(child)return <ChildAvatar avatar={child.avatar} age={child.age}/>;
   return <svg viewBox="0 0 130 170" aria-hidden="true">
     <ellipse cx="65" cy="160" rx="43" ry="7" fill="#294b4226"/>
     <path d="M48 115l-5 35h19l4-31m6-4l4 35h19l-8-37" fill="#4e7e93"/>
@@ -17,7 +20,7 @@ export function YoungMusicianArt() {
   </svg>;
 }
 
-export function YoungMusician({ equipped, accepting,onPractice }) {
+export function YoungMusician({ child,equipped, accepting,onPractice }) {
   const previous=useRef(null);
   const element=useRef(null);
   const practiceAction=useRef(onPractice);practiceAction.current=onPractice;
@@ -39,7 +42,7 @@ export function YoungMusician({ equipped, accepting,onPractice }) {
     document.addEventListener('pointerdown',down,true);document.addEventListener('pointerup',up,true);document.addEventListener('pointercancel',cancel,true);
     return ()=>{document.removeEventListener('pointerdown',down,true);document.removeEventListener('pointerup',up,true);document.removeEventListener('pointercancel',cancel,true);};
   },[]);
-  return <div ref={element} id="young-musician" className={`young-musician ${equipped?'equipped':''} ${accepting?'accepting':''}`} role="button" tabIndex={0} aria-label={equipped?`Practice with ${equipped}`:'Enter practice room'} title="Double-tap to practice" onKeyDown={event=>{if(!event.repeat&&['Enter',' '].includes(event.key)){event.preventDefault();onPractice?.();}}}>
-    <YoungMusicianArt/>
+  return <div ref={element} id="young-musician" data-child-name={child?.name} style={{scale:AGE_SIZES[child?.age]??1}} className={`young-musician ${equipped?'equipped':''} ${accepting?'accepting':''}`} role="button" tabIndex={0} aria-label={equipped?`Practice with ${equipped}`:'Enter practice room'} title="Double-tap to practice" onKeyDown={event=>{if(!event.repeat&&['Enter',' '].includes(event.key)){event.preventDefault();onPractice?.();}}}>
+    <YoungMusicianArt child={child}/>
   </div>;
 }

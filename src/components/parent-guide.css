@@ -91,6 +91,12 @@
 .parent-guide-footer button.parent-skip { border-color: transparent; background: transparent; color: #526e61; }
 .parent-guide-footer button.is-next { border-color: #195d4a; background: #21785e; color: #fff; }
 .parent-guide-footer svg { width: 17px; height: 17px; }
+.parent-guide-footer button:disabled { opacity: .5; cursor: not-allowed; }
+.parent-child-name { display: grid; gap: 7px; margin-top: 18px; font-weight: 800; }
+.parent-child-name input { width: 100%; min-width: 0; min-height: 44px; padding: 9px 12px; border: 1px solid #578676; border-radius: 4px; background: #fff; color: #244c46; font-size: 16px; }
+.parent-guide-content .parent-child-name-note { margin-top: 6px; font-size: 12px; color: #526e61; }
+.parent-completion-error { flex: none; margin: 0; padding: 9px 18px; border-top: 1px solid #cc9083; background: #fff0eb; color: #8c3025; font-size: 13px; }
+.parent-guide-head h2,.parent-guide-content h3 { overflow-wrap: anywhere; }
 @keyframes parentStepIn { from { opacity: .7; translate: 0 4px; } to { opacity: 1; translate: 0 0; } }
 @media (max-width: 600px) {
   .parent-guide { max-height: 100%; font-size: 14px; }
@@ -118,3 +124,7 @@
   .parent-guide-footer button { min-height: 31px; }
 }
 @media (prefers-reduced-motion: reduce) { .parent-guide *, .parent-guide *::before, .parent-guide *::after { animation: none!important; transition: none!important; } }
+@media (max-width: 360px) {
+  .parent-guide-footer { flex-wrap: wrap; }
+  .parent-guide-footer > div { margin-left: auto; }
+}
