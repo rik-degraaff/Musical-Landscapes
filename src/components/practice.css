@@ -10,6 +10,7 @@
   flex-direction: column;
   overflow: hidden;
   isolation: isolate;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
   background: #78d9cc;
   color: var(--practice-ink);
   font-family: inherit;

@@ -19,7 +19,7 @@
   z-index: 210;
   display: grid;
   place-items: center;
-  padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+  padding: calc(var(--safe-top) + 12px) calc(var(--safe-right) + 12px) calc(var(--safe-bottom) + 12px) calc(var(--safe-left) + 12px);
   background: #142d2c99;
   backdrop-filter: blur(5px);
 }
@@ -111,7 +111,7 @@
   .parent-guide-footer button { padding: 5px 8px; font-size: 13px; }
 }
 @media (max-height: 550px) and (orientation: landscape) {
-  .parent-guide-backdrop { padding: 7px 12px; }
+  .parent-guide-backdrop { padding: calc(var(--safe-top) + 7px) calc(var(--safe-right) + 12px) calc(var(--safe-bottom) + 7px) calc(var(--safe-left) + 12px); }
   .parent-guide { max-height: 100%; width: min(760px,100%); font-size: 13px; }
   .parent-guide-head { padding: 8px 14px 6px; }
   .parent-guide-head h2 { font-size: 19px; }
