@@ -1,0 +1,174 @@
+.practice-room {
+  --practice-ink: #164f49;
+  --practice-line: #519e8c;
+  --practice-paper: #f3fff5;
+  --practice-current: #ffb353;
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  isolation: isolate;
+  background: #78d9cc;
+  color: var(--practice-ink);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.practice-room, .practice-room * { box-sizing: border-box; }
+.practice-room [hidden] { display: none !important; }
+.practice-room-art { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+.practice-room > :not(.practice-room-art) { position: relative; min-width: 0; }
+.practice-room button, .practice-room select { font: inherit; color: inherit; }
+.practice-room button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.practice-room button:disabled, .practice-room button[aria-disabled="true"], .practice-room select:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+.practice-room :is(button, select, input, [tabindex]):focus-visible { outline: 3px solid #a44132; outline-offset: 2px; }
+.practice-room button svg { width: 18px; height: 18px; flex: none; pointer-events: none; }
+
+.practice-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: none;
+  min-height: 64px;
+  padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
+  background: #d9fff1ed;
+  border-bottom: 2px solid var(--practice-line);
+}
+.practice-room-title { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 0 auto 0 0; font-size: 20px; line-height: 1.1; font-weight: 800; overflow-wrap: anywhere; }
+.practice-room-title > svg { width: 26px; height: 26px; flex: none; color: #a44132; }
+.practice-select { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 300px; font-size: 12px; font-weight: 700; }
+.practice-select > span { min-width: 0; overflow-wrap: anywhere; }
+.practice-select select { min-width: 0; width: 100%; max-width: 200px; height: 36px; padding: 4px 24px 4px 8px; border: 1px solid var(--practice-line); border-radius: 4px; background: var(--practice-paper); text-overflow: ellipsis; }
+.practice-select .instrument-illustration { width: 44px; height: 36px; flex: none; }
+.practice-topbar > button, .practice-exit { display: grid; place-items: center; flex: none; width: 40px; height: 40px; padding: 0; border: 1px solid #a44132; border-radius: 4px; background: #fff6ee; color: #a44132; }
+
+.practice-stages { display: flex; justify-content: center; gap: 0; flex: none; min-height: 44px; padding: 4px 16px; background: #a9eedee8; border-bottom: 1px solid var(--practice-line); }
+.practice-stages button { display: flex; align-items: center; justify-content: center; gap: 8px; flex: 0 1 220px; min-width: 0; padding: 5px 12px; border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; font-weight: 700; overflow-wrap: anywhere; }
+.practice-stages button + button { border-left: 1px solid #519e8c66; }
+.practice-stages button:is(.is-current, .is-active, [aria-selected="true"], [aria-pressed="true"], [aria-current="step"]) { background: #f1fff2; border-bottom-color: #c55d22; color: #843916; }
+.practice-stages button:is(.is-complete, .is-completed) { color: #196438; border-bottom-color: #2b8a50; }
+.practice-stages button > span { min-width: 0; }
+
+.practice-progress { display: flex; align-items: center; justify-content: center; gap: 12px; flex: none; min-height: 36px; padding: 4px 16px; background: #f0fff2ed; border-bottom: 1px solid #519e8c66; }
+.practice-feedback { min-width: 0; overflow-wrap: anywhere; font-weight: 700; }
+.practice-feedback[data-tone="correct"] { color: #196438; }
+.practice-feedback[data-tone="wrong"] { color: #a02e38; }
+.practice-feedback[data-tone="pending"] { color: #35625b; }
+.practice-progress progress { appearance: none; width: 180px; max-width: 25%; height: 8px; flex: 0 1 180px; overflow: hidden; border: 0; border-radius: 4px; background: #c0dfcf; accent-color: #238152; }
+.practice-progress progress::-webkit-progress-bar { background: #c0dfcf; }
+.practice-progress progress::-webkit-progress-value { background: #238152; }
+.practice-progress progress::-moz-progress-bar { background: #238152; }
+.practice-score { flex: none; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+.practice-main { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; }
+.practice-guide { display: flex; align-items: center; justify-content: center; gap: 20px; flex: none; width: 100%; min-height: 76px; padding: 8px 20px; background: #e4fff2df; }
+.practice-target { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; min-width: 0; max-width: 360px; overflow-wrap: anywhere; }
+.practice-target strong { font-size: 28px; line-height: 1.1; color: #843916; }
+.practice-target span, .practice-target small { font-size: 12px; }
+.practice-beat-strip { display: flex; align-items: center; justify-content: center; gap: 8px; flex: none; }
+.practice-beat-strip > * { display: grid; place-items: center; width: 28px; height: 28px; flex: none; border: 2px solid #519e8c; border-radius: 50%; background: #f3fff5; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.practice-beat-strip > :is(.is-current, .is-active, [aria-current="true"]) { background: var(--practice-current); color: #663014; border-color: #a34b19; }
+.practice-beat-strip > :is(.is-complete, .is-completed) { background: #c5efca; border-color: #2b8a50; }
+.practice-actions { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.practice-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; min-width: 36px; max-width: 100%; padding: 6px 10px; border: 1px solid #387b69; border-radius: 4px; background: #f3fff5; font-weight: 700; overflow-wrap: anywhere; }
+.practice-actions button:is(.practice-start, .practice-continue, .is-primary) { background: #21785e; color: #fff; border-color: #195d4a; }
+.practice-actions button > span { min-width: 0; }
+.practice-instrument-tools { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; flex: none; }
+.practice-instrument-tools .instrument-illustration { width: 58px; height: 46px; flex: none; }
+.practice-instrument-tools > span { font-size: 12px; overflow-wrap: anywhere; }
+
+.practice-phrase-track { display: flex; align-items: stretch; gap: 6px; flex: none; min-height: 40px; max-width: 100%; margin: 0; padding: 4px 16px; overflow-x: auto; overflow-y: hidden; list-style: none; background: #e4fff2df; scrollbar-width: thin; scrollbar-color: #387b69 #d6f5e6; }
+.practice-phrase-track > * { display: flex; align-items: center; justify-content: center; gap: 5px; flex: 0 0 auto; min-width: 46px; max-width: 220px; padding: 3px 10px; border: 1px solid #6fae96; border-radius: 4px; background: #f3fff5; color: #315f50; font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
+.practice-phrase-track > .is-current, .practice-phrase-track > [aria-current="true"] { background: #ffcf91; border: 2px solid #a34b19; color: #663014; padding: 2px 9px; }
+.practice-phrase-track > :is(.is-complete, .is-completed) { background: #c5efca; border-color: #2b8a50; color: #196438; }
+.practice-phrase-track > .is-missed { background: #ffe1df; border-color: #b74550; color: #962936; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
+
+.practice-surface-host { display: flex; flex-direction: column; align-items: center; flex: 1; min-height: 0; min-width: 0; width: 100%; background: #edf5ebc7; border-top: 1px solid #519e8c; border-bottom: 1px solid #519e8c; }
+.practice-surface-host > .performance-surface { height: 100%; width: 100%; max-width: 1200px; flex: 1; min-height: 0; padding: 12px; }
+.practice-room .performance-surface { max-width: none; margin: 0; height: 100%; }
+.practice-room .manual-keyboard { height: 100%; }
+.practice-room .sharp-key span { color: #f3fff5; }
+.practice-room .performance-panel { position: relative; inset: auto; display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; flex: 1; z-index: auto; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.practice-footer { flex: none; height: calc(32px + env(safe-area-inset-bottom, 0px)); min-height: 32px; padding: 4px max(16px, env(safe-area-inset-right, 0px)) 4px max(16px, env(safe-area-inset-left, 0px)); display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 12px; overflow-wrap: anywhere; }
+
+@media (hover: hover) {
+  .practice-actions button:not(:disabled):not([aria-disabled="true"]):hover { border-color: #a44132; box-shadow: inset 0 0 0 1px #a44132; }
+  .practice-stages button:not(:disabled):not([aria-disabled="true"]):hover { background: #f1fff2; }
+  .practice-exit:not(:disabled):hover, .practice-topbar > button:not(:disabled):hover { background: #ffe1df; }
+}
+
+@media (max-width: 900px) {
+  .practice-topbar { gap: 10px; }
+  .practice-room-title { font-size: 17px; }
+  .practice-select { max-width: 230px; gap: 5px; }
+  .practice-guide { gap: 12px; flex-wrap: wrap; }
+  .practice-target strong { font-size: 24px; }
+  .practice-instrument-tools .instrument-illustration { width: 44px; height: 36px; }
+}
+
+@media (max-width: 600px) {
+  .practice-topbar { flex-wrap: wrap; gap: 6px 10px; padding: 6px 10px; }
+  .practice-room-title { flex: 1 1 calc(100% - 60px); order: 0; }
+  .practice-topbar > button, .practice-exit { order: 1; }
+  .practice-select { order: 2; flex: 1 1 40%; max-width: none; }
+  .practice-select > span { font-size: 11px; }
+  .practice-select .instrument-illustration { width: 30px; height: 30px; }
+  .practice-select select { max-width: none; height: 32px; }
+  .practice-stages { padding: 3px 6px; }
+  .practice-stages button { gap: 4px; padding: 4px; font-size: 12px; }
+  .practice-progress { gap: 6px; padding: 4px 10px; font-size: 12px; }
+  .practice-score { font-size: 11px; }
+  .practice-guide { padding: 6px 10px; gap: 8px; }
+  .practice-target { flex: 1 1 45%; }
+  .practice-target strong { font-size: 22px; }
+  .practice-beat-strip { gap: 4px; }
+  .practice-beat-strip > * { width: 24px; height: 24px; }
+  .practice-actions { flex: 1 1 100%; }
+  .practice-phrase-track { padding-inline: 10px; }
+  .practice-surface-host > .performance-surface { padding: 8px; }
+}
+
+@media (max-height: 550px) and (orientation: landscape) {
+  .practice-room { font-size: 12px; }
+  .practice-topbar { flex-wrap: nowrap; gap: 8px; min-height: 40px; height: 40px; padding: 3px 10px; }
+  .practice-room-title { flex: 1 1 160px; order: 0; font-size: 14px; }
+  .practice-room-title > svg { width: 18px; height: 18px; }
+  .practice-select { order: 0; flex: 0 1 240px; max-width: 240px; font-size: 10px; }
+  .practice-select > span { font-size: 10px; }
+  .practice-select select { height: 28px; font-size: 11px; }
+  .practice-select .instrument-illustration { width: 30px; height: 26px; }
+  .practice-topbar > button, .practice-exit { order: 0; width: 30px; height: 30px; }
+  .practice-stages { min-height: 32px; height: 32px; padding: 1px 10px; }
+  .practice-stages button { gap: 5px; padding: 2px 8px; font-size: 11px; }
+  .practice-stages button svg { width: 14px; height: 14px; }
+  .practice-progress { min-height: 26px; padding: 2px 10px; gap: 8px; font-size: 11px; }
+  .practice-score { font-size: 10px; }
+  .practice-guide { flex-wrap: nowrap; min-height: 36px; padding: 3px 10px; gap: 10px; }
+  .practice-target { flex: 1 1 120px; gap: 5px; }
+  .practice-target strong { font-size: 18px; }
+  .practice-target span, .practice-target small { font-size: 10px; }
+  .practice-beat-strip { gap: 4px; }
+  .practice-beat-strip > * { width: 20px; height: 20px; font-size: 10px; }
+  .practice-actions { flex: 0 1 auto; flex-wrap: nowrap; gap: 4px; }
+  .practice-actions button { min-height: 28px; min-width: 28px; padding: 3px 6px; gap: 4px; font-size: 11px; }
+  .practice-actions button svg { width: 14px; height: 14px; }
+  .practice-instrument-tools { gap: 4px; }
+  .practice-instrument-tools .instrument-illustration { width: 30px; height: 26px; }
+  .practice-instrument-tools > span { font-size: 10px; }
+  .practice-phrase-track { min-height: 22px; height: 22px; gap: 4px; padding: 1px 10px; }
+  .practice-phrase-track > * { min-width: 36px; padding: 0 6px; font-size: 10px; }
+  .practice-phrase-track > .is-current, .practice-phrase-track > [aria-current="true"] { padding: 0 5px; }
+  .practice-surface-host > .performance-surface { padding: 6px 10px; }
+  .practice-room .flute-physical-key span { font-size: 7px; }
+  .practice-footer { font-size: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .practice-room *, .practice-room *::before, .practice-room *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

@@ -1,7 +1,29 @@
-import React from 'react';
+import React,{useEffect,useRef} from 'react';
 
-export function YoungMusician({ equipped, accepting }) {
-  return <div id="young-musician" className={`young-musician ${equipped?'equipped':''} ${accepting?'accepting':''}`} role="img" aria-label={equipped?`Child holding ${equipped}`:'Young musician'}>
+export function YoungMusician({ equipped, accepting,onPractice }) {
+  const previous=useRef(null);
+  const element=useRef(null);
+  const practiceAction=useRef(onPractice);practiceAction.current=onPractice;
+  useEffect(()=>{
+    const pointers=new Map();
+    const inside=event=>{const node=element.current;if(!node||node.closest('[inert]'))return false;const box=node.getBoundingClientRect();return event.clientX>=box.left&&event.clientX<=box.right&&event.clientY>=box.top&&event.clientY<=box.bottom;};
+    const down=event=>{if(event.button===0&&inside(event))pointers.set(event.pointerId,{x:event.clientX,y:event.clientY,time:performance.now()});else previous.current=null;};
+    const up=event=>{
+      const start=pointers.get(event.pointerId);pointers.delete(event.pointerId);if(!start)return;
+      const now=performance.now();
+      if(!inside(event)||now-start.time>500||Math.hypot(event.clientX-start.x,event.clientY-start.y)>12){previous.current=null;return;}
+      if(previous.current&&now-previous.current.time<450&&Math.hypot(event.clientX-previous.current.x,event.clientY-previous.current.y)<24){
+        const playback=previous.current.playback;previous.current=null;event.preventDefault();event.stopImmediatePropagation();practiceAction.current?.(playback);
+      }else{
+        const instrument=event.target.closest('.instrument');
+        previous.current={time:now,x:event.clientX,y:event.clientY,playback:instrument?{name:instrument.id.slice(11),active:instrument.getAttribute('aria-pressed')==='true'}:null};
+      }
+    };
+    const cancel=event=>{pointers.delete(event.pointerId);previous.current=null;};
+    document.addEventListener('pointerdown',down,true);document.addEventListener('pointerup',up,true);document.addEventListener('pointercancel',cancel,true);
+    return ()=>{document.removeEventListener('pointerdown',down,true);document.removeEventListener('pointerup',up,true);document.removeEventListener('pointercancel',cancel,true);};
+  },[]);
+  return <div ref={element} id="young-musician" className={`young-musician ${equipped?'equipped':''} ${accepting?'accepting':''}`} role="button" tabIndex={0} aria-label={equipped?`Practice with ${equipped}`:'Enter practice room'} title="Double-tap to practice" onKeyDown={event=>{if(!event.repeat&&['Enter',' '].includes(event.key)){event.preventDefault();onPractice?.();}}}>
     <svg viewBox="0 0 130 170" aria-hidden="true">
       <ellipse cx="65" cy="160" rx="43" ry="7" fill="#294b4226"/>
       <path d="M48 115l-5 35h19l4-31m6-4l4 35h19l-8-37" fill="#4e7e93"/>

@@ -13,6 +13,7 @@ import './components/controls.css';
 import { LandscapeGuard, requestLandscape } from './components/LandscapeGuard';
 import {loadSettings,SETTINGS_KEY} from './utils/settings';
 import {Metronome} from './components/Metronome';
+import {PracticeRoom} from './components/PracticeRoom';
 
 function initialInstruments(selected) {
   return Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,value])=>[name,{...value,...(selected.includes(name)?INSTRUMENT_SLOTS[selected.indexOf(name)]:{}),active:false}]));
@@ -26,6 +27,7 @@ export default function App() {
   const [sceneIndex,setSceneIndex] = useState(0);
   const [mixer,setMixer] = useState(false);
   const [metronomeOpen,setMetronomeOpen] = useState(false);
+  const [practice,setPractice]=useState(null);
   const [settings,setSettings] = useState(()=>loadSettings(localStorage));
   const [sceneVolume,setSceneVolume] = useState(-4);
   const mixerTap = useRef(null);
@@ -209,24 +211,27 @@ export default function App() {
     setSceneIndex(i=>{ const next=(i+1)%SCENES.length; audioRef.current?.setSceneKey(SCENES[next].root); return next; });
   }
 
+  function enterPractice(playback){if(playback)audioRef.current.setInstrumentActive(playback.name,playback.active);drag.current=null;setDragging(null);setNearChild(false);setMixer(false);setMetronomeOpen(false);setPractice(equippedRef.current??settings.selected[0]);}
+
   return <main className={`app-shell ${equipped?'manual-open':''}`}>
-    <div className="landscape-world" ref={worldRef} inert={mixer}>
+    <div className="landscape-world" ref={worldRef} inert={mixer||Boolean(practice)}>
     <Scene sceneIndex={sceneIndex} audio={audioRef.current} onRotate={rotateScene} onCelestialSettled={()=>{if(started)for(const name of Object.keys(INSTRUMENTS))settle(name);}}/>
-    {started&&<YoungMusician equipped={equipped?INSTRUMENTS[equipped].label:null} accepting={nearChild}/>}
+    {started&&<YoungMusician equipped={equipped?INSTRUMENTS[equipped].label:null} accepting={nearChild} onPractice={enterPractice}/>}
     <div className="instrument-layer">
       {settings.selected.map(name=>{const i=instruments[name];return <Instrument key={name} name={name} label={i.label} x={i.x} y={i.y} active={i.active} equipped={equipped===name} sliding={dragging!==name} onEquip={()=>equip(name)} onToggle={toggle}
         onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}/>;}) }
     </div>
     </div>
 
-    <div className="top-bar" inert={mixer} aria-hidden={mixer}>
+    <div className="top-bar" inert={mixer||Boolean(practice)} aria-hidden={mixer||Boolean(practice)}>
       {started && <button className="mixer-button" onClick={activateMixer} aria-expanded={mixer} aria-controls="landscape-mixer" aria-label={mixer?'Close settings':'Open settings'} title={mixer?'Close settings':'Double-click or double-tap to open settings'}>{mixer?<X size={22}/>:<Menu size={22}/>}</button>}
     </div>
 
     {started && mixer && <Mixer instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} settings={settings} onSettings={updateSettings} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
-    {started&&<Metronome audio={audioRef.current} open={metronomeOpen} disabled={mixer} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}
+    {started&&<Metronome audio={audioRef.current} open={metronomeOpen} disabled={mixer||Boolean(practice)} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}
 
-    {equipped&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={SCENES[sceneIndex].root} options={settings.instruments[equipped]} settingsOpen={mixer} onClose={()=>equip(null)}/>}
+    {equipped&&!practice&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={SCENES[sceneIndex].root} options={settings.instruments[equipped]} settingsOpen={mixer} onClose={()=>equip(null)}/>}
+    {practice&&<PracticeRoom audio={audioRef.current} initialInstrument={practice} settings={settings} root={SCENES[sceneIndex].root} onClose={()=>setPractice(null)}/>}
 
     {!started && <StartScreen loading={loading} error={error} onStart={start}/>}
     <LandscapeGuard/>

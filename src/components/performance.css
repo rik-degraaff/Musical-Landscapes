@@ -1,7 +1,8 @@
 .app-shell { --performance-height:270px; }
 .landscape-world { position:absolute;inset:0; }
 .manual-open .landscape-world { bottom:var(--performance-height); }
-.young-musician { position:absolute;left:50%;top:53%;width:100px;height:135px;transform:translate(-50%,-50%);z-index:30;pointer-events:none; }
+.young-musician { position:absolute;left:50%;top:53%;width:100px;height:135px;transform:translate(-50%,-50%);z-index:30;pointer-events:auto;cursor:pointer;touch-action:none; }
+.young-musician:focus-visible { outline:3px solid #bd714b;outline-offset:4px;border-radius:8px; }
 .young-musician svg { width:100%;height:100%;overflow:visible; }
 .young-musician.accepting { filter:drop-shadow(0 0 10px #fff3a0); }
 .young-musician.equipped { animation:musicianBob 2.6s ease-in-out infinite; }

@@ -7,6 +7,7 @@ import { DRUM_NOTES, DRUM_SAMPLES, SAMPLE_LIBRARY, sampleUrls } from './sampleLi
 import { createSustainLoop, MANUAL_RELEASE } from './envelopes';
 import { STRING_INSTRUMENTS } from '../utils/guitar';
 import {equippedProfile} from '../utils/difficulty';
+import {beatOffset} from '../utils/practice';
 
 const MIN_GAIN = -60;
 const FADE_SECONDS = 0.045;
@@ -45,6 +46,11 @@ export class AudioEngine {
     this.equippedPhrase=null;
     this.phraseIdentity=null;
     this.phrasePinned=false;
+    this.practiceSession=null;
+    this.onPracticeInput=null;
+    this.practiceRun=null;
+    this.practiceRunVersion=0;
+    this.onPracticeInterrupt=null;
   }
 
   async init() {
@@ -119,6 +125,7 @@ export class AudioEngine {
   suspendPlayback() {
     if(!this.ready||this.backgrounded)return;
     this.backgrounded=true;
+    if(this.practiceSession){this.stopPracticeRun();this.onPracticeInterrupt?.();}
     window.dispatchEvent(new Event('farmjam-input-reset'));
     this.playbackVersion++;
     this.manualAutoplayVersion++;
@@ -285,6 +292,8 @@ export class AudioEngine {
     if (this.manualAutoplay) this.setManualAutoplay(false);
     const name = this.manualInstrument;
     if (!this.ready || !name) return;
+    const existing=this.manualVoices.get(token);
+    if(this.practiceSession&&(!['flute','melody','panflute'].includes(name)||existing?.note!==note))this.onPracticeInput?.({name,note,token,time:Tone.immediate()});
     Tone.start().catch(console.error);
     if (['flute','melody','panflute'].includes(name)) {
       const current=this.manualVoices.get(token);
@@ -378,6 +387,7 @@ export class AudioEngine {
   ensureTransport() {
     if (!this.ready) return;
     if(this.tempoHeld||this.backgrounded||document.hidden)return;
+    if(this.practiceSession)return;
     if (this.transportEvent === null) {
       this.transportEvent = Tone.Transport.scheduleRepeat(time => this.scheduleBar(time), BAR);
     }
@@ -433,7 +443,84 @@ export class AudioEngine {
   }
 
   shouldSchedule(name) {
+    if(this.practiceSession)return false;
     return this.active[name];
+  }
+
+  beginPractice(name) {
+    if(this.practiceSession)return;
+    this.practiceSession={active:{...this.active},manual:this.manualInstrument,root:this.root,metronomeSound:this.metronomeSound,tempo:this.tempo,equippedPhrase:this.equippedPhrase,phraseIdentity:this.phraseIdentity,phrasePinned:this.phrasePinned};
+    this.stopPracticeRun();this.clearPendingEvents();this.stopManualVoices();
+    window.dispatchEvent(new Event('farmjam-input-reset'));
+    for(const node of Object.values(this.nodes)){node.synth.releaseAll();node.gain.volume.value=MIN_GAIN;}
+    Tone.Transport.stop();Tone.Transport.position=0;this.barIndex=0;this.beatIndex=0;
+    this.active=Object.fromEntries(instrumentNames.map(id=>[id,false]));
+    this.metronomeSound=false;this.tempoHeld=false;
+    this.setManualInstrument(name);
+    this.nodes[name].gain.volume.value=this.volumes[name];
+  }
+
+  stopPracticeRun() {
+    this.practiceRunVersion++;
+    if(this.practiceRun)for(const id of this.practiceRun.ids)Tone.Transport.clear(id);
+    this.practiceRun=null;
+    if(this.practiceSession){
+      Tone.Transport.stop();Tone.Transport.position=0;
+      this.stopManualVoices();this.metronomeSynth?.triggerRelease();
+      for(const [name,node] of Object.entries(this.nodes)){node.synth.releaseAll();if(name!==this.manualInstrument)node.gain.volume.value=MIN_GAIN;}
+    }
+  }
+
+  switchPracticeInstrument(name) {
+    if(!this.practiceSession)return;
+    this.stopPracticeRun();window.dispatchEvent(new Event('farmjam-input-reset'));this.setManualInstrument(name);
+  }
+
+  startPracticeRun(phrase,accompaniment,onStep,onDone,onBeat) {
+    if(!this.practiceSession||this.backgrounded)return null;
+    this.stopPracticeRun();
+    const version=this.practiceRunVersion;
+    const ids=[];
+    this.practiceRun={ids};
+    const valid=()=>this.practiceSession&&version===this.practiceRunVersion&&!this.backgrounded;
+    const draw=(callback,time)=>Tone.Draw.schedule(()=>{if(valid())callback();},time);
+    const beatSeconds=60/this.tempo;
+    const startTime=Tone.now()+.12;
+    const phraseTime=startTime+4*beatSeconds;
+    const schedule=(beat,callback)=>{ids.push(Tone.Transport.scheduleOnce(time=>{if(valid())callback(time);},`${beat*Tone.Transport.PPQ}i`));};
+    for(let beat=0;beat<8;beat++)schedule(beat,time=>{
+      if(beat<4)this.metronomeSynth.triggerAttackRelease(beat===0?'C6':'G5',.035,time,.45);
+      draw(()=>onBeat?.(beat),time);
+    });
+    for(const [eventIndex,event] of phrase.events.entries()){
+      const offset=beatOffset(event.time);
+      schedule(4+offset,time=>draw(()=>onStep?.({...event,eventIndex,duration:Tone.Time(event.dur??'16n').toSeconds()}),time));
+    }
+    if(accompaniment){
+      const partners=this.manualInstrument==='drums'?['piano','ukulele']:['drums',this.manualInstrument==='piano'?'ukulele':'piano'];
+      for(const name of partners){
+        this.nodes[name].gain.volume.value=this.volumes[name]-6;
+        const selected=nearestBar(STRING_INSTRUMENTS[name]?.library[this.root].phrases??patterns[name],.25,.2);
+        const events=STRING_INSTRUMENTS[name]?selected.events:transposeEvents(selected.events,this.root);
+        for(const event of events)schedule(4+beatOffset(event.time),time=>this.playEvent(name,event,time));
+      }
+    }
+    schedule(8.5,time=>draw(()=>{this.stopPracticeRun();onDone?.();},time));
+    Tone.start().catch(console.error);Tone.Transport.start(startTime,0);
+    return {startTime:phraseTime,beatSeconds};
+  }
+
+  practiceTime() {return Tone.immediate();}
+
+  endPractice() {
+    const saved=this.practiceSession;if(!saved)return;
+    this.stopPracticeRun();this.onPracticeInput=null;this.onPracticeInterrupt=null;
+    window.dispatchEvent(new Event('farmjam-input-reset'));
+    this.practiceSession=null;this.active=saved.active;this.root=saved.root;this.metronomeSound=saved.metronomeSound;this.setTempo(saved.tempo);
+    this.setManualInstrument(saved.manual);this.barIndex=0;this.beatIndex=0;
+    this.equippedPhrase=saved.equippedPhrase;this.phraseIdentity=saved.phraseIdentity;this.phrasePinned=saved.phrasePinned;
+    for(const [name,node] of Object.entries(this.nodes))node.gain.volume.value=!this.backgrounded&&!this.tempoHeld&&(this.active[name]||name===this.manualInstrument)?this.volumes[name]:MIN_GAIN;
+    this.ensureTransport();
   }
 
   selectPhrase(name,bar,energy=this.noise[name].energyAt(bar)) {
@@ -559,6 +646,7 @@ export class AudioEngine {
   }
 
   dispose() {
+    this.stopPracticeRun();this.practiceSession=null;this.onPracticeInput=null;this.onPracticeInterrupt=null;
     this.lifecycleCleanup?.();
     this.lifecycleCleanup=null;
     this.playbackVersion++;

@@ -10,7 +10,7 @@ test('instrument difficulty reduces equipped controls and only plays available c
   await expect.poll(()=>page.evaluate(()=>window.chordEvents.length)).toBeGreaterThan(1);
   const available=await page.locator('.chord-name').allTextContents();for(const chord of await page.evaluate(()=>window.chordEvents))expect(available).toContain(chord);
   await page.screenshot({path:`test-results/${testInfo.project.name}-simple-ukulele.png`});
-  await difficulty(page,'ukulele','Standard');await expect(page.locator('.chord-control')).toHaveCount(7);
+  await difficulty(page,'ukulele','Standard');await expect(page.locator('.chord-control')).toHaveCount(6);
   await difficulty(page,'ukulele','Advanced');await expect(page.locator('.chord-control')).toHaveCount(14);
   await page.getByRole('button',{name:'Put instrument down'}).click();await equip(page,'drums');await difficulty(page,'drums','Simple');await expect(page.locator('.drum-pad')).toHaveCount(3);
   await page.getByRole('button',{name:'Put instrument down'}).click();await equip(page,'melody');await difficulty(page,'melody','Simple');await expect(page.locator('.lip-segment')).toHaveCount(2);
