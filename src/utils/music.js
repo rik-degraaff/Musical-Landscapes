@@ -15,8 +15,14 @@ export function note(root, semitones, octave) {
 export function transposeEvents(events, root) {
   return events.map(e => ({
     ...e,
-    notes: e.notes ? [...new Set(e.notes.map(n => e.compactPiano ? compactPianoNote(transposeNote(n, root)) : transposeNote(n, root)))] : undefined,
-    note: e.note && !DRUM_HITS.has(e.note) ? transposeNote(e.note, root) : e.note,
+    notes: e.notes ? [...new Set(e.notes.map(n => {
+      const transposed=transposeNote(n,root);
+      return e.compactPiano?compactPianoNote(transposed):e.compactMarimba?compactMarimbaNote(transposed):e.compactPanflute?compactPanfluteNote(transposed):transposed;
+    }))] : undefined,
+    note: e.note && !DRUM_HITS.has(e.note) ? (()=>{
+      const transposed=transposeNote(e.note,root);
+      return e.compactMarimba?compactMarimbaNote(transposed):e.compactPanflute?compactPanfluteNote(transposed):transposed;
+    })() : e.note,
   }));
 }
 
@@ -27,6 +33,17 @@ function compactPianoNote(value) {
   while(midi<60)midi+=12;
   return `${NOTE_NAMES[midi%12]}${Math.floor(midi/12)-1}`;
 }
+
+function compactNote(value,low,high) {
+  const match=/^([A-G]#?)(\d+)$/.exec(value);
+  let midi=(Number(match[2])+1)*12+NOTE_NAMES.indexOf(match[1]);
+  while(midi>high)midi-=12;
+  while(midi<low)midi+=12;
+  return `${NOTE_NAMES[midi%12]}${Math.floor(midi/12)-1}`;
+}
+
+function compactMarimbaNote(value) {return compactNote(value,72,93);}
+function compactPanfluteNote(value) {return compactNote(value,60,81);}
 
 function transposeNote(value, root) {
   const match = /^([A-G]#?)(-?\d+)$/.exec(value);
@@ -97,7 +114,7 @@ export const patterns = {
     P(.6,.58,[{time:'0:0:0',note:'E5',dur:'8n',velocity:.49},{time:'0:0:2',note:'G5',dur:'8n',velocity:.35},{time:'0:1:0',note:'C6',dur:'4n',velocity:.41},{time:'0:2:0',note:'G5',dur:'8n',velocity:.43},{time:'0:3:0',note:'E5',dur:'4n',velocity:.37}]),
     P(.75,.8,[{time:'0:0:0',note:'C5',dur:'8n',velocity:.52},{time:'0:0:2',note:'E5',dur:'8n',velocity:.36},{time:'0:1:0',note:'G5',dur:'8n',velocity:.45},{time:'0:1:2',note:'C6',dur:'8n',velocity:.38},{time:'0:2:0',note:'B5',dur:'8n',velocity:.44},{time:'0:2:2',note:'G5',dur:'8n',velocity:.36},{time:'0:3:0',note:'E5',dur:'4n',velocity:.42}]),
     P(.91,.95,[{time:'0:0:0',note:'C5',dur:'8n',velocity:.56},{time:'0:0:2',note:'E5',dur:'8n',velocity:.39},{time:'0:1:0',note:'G5',dur:'8n',velocity:.49},{time:'0:1:2',note:'B5',dur:'8n',velocity:.4},{time:'0:2:0',note:'C6',dur:'8n',velocity:.52},{time:'0:2:2',note:'G5',dur:'8n',velocity:.38},{time:'0:3:0',note:'E5',dur:'8n',velocity:.46},{time:'0:3:2',note:'D5',dur:'8n',velocity:.35}]),
-  ],
+  ].map(phrase=>({...phrase,events:phrase.events.map(event=>({...event,compactMarimba:true}))})),
   flute: [
     P(.06,.08,[{time:'0:0:0',note:'G4',dur:'1m',velocity:.28}]),
     P(.18,.2,[{time:'0:0:0',note:'G4',dur:'2n',velocity:.38},{time:'0:2:0',note:'E4',dur:'2n',velocity:.31}]),
@@ -131,7 +148,7 @@ patterns.panflute = [
   P(.45,.45,[{time:'0:0:0',note:'G4',dur:'4n',velocity:.42},{time:'0:1:0',note:'A4',dur:'8n',velocity:.34},{time:'0:1:2',note:'G4',dur:'8n',velocity:.3},{time:'0:2:0',note:'E4',dur:'4n',velocity:.37},{time:'0:3:0',note:'D4',dur:'8n',velocity:.32}]),
   P(.65,.65,[{time:'0:0:0',note:'E4',dur:'8n',velocity:.44},{time:'0:0:2',note:'G4',dur:'8n',velocity:.33},{time:'0:1:0',note:'C5',dur:'4n',velocity:.39},{time:'0:2:0',note:'B4',dur:'8n',velocity:.38},{time:'0:2:2',note:'A4',dur:'8n',velocity:.32},{time:'0:3:0',note:'G4',dur:'4n',velocity:.4}]),
   P(.85,.85,[{time:'0:0:0',note:'C4',dur:'8n',velocity:.48},{time:'0:0:2',note:'E4',dur:'8n',velocity:.34},{time:'0:1:0',note:'G4',dur:'8n',velocity:.42},{time:'0:1:2',note:'A4',dur:'8n',velocity:.35},{time:'0:2:0',note:'C5',dur:'4n',velocity:.44},{time:'0:3:0',note:'G4',dur:'8n',velocity:.38},{time:'0:3:2',note:'E4',dur:'8n',velocity:.32}])
-];
+].map(phrase=>({...phrase,events:phrase.events.map(event=>({...event,compactPanflute:true}))}));
 
 export const DEFAULT_INSTRUMENTS = ['piano','drums','ukulele','melody','marimba','panflute'];
 export const INSTRUMENT_SLOTS = [{x:15,y:35},{x:50,y:35},{x:85,y:35},{x:15,y:67},{x:50,y:67},{x:85,y:67}];

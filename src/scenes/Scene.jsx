@@ -10,14 +10,16 @@ import { LandscapeArt } from './LandscapeArt';
 import { ObjectArt } from './ObjectArt';
 import './scene-art.css';
 import { WATER_DROP_TIMES, WATER_DROP_FALL, WATER_DURATION } from '../audio/sceneSounds';
+import {SCENE_ROOTS} from '../utils/dayCycle';
 
 export const SCENES = [
-  { id:'farm', name:'Sunny Farm', root:'C', component:FarmScene },
-  { id:'garden', name:'Little Garden', root:'G', component:GardenScene },
-  { id:'pond', name:'Pond Meadow', root:'F', component:PondScene },
-  { id:'dusk', name:'Evening Meadow', root:'F', component:DuskScene },
-  { id:'night', name:'Sleepy Night', root:'A', component:NightScene },
-  { id:'dawn', name:'First Light', root:'C', component:DawnScene },
+  { id:'farm', name:'Sunny Farm', root:SCENE_ROOTS.farm, component:FarmScene },
+  { id:'garden', name:'Little Garden', root:SCENE_ROOTS.garden, component:GardenScene },
+  { id:'pond', name:'Pond Meadow', root:SCENE_ROOTS.pond, component:PondScene },
+  { id:'dusk', name:'Evening Meadow', root:SCENE_ROOTS.dusk, component:DuskScene },
+  { id:'night', name:'Sleepy Night', root:SCENE_ROOTS.night, component:NightScene },
+  { id:'late-night', name:'Moonlit Meadow', root:SCENE_ROOTS.lateNight, component:NightScene },
+  { id:'dawn', name:'First Light', root:SCENE_ROOTS.dawn, component:DawnScene },
 ];
 
 export function InteractiveObject({ sound, audio, label, className='' }) {

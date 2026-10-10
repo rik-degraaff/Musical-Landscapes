@@ -4,7 +4,7 @@ import {INSTRUMENTS} from '../src/utils/music.js';
 import {equippedProfile} from '../src/utils/difficulty.js';
 import {noteMidi,trumpetInput} from '../src/utils/autoplay.js';
 import {fluteInput} from '../src/utils/wind.js';
-import {PANFLUTE_NOTES} from '../src/utils/performance.js';
+import {PIANO_NOTES,MARIMBA_NOTES,PANFLUTE_NOTES} from '../src/utils/performance.js';
 
 const ROOTS=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
@@ -43,6 +43,8 @@ test('every equipped phrase is playable with its controls and chord pool in ever
   for(const name of Object.keys(INSTRUMENTS))for(const root of ROOTS)for(const complexity of [.35,1,1.5]){
     const profile=equippedProfile(name,root,{complexity});assert.ok(profile.phrases.length);
     if(['guitar','ukulele'].includes(name))assert.equal(profile.chords.length,complexity<=.5?3:complexity<=1?6:14);
+    const fixedRange=name==='piano'?PIANO_NOTES:name==='marimba'?MARIMBA_NOTES:name==='panflute'?PANFLUTE_NOTES:null;
+    if(fixedRange)for(const note of profile.notes)assert.ok(fixedRange.includes(note),`${name} ${root} ${complexity} out of range ${note}`);
     for(const phrase of profile.phrases)for(const event of phrase.events){
       if(['guitar','ukulele'].includes(name)){
         const chord=profile.chords.find(value=>value.name===event.chord);assert.ok(chord,`${name} ${root} missing ${event.chord}`);

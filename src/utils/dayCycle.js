@@ -1,4 +1,5 @@
-export const DAY_PHASES = { farm: 0.22, garden: 0.5, pond: 0.77, dusk: 0.96, night: 1.5, dawn: 0.04 };
+export const SCENE_ROOTS = Object.freeze({farm:'C',garden:'G',pond:'D',dusk:'A',night:'E',lateNight:'B',dawn:'F#'});
+export const DAY_PHASES = { farm: 0.22, garden: 0.5, pond: 0.77, dusk: 0.96, night: 1.28, 'late-night': 1.68, dawn: 0.04 };
 
 export function nextDayPhase(current, scene) {
   const target = DAY_PHASES[scene];

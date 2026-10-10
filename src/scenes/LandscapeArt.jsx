@@ -22,7 +22,7 @@ export function LandscapeArt({ scene, phase }) {
     observer.observe(artRef.current);resize();
     return () => observer.disconnect();
   }, []);
-  const night = scene === 'night';
+  const night = scene === 'night'||scene==='late-night';
   const pond = scene === 'pond';
   const garden = scene === 'garden';
   const dawn = scene === 'dawn';

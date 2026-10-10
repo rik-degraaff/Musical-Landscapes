@@ -9,7 +9,7 @@ test.beforeEach(async({page})=>{
 });
 
 const instruments = ['piano', 'drums', 'guitar', 'melody', 'marimba', 'flute'];
-const objects = [['Cow', 'Tractor'], ['Outdoor faucet', 'Bird'], ['Frog', 'Windmill'], ['Cricket','Airplane'], ['Little bell', 'Night owl'], ['Rooster', 'Wind chimes']];
+const objects = [['Cow', 'Tractor'], ['Outdoor faucet', 'Bird'], ['Frog', 'Windmill'], ['Cricket','Airplane'], ['Little bell', 'Night owl'], ['Little bell', 'Night owl'], ['Rooster', 'Wind chimes']];
 
 test('all bundled recordings decode and a failed sample load can be retried', async ({ page }, testInfo) => {
   const viewport=page.viewportSize();
@@ -160,7 +160,7 @@ test('audio resumes after suspension, mixer settings persist and reduced motion 
   expect(errors).toEqual([]);
 });
 
-test('every object is reachable, audible and animates repeatedly in all six scenes', async ({ page }, testInfo) => {
+test('every object is reachable, audible and animates repeatedly in all seven scenes', async ({ page }, testInfo) => {
   const errors = await startWorld(page);
   for (let sceneIndex = 0; sceneIndex < objects.length; sceneIndex++) {
     for (const label of objects[sceneIndex]) {

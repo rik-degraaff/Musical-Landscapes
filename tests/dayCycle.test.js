@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DAY_PHASES, celestialPosition, nextDayPhase } from '../src/utils/dayCycle.js';
+import { DAY_PHASES, SCENE_ROOTS, celestialPosition, nextDayPhase } from '../src/utils/dayCycle.js';
+
+test('scene roots are unique around a circle-of-fifths day/night route',()=>{
+  const ids=['farm','garden','pond','dusk','night','lateNight','dawn'];
+  const roots=ids.map(id=>SCENE_ROOTS[id]);
+  assert.deepEqual(roots,['C','G','D','A','E','B','F#']);
+  assert.equal(new Set(roots).size,roots.length);
+});
 
 test('sun progresses left to right across a day with midday at the apex', () => {
   const positions = ['dawn', 'farm', 'garden', 'pond', 'dusk'].map(scene => celestialPosition(DAY_PHASES[scene]));
@@ -12,13 +19,19 @@ test('sun progresses left to right across a day with midday at the apex', () => 
   assert.ok(positions.every(position => !position.moon));
 });
 
-test('night follows sunset and dawn wraps forward, including interrupted transitions', () => {
+test('the moon travels from left to right across two night scenes before dawn', () => {
   const night = nextDayPhase(DAY_PHASES.dusk, 'night');
-  const dawn = nextDayPhase(night, 'dawn');
-  assert.equal(night, 1.5);
+  const lateNight = nextDayPhase(night, 'late-night');
+  const dawn = nextDayPhase(lateNight, 'dawn');
+  assert.equal(night, 1.28);
+  assert.equal(lateNight, 1.68);
   assert.equal(dawn, 2.04);
   assert.equal(nextDayPhase(dawn, 'farm'), 2.22);
-  assert.ok(celestialPosition(night).moon);
+  const firstMoon=celestialPosition(night),secondMoon=celestialPosition(lateNight);
+  assert.ok(firstMoon.moon&&secondMoon.moon);
+  assert.ok(firstMoon.x<secondMoon.x);
+  assert.ok(Math.abs(firstMoon.x-33.28)<1e-8);
+  assert.ok(Math.abs(secondMoon.x-63.68)<1e-8);
   assert.ok(!celestialPosition(dawn).moon);
   assert.equal(nextDayPhase(0.7, 'dusk'), 0.96);
 });

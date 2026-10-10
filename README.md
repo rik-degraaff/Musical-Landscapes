@@ -1,6 +1,6 @@
 # FarmJam
 
-A touch-first React/Vite music toy for small children. Instruments can be dragged around the landscape and tapped on/off. Tap the sun or moon to move to the next landscape: morning, midday, afternoon, dusk, night, and dawn. The celestial body follows an animated arc, with reduced-motion support. The music is generated from a library of hand-written one-bar patterns rather than generated note-by-note.
+A touch-first React/Vite music toy for small children. Instruments can be dragged around the landscape and tapped on/off. Tap the sun or moon to move through the seven-stop day/night cycle: farm, garden, pond, dusk, two moonlit scenes, and dawn. The sun and moon follow their arc, with the first moon left of center and the second farther right. Each stop has a unique concert root following C, G, D, A, E, B, F-sharp before the cycle returns to C. The music is generated from a library of hand-written one-bar patterns rather than generated note-by-note.
 
 The default six are piano, drums, ukulele, trumpet, marimba, and pan flute. Settings > Instruments has six slot selectors drawn from an eight-instrument catalog: guitar and concert flute remain available as alternatives. Selections persist locally; choosing an instrument already in another slot swaps the two rather than duplicating it. Removing an active or equipped instrument stops its voices and closes its performance surface safely.
 
@@ -63,7 +63,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The browser suite starts Vite locally. It measures actual Web Audio waveforms for all six instruments and ten scene objects, decodes all bundled recordings, tests failed-load retry, verifies saved gain corrections and full-mix headroom, exercises rapid toggles and repeated taps, checks dragging, cancellation, keyboard control, audio suspension recovery, mixer persistence and reduced motion, and captures each landscape at desktop, portrait phone and compact landscape sizes. Screenshots and failure traces go into the ignored `test-results/` directory.
+The browser suite starts Vite locally. It measures actual Web Audio waveforms for the instruments and scene objects, decodes all bundled recordings, tests failed-load retry, verifies saved gain corrections and full-mix headroom, exercises rapid toggles and repeated taps, checks dragging, cancellation, keyboard control, audio suspension recovery, mixer persistence and reduced motion, and captures each landscape at desktop, portrait phone and compact landscape sizes. Screenshots and failure traces go into the ignored `test-results/` directory.
 
 ## Structure
 
@@ -89,7 +89,7 @@ src/
     NoteParticles.jsx     Reusable particle component
   scenes/
     Scene.jsx             Scene registry and rotation control
-    LandscapeArt.jsx      Responsive illustrated backgrounds for all six worlds
+    LandscapeArt.jsx      Responsive illustrated backgrounds for all seven stops
     ObjectArt.jsx         Matching interactive object illustrations
     scene-art.css         Scene styling and object-specific animation
     FarmScene.jsx         Cow + tractor
@@ -111,7 +111,7 @@ Every hand-written bar has an `(energy, complexity)` coordinate. At each bar the
 
 This means the music can move gradually through the pattern library while still being constrained to known, musical phrases. Instruments do not all follow the same path because their noise fields use different seeds and speeds.
 
-Changing the landscape also changes the musical root. The pattern library is written around C and is transposed to each scene's root at scheduling time. Percussion labels are kept intact during transposition.
+Changing the landscape also changes the musical root. The pattern library is written around C and transposed through a unique seven-key circle-of-fifths route at each stop. Marimba and pan-flute pitches fold by octave inside their existing fixed note banks, retaining each transposed pitch class. Percussion labels are kept intact during transposition.
 
 ## Instrument sounds
 
@@ -149,7 +149,7 @@ The downloader parses the soundfont data without executing remote JavaScript, ex
 - Backgrounding, page hiding, or an audio-context interruption stops the transport, clears pending notes and UI cues, and releases held manual inputs and sounding samples. On return, active instruments and the metronome restart together at a fresh downbeat rather than trying to replay missed callbacks. Instrument selections, active states, tempo, and sound settings are retained. If the browser requires a gesture to resume audio, the next tap/key press retries recovery.
 - Trumpet lip and valve ownership is cleared on blur, backgrounding, and audio interruption. Window-level pointer release/cancel and mouse-button-loss handling prevent missed local releases from leaving an indefinitely looping wind voice.
 - Bar downbeats use the transport callback's audio timestamp directly; later notes use transport positions. Drum labels map to explicit sampler pitches and hit-specific durations.
-- All six scenes have at least two interactive objects.
+- All seven landscapes have at least two interactive objects.
 - Instrument volume settings are remembered when a muted instrument is switched back on.
 - Opening the mixer requires two clicks or taps within 450 ms; a single click/tap still closes it. Keyboard users can activate the focused mixer button twice with Enter or Space.
 - The mixer has one shared **Scenery sounds** slider for all non-instrument sounds, including a mute setting at -60 dB. Its setting persists across scenes and does not alter instrument levels.
@@ -191,8 +191,9 @@ Switch instruments, phrases, or stages at any time. Timed attempts can be paused
 2. **Little Garden** — outdoor faucet and bird
 3. **Pond Meadow** — frog and windmill
 4. **Evening Meadow** — a setting sun, early stars and fireflies, a chirping cricket and a banking propeller airplane
-5. **Sleepy Night** — bell and owl
-6. **First Light** — a rising sun over misty fields, a recorded rooster crow and swaying wind chimes
+5. **Sleepy Night** — the first moonrise, with bell and owl
+6. **Moonlit Meadow** — the moon continues rightward through a starry meadow with bell and owl
+7. **First Light** — a rising sun over misty fields, a recorded rooster crow and swaying wind chimes
 
 The circular arrow control in the bottom-right rotates through the scenes. The illustrations include rolling fields, a flower garden, reflective pond water, and a moonlit woodland with fireflies. Scenery proportions adapt to portrait and landscape screens.
 

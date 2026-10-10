@@ -154,7 +154,7 @@ test('guitar labels and sounding chords follow key changes without enabling play
   await page.getByRole('button',{name:'Change landscape'}).click({force:true});
   const library=await page.evaluate(async()=>{
     const {GUITAR_LIBRARY,OPEN_STRINGS}=await import('/src/utils/guitar.js');
-    return {G:GUITAR_LIBRARY.G,F:GUITAR_LIBRARY.F,open:OPEN_STRINGS};
+    return {G:GUITAR_LIBRARY.G,D:GUITAR_LIBRARY.D,open:OPEN_STRINGS};
   });
   const expectStrings=async notes=>{
     for(const [index,note] of notes.entries())await expect(page.locator('.playable-string').nth(index)).toHaveAttribute('aria-label',`Guitar string ${index+1}${note?` ${note}`:' muted'}`);
@@ -182,8 +182,8 @@ test('guitar labels and sounding chords follow key changes without enabling play
   await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   await expectStrings(library.open);
   await page.getByRole('button',{name:'Change landscape'}).click({force:true});
-  await expect(page.locator('.chord-name')).toHaveText(library.F.chords.map(chord=>chord.name));
-  for(const chord of library.F.chords)await expect(page.getByRole('button',{name:`Hold guitar chord ${chord.name}`,exact:true})).toBeVisible();
+  await expect(page.locator('.chord-name')).toHaveText(library.D.chords.map(chord=>chord.name));
+  for(const chord of library.D.chords)await expect(page.getByRole('button',{name:`Hold guitar chord ${chord.name}`,exact:true})).toBeVisible();
   expect(await page.evaluate(()=>window.audioEngine.active.guitar)).toBe(false);
 });
 

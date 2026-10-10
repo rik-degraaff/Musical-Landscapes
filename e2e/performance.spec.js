@@ -199,6 +199,11 @@ test('dusk cricket and airplane remain playable with an equipped instrument',asy
   await page.getByRole('button',{name:'Change landscape'}).click({force:true});
   await expect(page.locator('.scene-night')).toBeVisible();
   await expect(page.locator('.celestial-control')).toHaveAttribute('data-settled','true');
+  const firstMoon=await page.locator('.celestial-control').boundingBox();
+  await page.getByRole('button',{name:'Change landscape'}).click({force:true});
+  await expect(page.locator('.scene-late-night')).toBeVisible();
+  await expect(page.locator('.celestial-control.is-moon')).toHaveAttribute('data-settled','true');
+  const secondMoon=await page.locator('.celestial-control').boundingBox();expect(secondMoon.x).toBeGreaterThan(firstMoon.x);
   await page.getByRole('button',{name:'Change landscape'}).click({force:true});
   await expect(page.locator('.scene-dawn')).toBeVisible();
   await expect(page.locator('.celestial-control')).toHaveAttribute('data-settled','true');
@@ -374,7 +379,7 @@ test('sun travels along the arc before settling at midday and supports rapid sce
   await page.waitForTimeout(1100);
   const settled = await control.boundingBox();
   expect(settled.x+settled.width/2).toBeCloseTo(page.viewportSize().width/2,0);
-  for(let index=0;index<5;index++) await tapCelestial();
+  for(let index=0;index<6;index++) await tapCelestial();
   await expect(page.locator('.scene-farm')).toBeVisible();
   await page.waitForTimeout(1100);
   await expect(control).toHaveClass(/is-sun/);
@@ -406,10 +411,14 @@ test('sun and moon advance the day, remain circular, and keep controls aligned t
   });
   expect(skyLayers).toEqual({sunBeforeTerrain:true,pulse:'celestialPulse'});
   await page.emulateMedia({reducedMotion:'reduce'});
+  const sceneKeys=await page.evaluate(async()=>{const {SCENES}=await import('/src/scenes/Scene.jsx');return SCENES.map(({id,root})=>({id,root}));});
+  expect(sceneKeys).toEqual([{id:'farm',root:'C'},{id:'garden',root:'G'},{id:'pond',root:'D'},{id:'dusk',root:'A'},{id:'night',root:'E'},{id:'late-night',root:'B'},{id:'dawn',root:'F#'}]);
+  expect(new Set(sceneKeys.map(value=>value.root)).size).toBe(sceneKeys.length);
   const positions = [];
-  for (const scene of ['farm','garden','pond','dusk','night','dawn']) {
+  for (const [index,scene] of ['farm','garden','pond','dusk','night','late-night','dawn'].entries()) {
     await expect(page.locator(`.scene-${scene}`)).toBeVisible();
-    await expect(control).toHaveClass(new RegExp(scene === 'night' ? 'is-moon' : 'is-sun'));
+    await expect.poll(()=>page.evaluate(()=>window.audioEngine.root)).toBe(sceneKeys[index].root);
+    await expect(control).toHaveClass(new RegExp(['night','late-night'].includes(scene) ? 'is-moon' : 'is-sun'));
     const bounds = await control.boundingBox();
     expect(bounds.width).toBe(64);
     expect(bounds.height).toBe(64);
@@ -421,7 +430,8 @@ test('sun and moon advance the day, remain circular, and keep controls aligned t
   expect(positions[0]).toBeLessThan(positions[1]);
   expect(positions[1]).toBeLessThan(positions[2]);
   expect(positions[2]).toBeLessThan(positions[3]);
-  expect(positions[5]).toBeLessThan(positions[0]);
+  expect(positions[4]).toBeLessThan(positions[5]);
+  expect(positions[6]).toBeLessThan(positions[0]);
   await equip(page,'piano');
   for (const viewport of [{width:851,height:393},{width:780,height:284},{width:1440,height:900}]) {
     await page.setViewportSize(viewport);
