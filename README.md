@@ -195,6 +195,8 @@ Piano, guitar and marimba also respond to swipes that begin outside playable key
 
 ## Practice Room
 
+Correct and incorrect practice inputs create independent green check or coral retry indicators near the played control. Each stays visible while floating upward and fading over 2.6 seconds, so rapid notes can show several outcomes together instead of replacing the previous visual response. Indicators never intercept taps, clear on practice reset, and use a stationary fade with reduced motion enabled. The status message remains available for screen readers.
+
 Double-tap the selected child's avatar or the instrument they are holding to enter the full-viewport practice room inside the farm. Entry preserves the playback state from before the first tap; a single tap still toggles the equipped instrument's playback. An equipped instrument is selected initially; otherwise practice starts with the first landscape instrument. Keyboard users can focus the avatar and press Enter or Space. All eight instruments are available in the instrument selector, with phrases filtered to the instrument's saved difficulty and the current scene key. Practice always shows note/control labels and string fingering charts.
 
 Practice has four stages:
