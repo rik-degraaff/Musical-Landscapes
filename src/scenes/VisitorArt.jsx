@@ -83,6 +83,9 @@ export function VisitorArt({ type }) {
       </g>;
     case 'woodpecker':
       return <g className="visitor-art visitor-woodpecker" stroke="#4e6566" strokeWidth="2.5">
+        <ellipse cx="123" cy="132" rx="32" ry="5" fill="#345c4930" stroke="none" />
+        <path d="M110 119q-2 10-17 14h22l10-7l8 7h23q-16-7-14-14" fill="#bc9979" stroke="#876e5c" />
+        <path d="M97 128q-13-17-21-7q4 13 21 7m49 0q-2-19 12-15q6 11-12 15" fill="#9caf83" stroke="#69846b" strokeWidth="2" />
         <path d="M110 130V14q17-10 32 0v116Z" fill="#bc9979" stroke="#876e5c" />
         <path d="M119 18v22m12-19v40m-10-9v31m13-10v36m-15-18v31" stroke="#92765c" strokeWidth="2" /><ellipse cx="131" cy="51" rx="5" ry="9" fill="#9d7b5f" stroke="#876e5c" /><path d="M129 49q5 2 0 5" fill="none" stroke="#dabb93" />
         <path d="M141 30q17-15 14-27q-18 2-14 27" fill="#9caf83" stroke="#69846b" />

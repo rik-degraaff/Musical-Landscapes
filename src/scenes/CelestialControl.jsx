@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { DAY_PHASES, nextDayPhase, celestialPosition } from '../utils/dayCycle';
 
 export function useCelestialPhase(scene, onSettled) {
@@ -7,6 +7,11 @@ export function useCelestialPhase(scene, onSettled) {
   const callbackRef = useRef(onSettled);
   callbackRef.current = onSettled;
   const [settledScene,setSettledScene] = useState(null);
+  useLayoutEffect(()=>{
+    if(settledScene!==scene)return;
+    const frame=requestAnimationFrame(()=>callbackRef.current?.());
+    return ()=>cancelAnimationFrame(frame);
+  },[scene,settledScene]);
   useEffect(() => {
     const from = phaseRef.current;
     const to = nextDayPhase(from, scene);
@@ -14,7 +19,6 @@ export function useCelestialPhase(scene, onSettled) {
       phaseRef.current = to;
       setPhase(to);
       setSettledScene(scene);
-      requestAnimationFrame(()=>callbackRef.current?.());
       return;
     }
     let frame;
@@ -28,7 +32,6 @@ export function useCelestialPhase(scene, onSettled) {
       if (progress < 1) frame = requestAnimationFrame(animate);
       else {
         setSettledScene(scene);
-        requestAnimationFrame(()=>callbackRef.current?.());
       }
     };
     frame = requestAnimationFrame(animate);

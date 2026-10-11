@@ -94,8 +94,8 @@ export function LandscapeArt({ scene, phase }) {
       {Array.from({ length: 18 }, (_, index) => <g key={index} transform={`translate(${255 + index * 17} ${780 + Math.sin(index) * 18})`}><path d="M0 0v-27m0 14q-15-16-17-1m17-7q15-16 18-4" fill="none" stroke="#40724e" strokeWidth="3" /><circle cy="-29" r="9" fill={['#f3a5a3', '#fff0b0', '#d8b7dd'][index % 3]} /><circle cy="-29" r="3" fill="#dc9955" /></g>)}
     </>}
     {pond && <>
-      <path d="M404 579 Q692 525 1052 605 T1310 780 L1440 900 H198 Q260 719 404 579Z" fill="#afc99a" />
-      <path d="M426 600 Q698 551 1037 621 T1285 791 L1390 900 H249 Q291 725 426 600Z" fill={`url(#${scene}-water)`} />
+      <path d="M404 579 Q692 525 1052 605 T1310 780 L1440 900 H198 Q270 829 305 792 Q345 758 305 715 Q347 642 404 579Z" fill="#afc99a" />
+      <path d="M426 600 Q698 551 1037 621 T1285 791 L1390 900 H249 Q313 835 352 797 Q400 755 349 716 Q379 653 426 600Z" fill={`url(#${scene}-water)`} />
       <g className="pond-reflections" stroke="#d1eee2" strokeWidth="4" strokeLinecap="round" opacity=".45"><path d="M480 652h98 M843 684h110 M540 758h127 M1090 803h108 M759 857h143 M1025 730h47 M378 822h59" /></g>
       <g fill="#4f8e69"><ellipse cx="675" cy="787" rx="43" ry="13" /><ellipse cx="1030" cy="717" rx="35" ry="10" /><ellipse cx="1133" cy="846" rx="48" ry="14" /></g>
       <g fill="#f5c2cc"><path d="M659 785q-3-33 16-13q16-27 25 6Z" /><path d="M1017 715q-6-24 12-14q14-20 25 11Z" /></g>

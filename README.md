@@ -67,6 +67,8 @@ npm run test:e2e
 
 The browser suite starts Vite locally. It measures actual Web Audio waveforms for the instruments and scene objects, decodes all bundled recordings, tests failed-load retry, verifies saved gain corrections and full-mix headroom, exercises rapid toggles and repeated taps, checks dragging, cancellation, keyboard control, audio suspension recovery, mixer persistence and reduced motion, and captures each landscape at desktop, portrait phone and compact landscape sizes. Screenshots and failure traces go into the ignored `test-results/` directory.
 
+The focused [scene-composition test](e2e/scene-composition.spec.js) covers all 28 regular and visitor objects across seven scenes using regular, frequent and rare rolls at 1440x900, 1024x768, 852x393, 780x284 and 640x360. It captures unequipped object details and whole-scene screenshots both unequipped and with piano equipped. Checks cover viewport bounds, sensible sizes, ground/water/sky habitat thresholds, object-to-object overlap, equipped-instrument/settings clearance, reachable object centers and instrument clearance from the settled sun or moon. Screenshots support visual habitat review; the numeric thresholds alone do not prove exact contact with a branch or bank. Run this slice with `npm run test:e2e -- e2e/scene-composition.spec.js --project=desktop`. This describes coverage, not a claim that the full suite has passed.
+
 ## Structure
 
 ```text
@@ -94,6 +96,7 @@ src/
     LandscapeArt.jsx      Responsive illustrated backgrounds for all seven stops
     ObjectArt.jsx         Matching interactive object illustrations
     scene-art.css         Scene styling and object-specific animation
+    object-placement.css  Per-object habitat anchors and responsive sizes
     FarmScene.jsx         Cow + tractor
     GardenScene.jsx       Outdoor faucet + bird
     PondScene.jsx         Frog + windmill
@@ -249,6 +252,10 @@ The circular arrow control in the bottom-right rotates through the scenes. The i
 In Evening Meadow, tapping the cricket makes it hop and rub its wings to a real CC0 cricket recording. The farm cow also plays a real CC0 moo recording. Source credits and reproducible processing commands are in [the scenery attribution file](public/audio/scenery/ATTRIBUTION.md). The airplane triggers a short banking flyby, spinning propeller and a soft tapered engine sound. Late-night bat wings and hedgehog footsteps have distinct original foley rendered to local WAVs. All effects use offline loudness analysis and the shared scenery mixer; reduced-motion preferences apply to their visual reactions.
 
 ## Interactive objects
+
+Placement follows each object's identity, not the location of the slot it replaces. [Scene.jsx](src/scenes/Scene.jsx) imports [object-placement.css](src/scenes/object-placement.css) after the animation styles; its anchors align objects with the scenery in [LandscapeArt.jsx](src/scenes/LandscapeArt.jsx). Cow, sheep, horse and tractor occupy the farm ground/pasture; faucet stands on garden ground; rooster, cricket, cicada, hedgehog, fox, badger and deer stay on dry ground. Bird, owl and dove perch by tree branches, bell and chimes hang by branches, woodpecker has a rooted stump, and bees hover at the flowerbed. Duck and otter swim in the pond, frog sits on the dry left bank, and windmill stands on the right bank. Airplane, bat, balloon, luna moth and shooting star use sky anchors.
+
+Standard object widths use `clamp(76px, min(13.4vh, 12vw), 120px)`, with height at 87.5% of width. Windmill is square at 90-160px; tractor is 84-145px; airplane is 76-128px. Horizontal bounds retain a 4px inset. Short landscapes adjust branch, stump, windmill and bat positions; opening a manual instrument preserves object sizes and shifts the duck from 53% to 62% across the scene to clear the held instrument. The pond bank artwork remains a small supporting detail rather than a replacement for per-object anchors.
 
 Each object has a distinct sound and a replayable response: the cow nods and moos, the tractor rattles with exhaust, the faucet makes three gentle drips with animated falling drops and impact ripples, the bird flies and chirps, the frog leaps and croaks with ripples, the windmill spins faster with airy wooden clacks, the bell swings and rings, and the owl blinks and hoots. Reduced-motion preferences are respected.
 

@@ -10,6 +10,7 @@ import { CelestialControl, useCelestialPhase } from './CelestialControl';
 import { LandscapeArt } from './LandscapeArt';
 import { ObjectArt } from './ObjectArt';
 import './scene-art.css';
+import './object-placement.css';
 import { WATER_DROP_TIMES, WATER_DROP_FALL, WATER_DURATION } from '../audio/sceneSounds';
 import {SCENE_ROOTS} from '../utils/dayCycle';
 import {sceneObjectPair,visitorRoll} from '../utils/sceneVisitors';
