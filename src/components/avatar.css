@@ -1,3 +1,5 @@
+.avatar-match-colors { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; margin-bottom: 8px; padding: 6px 10px; border: 1px solid #578676; border-radius: 4px; background: #e2f5df; color: #245d45; font: inherit; font-weight: 700; cursor: pointer; }
+.avatar-match-colors:focus-visible { outline: 3px solid #a44132; outline-offset: 2px; }
 .child-menu { touch-action: pan-y; overscroll-behavior: contain; }
 .start-overlay .child-menu { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 14px; width: min(740px, 94vw); max-height: 45dvh; overflow-y: auto; padding: 10px; }
 .child-choice { position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; width: 116px; min-height: 145px; padding: 8px; border: 2px solid #8aa99b; border-radius: 8px; background: #f5fff4; color: #254f43; cursor: pointer; }
@@ -36,8 +38,9 @@
 .avatar-designer input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .avatar-designer label:has(input:focus-visible) { outline: 3px solid #a34b19; outline-offset: 2px; }
 .avatar-palette-row { display: flex; flex-wrap: wrap; gap: 0 14px; }
-.avatar-palette > div { display: flex; gap: 5px; }
-.avatar-palette label { position: relative; display: grid; place-items: center; width: 30px; height: 30px; border: 2px solid transparent; border-radius: 50%; cursor: pointer; }
+.avatar-palette { flex: 1 1 175px; max-width: 100%; }
+.avatar-palette > div { display: flex; flex-wrap: wrap; gap: 5px; }
+.avatar-palette label { position: relative; display: grid; place-items: center; flex: none; width: 30px; height: 30px; border: 2px solid transparent; border-radius: 50%; cursor: pointer; }
 .avatar-palette label.is-selected { border-color: #245d52; }
 .avatar-palette label > span { display: block; width: 22px; height: 22px; border: 1px solid #35474366; border-radius: 50%; background: var(--swatch); }
 .avatar-palette label.is-selected > span { box-shadow: inset 0 0 0 2px #ffffffb3; }
@@ -53,4 +56,5 @@
 @media (max-height: 550px) and (orientation: landscape) {
   .avatar-designer { grid-template-columns: 150px minmax(0,1fr); gap: 16px; }
   .avatar-live-preview { padding: 6px; }
+  .avatar-live-preview > .child-avatar { width: auto; max-width: 100%; height: min(160px, max(72px, calc(100dvh - 170px))); }
 }

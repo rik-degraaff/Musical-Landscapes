@@ -1,10 +1,12 @@
 import React from 'react';
+import {Copy} from 'lucide-react';
 import {AVATAR_OPTIONS,AVATAR_COLORS,normalizeAvatar} from '../utils/children';
 import {ChildAvatar} from './ChildAvatar';
 import './avatar.css';
 
-const STYLE_LABELS={short:'Short',bob:'Bob',curls:'Curls',ponytail:'Ponytail',tee:'T-shirt',sweater:'Sweater',overalls:'Overalls',trousers:'Trousers',shorts:'Shorts',skirt:'Skirt'};
-const COLOR_LABELS={skin:['Light','Warm','Tan','Deep'],hair:['Chestnut','Black','Auburn','Golden'],eyes:['Charcoal','Blue','Green','Brown'],topPrimary:['Coral','Teal','Blue','Gold'],topSecondary:['Butter','Mint','Rose','Ink'],bottomPrimary:['Denim','Moss','Plum','Graphite'],bottomSecondary:['Gold','Mint','Peach','Lilac']};
+const STYLE_LABELS={short:'Short',bob:'Bob',curls:'Curls',ponytail:'Ponytail',longCurls:'Long curls',longStraight:'Long straight',tee:'T-shirt',sweater:'Sweater',overalls:'Overalls',hoodie:'Hoodie',cardigan:'Cardigan',trousers:'Trousers',shorts:'Shorts',skirt:'Skirt',joggers:'Joggers',leggings:'Leggings'};
+const CLOTHING_LABELS=['Coral','Teal','Blue','Ochre','Butter','Mint','Rose','Ink','Denim','Moss','Plum','Graphite','Gold','Seafoam','Peach','Lilac','Berry','Ivory','Black','Sky'];
+const COLOR_LABELS={skin:['Light','Warm','Tan','Deep','Light golden','Golden beige','Warm brown','Rich brown'],hair:['Chestnut','Black','Auburn','Golden','Brown','Copper','Sandy','Silver'],eyes:['Charcoal','Blue','Green','Brown','Dark brown','Hazel','Grey','Deep blue'],topPrimary:CLOTHING_LABELS,topSecondary:CLOTHING_LABELS,bottomPrimary:CLOTHING_LABELS,bottomSecondary:CLOTHING_LABELS};
 
 export function AvatarDesigner({avatar,age='5to7',onChange,name=''}) {
   const look=normalizeAvatar(avatar);
@@ -22,6 +24,7 @@ export function AvatarDesigner({avatar,age='5to7',onChange,name=''}) {
       {styles('top','Top style')}
       <div className="avatar-palette-row">{palette('topPrimary','Top primary color')}{palette('topSecondary','Top secondary color')}</div>
       {styles('bottom','Bottom style')}
+      <button type="button" className="avatar-match-colors" title="Match both bottom colors to the top" onClick={()=>onChange({...look,bottomPrimary:look.topPrimary,bottomSecondary:look.topSecondary})}><Copy size={16}/>Match top colors</button>
       <div className="avatar-palette-row">{palette('bottomPrimary','Bottom primary color')}{palette('bottomSecondary','Bottom secondary color')}</div>
     </div>
   </div>;

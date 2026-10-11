@@ -1,9 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {AGE_SIZES,CHILDREN_KEY,DEFAULT_AVATAR,loadChildren,normalizeAvatar,normalizeChildren,saveChildren} from '../src/utils/children.js';
+import {AGE_SIZES,AVATAR_COLORS,AVATAR_OPTIONS,CHILDREN_KEY,DEFAULT_AVATAR,loadChildren,normalizeAvatar,normalizeChildren,saveChildren} from '../src/utils/children.js';
 import {defaultSettings} from '../src/utils/settings.js';
 
 const child={id:'child-1',name:'  Alex  ',age:'5to7',avatar:{hair:'curls',top:'overalls',bottom:'shorts',hairColor:'#201f25'},profile:{music:'some',parent:'confident',instruments:['piano','piano','invalid']}};
+test('expanded styles and identical garment palettes preserve existing and new avatar choices',()=>{
+  assert.ok(AVATAR_OPTIONS.hair.includes('longCurls'));assert.ok(AVATAR_OPTIONS.hair.includes('longStraight'));
+  for(const field of ['topPrimary','topSecondary','bottomPrimary','bottomSecondary'])assert.deepEqual(AVATAR_COLORS[field],AVATAR_COLORS.topPrimary);
+  for(const color of AVATAR_COLORS.topPrimary){const look={...DEFAULT_AVATAR,topPrimary:color,topSecondary:color,bottomPrimary:color,bottomSecondary:color};assert.deepEqual(normalizeAvatar(look),look);}
+  for(const skin of AVATAR_COLORS.skin)assert.equal(normalizeAvatar({skin}).skin,skin);
+  assert.equal(normalizeAvatar({...child.avatar,bottomPrimary:'#587c58',bottomSecondary:'#edaa93'}).bottomPrimary,'#587c58');
+  assert.equal(normalizeAvatar({hair:'longCurls',top:'hoodie',bottom:'joggers'}).hair,'longCurls');
+});
 test('children require a name and age, preserve independent avatars, and select only existing profiles',()=>{
   const result=normalizeChildren({children:[child,{...child,id:'child-2',name:'Sam',age:'8plus'},{...child,name:' '},child],selectedId:'missing'});
   assert.equal(result.children.length,2);assert.equal(result.selectedId,'child-1');assert.equal(result.children[0].name,'Alex');
