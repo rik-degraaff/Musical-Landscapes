@@ -40,6 +40,7 @@ export function Guitar({audio,cue,root,profile,PressControl,options={},name='gui
   const notesRef=useRef(notes);notesRef.current=notes;
   useEffect(()=>{owners.current.clear();selection.current=null;setManual(null);setPlayed(null);},[root,name,practice]);
   function choose(token,chordName) {
+    const previousNotes=notesRef.current;
     if(chordName)owners.current.set(token,chordName);else owners.current.delete(token);
     const active=[...owners.current.values()].at(-1)??null;
     selection.current={root,instrument:name,chord:active,practice};
@@ -47,6 +48,7 @@ export function Guitar({audio,cue,root,profile,PressControl,options={},name='gui
     setPlayed(null);
     const shape=buttons.find(value=>value.name===(active??demo?.chord));
     notesRef.current=shape?.notes??tuning;
+    if(previousNotes.some((note,index)=>note!==notesRef.current[index]))audio.stopManualVoices(name);
   }
   function pluck(string) {
     const current=selection.current;

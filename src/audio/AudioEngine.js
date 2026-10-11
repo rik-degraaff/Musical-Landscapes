@@ -8,6 +8,7 @@ import { createSustainLoop, MANUAL_RELEASE } from './envelopes';
 import { STRING_INSTRUMENTS } from '../utils/guitar';
 import {equippedProfile} from '../utils/difficulty';
 import {beatOffset} from '../utils/practice';
+import {releaseManualVoice} from './voiceCleanup';
 
 const MIN_GAIN = -60;
 const FADE_SECONDS = 0.045;
@@ -38,6 +39,8 @@ export class AudioEngine {
     this.manualAutoplayVersion = 0;
     this.onManualAutoplayEvent = null;
     this.manualVoices = new Map();
+    this.retiringVoices = new Set();
+    this.playingNotes = new Map();
     this.pendingManualNotes = new Map();
     this.backgrounded = false;
     this.resumePromise = null;
@@ -227,6 +230,12 @@ export class AudioEngine {
   setSceneKey(root) {
     if(root===this.root)return;
     this.root = root;
+    if(this.ready){
+      window.dispatchEvent(new Event('farmjam-input-reset'));
+      this.clearPendingEvents();this.stopManualVoices();
+      for(const node of Object.values(this.nodes))node.synth.releaseAll(Tone.immediate());
+      this.playingNotes.clear();
+    }
     if(this.ready&&this.manualInstrument){
       this.clearPendingEvents(this.manualInstrument);this.nodes[this.manualInstrument].synth.releaseAll();this.stopManualVoices();
       this.equippedPhrase=null;this.phraseIdentity=null;this.phrasePinned=false;
@@ -250,6 +259,7 @@ export class AudioEngine {
     if (!active) {
       this.clearPendingEvents(name);
       node.synth.releaseAll();
+      this.playingNotes.delete(name);
     }
     this.ensureTransport();
     if (active && transportWasPlaying && !this.tempoHeld && !this.backgrounded) this.playPickup(name);
@@ -337,6 +347,7 @@ export class AudioEngine {
     this.manualVoices.set(token, voice);
     source.onended = () => {
       source.disconnect(); envelope.disconnect();
+      this.retiringVoices.delete(voice);
       if (this.manualVoices.get(token) === voice) this.manualVoices.delete(token);
     };
     source.start(when,legato && loop ? loop.loopStart : 0);
@@ -347,13 +358,10 @@ export class AudioEngine {
     const voice = this.manualVoices.get(token);
     if (!voice) return;
     this.manualVoices.delete(token);
+    this.retiringVoices.add(voice);
     const when = Tone.getContext().rawContext.currentTime;
-    voice.envelope.gain.cancelAndHoldAtTime(when);
     const release = quick ? 0.04 : MANUAL_RELEASE[voice.name] ?? 0.08;
-    voice.envelope.gain.setTargetAtTime(0, when, release / 5);
-    voice.envelope.gain.cancelAndHoldAtTime(when + Math.max(0.005, release - 0.02));
-    voice.envelope.gain.linearRampToValueAtTime(0, when + release);
-    voice.source.stop(when + release + 0.005);
+    releaseManualVoice(voice,when,release);
   }
 
   setManualPitchBend(token, cents) {
@@ -371,9 +379,13 @@ export class AudioEngine {
     }
   }
 
-  stopManualVoices() {
-    this.pendingManualNotes.clear();
-    for (const token of [...this.manualVoices.keys()]) this.manualNoteOff(token, true);
+  stopManualVoices(instrumentName) {
+    for(const [token,pending] of this.pendingManualNotes)if(!instrumentName||pending.instrument===instrumentName)this.pendingManualNotes.delete(token);
+    for (const [token,voice] of [...this.manualVoices])if(!instrumentName||voice.name===instrumentName)this.manualNoteOff(token, true);
+    const when=Tone.getContext().rawContext.currentTime;
+    for(const voice of this.retiringVoices){
+      if(!instrumentName||voice.name===instrumentName)releaseManualVoice(voice,when,.035);
+    }
   }
 
   playPickup(name) {
@@ -628,6 +640,11 @@ export class AudioEngine {
       return;
     }
     const notes = event.notes ?? [event.note];
+    const signature=JSON.stringify([...notes].sort());
+    if(this.playingNotes.get(name)!==signature){
+      sampler.releaseAll(time);
+      this.playingNotes.set(name,signature);
+    }
     notes.forEach((note, index) => {
       const strumOffset = STRING_INSTRUMENTS[name] ? index * (name==='ukulele'?.012:.016) : 0;
       sampler.triggerAttackRelease(note, event.dur, time + strumOffset, velocity * (1 - index * 0.04));
@@ -674,6 +691,7 @@ export class AudioEngine {
   }
 
   dispose() {
+    this.playingNotes.clear();
     this.stopPracticeRun();this.practiceSession=null;this.onPracticeInput=null;this.onPracticeInterrupt=null;
     this.lifecycleCleanup?.();
     this.lifecycleCleanup=null;

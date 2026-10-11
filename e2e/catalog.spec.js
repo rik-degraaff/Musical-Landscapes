@@ -54,6 +54,8 @@ test('ukulele plays every string of every chord with visible orange fret positio
   }
   const button=page.getByRole('button',{name:'Hold ukulele chord A',exact:true});await button.focus();await page.keyboard.down('Space');
   await expect(page.locator('.fingering-dot:not(.open-string-dot)').first()).toHaveCSS('background-color','rgb(255, 121, 0)');
+  await page.locator('.playable-string').first().dispatchEvent('keydown',{key:'Enter'});
+  await page.locator('.playable-string').first().dispatchEvent('keyup',{key:'Enter'});
   expect(await level(page,'ukulele')).toBeGreaterThan(.0001);
   await page.screenshot({path:`test-results/${testInfo.project.name}-ukulele-performance.png`});await page.keyboard.up('Space');
   await page.locator('#instrument-ukulele').click();await expect.poll(()=>page.locator('.neck-chord-name').textContent()).not.toBeNull();

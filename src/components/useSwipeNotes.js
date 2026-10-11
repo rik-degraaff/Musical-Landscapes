@@ -38,6 +38,7 @@ export function useSwipeNotes(surface, onEnter, onLeave) {
     function move(event) {
       const pointer = pointers.get(event.pointerId);
       if (!pointer) return;
+      if(event.pointerType==='mouse'&&event.buttons===0){end(event);return;}
       const steps = Math.max(1, Math.ceil(Math.hypot(event.clientX - pointer.x, event.clientY - pointer.y) / 3));
       for (let step = 1; step <= steps; step++) visit(pointer, pointer.x + (event.clientX - pointer.x) * step / steps, pointer.y + (event.clientY - pointer.y) * step / steps, event.pointerId);
       pointer.x = event.clientX; pointer.y = event.clientY;
@@ -55,6 +56,7 @@ export function useSwipeNotes(surface, onEnter, onLeave) {
     window.addEventListener('pointerup', end, true);
     window.addEventListener('pointercancel', end, true);
     window.addEventListener('blur', clear);
+    window.addEventListener('farmjam-input-reset', clear);
     document.addEventListener('visibilitychange', hidden);
     return () => {
       clear();
@@ -63,6 +65,7 @@ export function useSwipeNotes(surface, onEnter, onLeave) {
       window.removeEventListener('pointerup', end, true);
       window.removeEventListener('pointercancel', end, true);
       window.removeEventListener('blur', clear);
+      window.removeEventListener('farmjam-input-reset', clear);
       document.removeEventListener('visibilitychange', hidden);
     };
   }, [surface]);
