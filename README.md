@@ -159,6 +159,20 @@ The downloader parses the soundfont data without executing remote JavaScript, ex
 
 ## Scenes
 
+Each scene entry makes one random roll: exactly **25%** selects the first visitor below, **5%** selects the second, and **70%** keeps the regular pair. These outcomes are mutually exclusive. A visitor replaces one of the scene's two existing interactive objects, never adds a third, so there are always exactly two objects in total. The chosen pair stays stable across taps, opening or changing Settings, and rerenders. Every landscape transition, including returning to a previously visited scene, makes a fresh roll. Entering gameplay from the child menu also rolls anew instead of reusing the menu's background pair. A fresh roll can select the same pair again.
+
+| Scene | First visitor (25%) | Second visitor (5%) |
+| --- | --- | --- |
+| Farm (Sunny Farm) | Sheep | Horse |
+| Garden (Little Garden) | Bumblebee | Woodpecker |
+| Pond (Pond Meadow) | Duck | Otter |
+| Dusk (Evening Meadow) | Cicada | Hot-air balloon |
+| Night (Sleepy Night) | Fox | Badger |
+| Late night (Moonlit Meadow) | Luna moth | Shooting star |
+| Dawn (First Light) | Dove | Deer |
+
+The usual regular objects listed under **Environments** remain the default, with their existing sounds and tap responses; a visitor changes only its replacement slot for that visit. Visitors have matching illustrations, tap animations and sound effects. Sheep, horse, duck, fox and dove use real **CC0 1.0 recordings**. The other nine visitors use original illustrative foley matched to their actions, not recorded wildlife: bumblebee wing buzz, woodpecker knocks, otter splashes, cicada rasp, hot-air balloon burner air, badger leaf scuffs and sniffs, luna moth flutter, an imaginary shooting-star whistle and shimmer, and deer hoof impacts and a snort. Detailed recording sources, creators, licenses, excerpt processing and original foley descriptions are in [Scenery Attribution](public/audio/scenery/ATTRIBUTION.md#visitor-recordings).
+
 ## Manual Performance
 
 Drag any instrument onto the child to equip it. A large playable version opens along the bottom, while the landscape, other instruments, scene sounds and settings remain usable above it. Active playback continues uninterrupted when equipping or putting down an instrument. Interacting with manual controls stops only that instrument's automatic phrase; tap its small drawing to resume. Drag the drawing away to end manual play, or use the return icon. Switching equipment, canceled pointers, window blur and hidden tabs release manual voices.

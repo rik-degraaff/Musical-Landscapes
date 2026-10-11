@@ -51,10 +51,11 @@ wav(rooster, path('public/audio/scenery/rooster.wav'));
 }
 for (const [type, recording] of Object.entries(FIELD_RECORDINGS)) {
   if (!shouldRender(type)) continue;
-  const samples = decode(path(`public/audio/scenery/source/${recording.file}`)).slice(0, Math.round(recording.duration * rate));
+  const offset = Math.round((recording.offset ?? 0) * rate);
+  const samples = decode(path(`public/audio/scenery/source/${recording.file}`)).slice(offset, offset + Math.round(recording.duration * rate));
   if (samples.length < Math.round(recording.duration * rate)) throw new Error(`Recording too short: ${type}`);
   samples.forEach((value, index) => {
-    samples[index] = value * Math.min(1, index / (rate * recording.fadeIn), (samples.length - index - 1) / (rate * recording.fadeOut));
+    samples[index] = value * (recording.gain ?? 1) * Math.min(1, index / (rate * recording.fadeIn), (samples.length - index - 1) / (rate * recording.fadeOut));
   });
   wav(samples, path(`public/audio/scenery/${type}.wav`));
 }

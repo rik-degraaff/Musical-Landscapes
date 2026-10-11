@@ -1,13 +1,17 @@
-export const SCENE_SOUNDS = ['moo', 'tractor', 'water', 'bird', 'frog', 'windmill', 'bell', 'owl', 'rooster', 'chimes', 'cricket', 'airplane', 'bat', 'hedgehog'];
+import { VISITOR_SOUNDS, VISITOR_RECORDINGS, VISITOR_FOLEY, createVisitorSample } from './visitorSounds.js';
+
+export const SCENE_SOUNDS = ['moo', 'tractor', 'water', 'bird', 'frog', 'windmill', 'bell', 'owl', 'rooster', 'chimes', 'cricket', 'airplane', 'bat', 'hedgehog', ...VISITOR_SOUNDS];
 export const FIELD_RECORDINGS = {
   moo: { file: 'cow-moo.mp3', url: 'https://cdn.freesound.org/previews/546/546479_11588763-hq.mp3', source: 'https://freesound.org/people/invertedturtle/sounds/546479/', license: 'CC0-1.0', duration: 2.623, fadeIn: 0.015, fadeOut: 0.08 },
   cricket: { file: 'cricket.mp3', url: 'https://cdn.freesound.org/previews/822/822935_14007850-hq.mp3', source: 'https://freesound.org/people/_sinny_/sounds/822935/', license: 'CC0-1.0', duration: 2.4, fadeIn: 0.015, fadeOut: 0.06 },
+  ...VISITOR_RECORDINGS,
 };
 export const WATER_DROP_TIMES = [0.28, 0.93, 1.58];
 export const WATER_DROP_FALL = 0.28;
 export const WATER_DURATION = 2;
 
 export function createSceneSample(type, sampleRate = 44100) {
+  if (Object.hasOwn(VISITOR_FOLEY, type)) return createVisitorSample(type, sampleRate);
   const duration = { tractor: 2.2, bird: 1.1, frog: 1.2, windmill: 2, bell: 2.4, owl: 1.8, chimes: 2.4, airplane:3, bat:1.8, hedgehog:2 }[type];
   if (!duration) throw new Error(`Unknown landscape sound: ${type}`);
   const samples = new Float32Array(Math.ceil(sampleRate * duration));

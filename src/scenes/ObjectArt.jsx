@@ -1,7 +1,9 @@
 import React from 'react';
+import { VisitorArt } from './VisitorArt';
 
 export function ObjectArt({ type }) {
   return <svg viewBox="0 0 160 140" className={`object-art art-${type}`} aria-hidden="true" fill="none" strokeLinecap="round" strokeLinejoin="round">
+    <VisitorArt type={type} />
     {type === 'bat' && <>
       <g className="bat-wings" fill="#9297b5" stroke="#515b76" strokeWidth="3">
         <path d="M75 72Q46 26 8 39Q26 52 17 80Q37 64 44 91Q59 72 72 96Z" /><path d="M85 72Q114 26 152 39Q134 52 143 80Q123 64 116 91Q101 72 88 96Z" />

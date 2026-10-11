@@ -1,9 +1,6 @@
 import React from 'react';
-import { InteractiveObject } from './Scene';
+import { SceneObjects } from './Scene';
 
 export function DawnScene({ audio }) {
-  return <>
-    <InteractiveObject audio={audio} sound="rooster" label="Rooster" className="rooster" />
-    <InteractiveObject audio={audio} sound="chimes" label="Wind chimes" className="chimes" />
-  </>;
+  return <SceneObjects scene="dawn" audio={audio} objects={[{sound:'rooster',label:'Rooster',className:'rooster'},{sound:'chimes',label:'Wind chimes',className:'chimes'}]}/>;
 }

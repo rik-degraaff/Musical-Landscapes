@@ -256,7 +256,7 @@ export default function App() {
 
   return <main className={`app-shell ${equipped?'manual-open':''}`}>
     <div className="landscape-world" ref={worldRef} inert={mixer||Boolean(practice)}>
-    <Scene sceneIndex={sceneIndex} audio={audioRef.current} onRotate={rotateScene} onCelestialSettled={()=>{if(started)for(const name of Object.keys(INSTRUMENTS))settle(name);}}/>
+    <Scene sceneIndex={sceneIndex} playing={started} audio={audioRef.current} onRotate={rotateScene} onCelestialSettled={()=>{if(started)for(const name of Object.keys(INSTRUMENTS))settle(name);}}/>
     {started&&<YoungMusician child={selectedChild} equipped={equipped?INSTRUMENTS[equipped].label:null} accepting={nearChild} onPractice={enterPractice}/>}
     <div className="instrument-layer">
       {settings.selected.map(name=>{const i=instruments[name];return <Instrument key={name} name={name} label={i.label} x={i.x} y={i.y} active={i.active} equipped={equipped===name} sliding={dragging!==name} onEquip={()=>equip(name)} onToggle={toggle}

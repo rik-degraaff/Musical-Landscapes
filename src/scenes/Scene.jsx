@@ -12,6 +12,7 @@ import { ObjectArt } from './ObjectArt';
 import './scene-art.css';
 import { WATER_DROP_TIMES, WATER_DROP_FALL, WATER_DURATION } from '../audio/sceneSounds';
 import {SCENE_ROOTS} from '../utils/dayCycle';
+import {sceneObjectPair,visitorRoll} from '../utils/sceneVisitors';
 
 export const SCENES = [
   { id:'farm', name:'Sunny Farm', root:SCENE_ROOTS.farm, component:FarmScene },
@@ -22,6 +23,11 @@ export const SCENES = [
   { id:'late-night', name:'Moonlit Meadow', root:SCENE_ROOTS.lateNight, component:LateNightScene },
   { id:'dawn', name:'First Light', root:SCENE_ROOTS.dawn, component:DawnScene },
 ];
+
+export function SceneObjects({scene,objects,audio}) {
+  const [pair]=useState(()=>sceneObjectPair(scene,objects,visitorRoll()));
+  return <>{pair.map((object,index)=><InteractiveObject key={`${index}:${object.sound}`} audio={audio} {...object} className={`${object.className}${object.slot!==undefined?' visitor-object':''}`}/>)}</>;
+}
 
 export function InteractiveObject({ sound, audio, label, className='' }) {
   const [taps, setTaps] = useState(0);
@@ -46,7 +52,7 @@ export function InteractiveObject({ sound, audio, label, className='' }) {
   </button>;
 }
 
-export function Scene({ sceneIndex, audio, onRotate, onCelestialSettled }) {
+export function Scene({ sceneIndex, playing, audio, onRotate, onCelestialSettled }) {
   const sceneRef = useRef(null);
   const advanceRef = useRef(onRotate);
   const lastPointerAdvance = useRef(null);
@@ -94,7 +100,7 @@ export function Scene({ sceneIndex, audio, onRotate, onCelestialSettled }) {
   }, []);
   return <div ref={sceneRef} className={`scene scene-${scene.id}`}>
     <LandscapeArt key={scene.id} scene={scene.id} phase={phase} />
-    <SceneComponent key={`${scene.id}-objects`} audio={sceneAudio} />
+    <SceneComponent key={`${scene.id}-objects-${playing?'play':'menu'}`} audio={sceneAudio} />
     <CelestialControl scene={scene.id} phase={phase} settled={settled} />
   </div>;
 }

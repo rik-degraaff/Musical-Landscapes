@@ -1,0 +1,236 @@
+.visitor-art g {
+  transform-box: view-box;
+}
+
+.scene .visitor-object[data-sound='sheep'] .reacting,
+.scene .visitor-object[data-sound='horse'] .reacting,
+.scene .visitor-object[data-sound='bee'] .reacting,
+.scene .visitor-object[data-sound='woodpecker'] .reacting,
+.scene .visitor-object[data-sound='duck'] .reacting,
+.scene .visitor-object[data-sound='otter'] .reacting,
+.scene .visitor-object[data-sound='cicada'] .reacting,
+.scene .visitor-object[data-sound='balloon'] .reacting,
+.scene .visitor-object[data-sound='fox'] .reacting,
+.scene .visitor-object[data-sound='badger'] .reacting,
+.scene .visitor-object[data-sound='moth'] .reacting,
+.scene .visitor-object[data-sound='shootingStar'] .reacting,
+.scene .visitor-object[data-sound='dove'] .reacting,
+.scene .visitor-object[data-sound='deer'] .reacting {
+  animation: visitorReaction 2s linear;
+  transform: none;
+}
+
+@keyframes visitorReaction { from { opacity: 1; } to { opacity: 1; } }
+
+.visitor-art .visitor-sheep-body { transform-origin: 80px 122px; }
+.visitor-art .visitor-sheep-head { transform-origin: 47px 95px; }
+.visitor-art .visitor-horse-body { transform-origin: 80px 125px; }
+.visitor-art .visitor-horse-head { transform-origin: 113px 65px; }
+.visitor-art .visitor-horse-tail { transform-origin: 36px 70px; }
+.visitor-art .visitor-bee-body { transform-origin: 80px 76px; }
+.visitor-art .visitor-bee-wings { transform-origin: 80px 58px; }
+.visitor-art .visitor-bee-pollen { transform-origin: 75px 95px; }
+.visitor-art .visitor-woodpecker-head { transform-origin: 70px 64px; }
+.visitor-art .visitor-woodpecker-wing { transform-origin: 65px 63px; }
+.visitor-art .visitor-woodpecker-chips { transform-origin: 124px 64px; }
+.visitor-art .visitor-duck-body { transform-origin: 80px 112px; }
+.visitor-art .visitor-duck-wing { transform-origin: 77px 82px; }
+.visitor-art .visitor-duck-ripples { transform-origin: 80px 118px; }
+.visitor-art .visitor-duck-splash { transform-origin: 80px 118px; }
+.visitor-art .visitor-otter-body { transform-origin: 77px 122px; }
+.visitor-art .visitor-otter-paws { transform-origin: 75px 96px; }
+.visitor-art .visitor-otter-tail { transform-origin: 105px 105px; }
+.visitor-art .visitor-otter-ripples { transform-origin: 82px 125px; }
+.visitor-art .visitor-cicada-body { transform-origin: 80px 109px; }
+.visitor-art .visitor-cicada-wings { transform-origin: 80px 66px; }
+.visitor-art .visitor-balloon-body { transform-origin: 80px 70px; }
+.visitor-art .visitor-balloon-flame { transform-origin: 80px 104px; }
+.visitor-art .visitor-fox-head { transform-origin: 69px 79px; }
+.visitor-art .visitor-fox-tail { transform-origin: 97px 110px; }
+.visitor-art .visitor-fox-tail-tip { transform-origin: 97px 110px; }
+.visitor-art .visitor-badger-body { transform-origin: 80px 120px; }
+.visitor-art .visitor-badger-head { transform-origin: 60px 85px; }
+.visitor-art .visitor-badger-leaves { transform-origin: 80px 127px; }
+.visitor-art .visitor-moth-wing-left { transform-origin: 77px 60px; }
+.visitor-art .visitor-moth-wing-right { transform-origin: 83px 60px; }
+.visitor-art .visitor-moth-body { transform-origin: 80px 60px; }
+.visitor-art .visitor-meteor-body { transform-origin: 105px 90px; }
+.visitor-art .visitor-meteor-ribbon { transform-origin: 88px 83px; }
+.visitor-art .visitor-meteor-sparks { transform-origin: 105px 90px; }
+.visitor-art .visitor-dove-body { transform-origin: 65px 113px; }
+.visitor-art .visitor-dove-wing { transform-origin: 67px 69px; }
+.visitor-art .visitor-dove-head { transform-origin: 45px 66px; }
+.visitor-art .visitor-deer-head { transform-origin: 51px 70px; }
+.visitor-art .visitor-deer-ears { transform-origin: 51px 42px; }
+.visitor-art .visitor-deer-tail { transform-origin: 120px 76px; }
+
+.visitor-object[data-sound='sheep'] .reacting .visitor-sheep-body { animation: visitorSoftBob 2s ease-in-out; }
+.visitor-object[data-sound='sheep'] .reacting .visitor-sheep-head { animation: visitorBleat 2s ease-in-out; }
+.visitor-object[data-sound='horse'] .reacting .visitor-horse-body { animation: visitorSoftBob 2s ease-in-out; }
+.visitor-object[data-sound='horse'] .reacting .visitor-horse-head { animation: visitorNod 2s ease-in-out; }
+.visitor-object[data-sound='horse'] .reacting .visitor-horse-tail { animation: visitorTailSwish 2s ease-in-out; }
+.visitor-object[data-sound='bee'] .reacting .visitor-bee-body { animation: visitorHover 2s ease-in-out; }
+.visitor-object[data-sound='bee'] .reacting .visitor-bee-wings { animation: visitorWingBuzz .125s ease-in-out 16; }
+.visitor-object[data-sound='bee'] .reacting .visitor-bee-pollen { animation: visitorPollen 2s ease-in-out; }
+.visitor-object[data-sound='woodpecker'] .reacting .visitor-woodpecker-head { animation: visitorPeck .25s ease-in-out 8; }
+.visitor-object[data-sound='woodpecker'] .reacting .visitor-woodpecker-wing { animation: visitorFeatherRustle 2s ease-in-out; }
+.visitor-object[data-sound='woodpecker'] .reacting .visitor-woodpecker-chips { animation: visitorWoodChips .5s ease-out 4; }
+.visitor-object[data-sound='duck'] .reacting .visitor-duck-body { animation: visitorPaddle 2s ease-in-out; }
+.visitor-object[data-sound='duck'] .reacting .visitor-duck-wing { animation: visitorFeatherRustle 2s ease-in-out; }
+.visitor-object[data-sound='duck'] .reacting .visitor-duck-ripples,
+.visitor-object[data-sound='otter'] .reacting .visitor-otter-ripples { animation: visitorWaterRipple 2s ease-out; }
+.visitor-object[data-sound='duck'] .reacting .visitor-duck-splash { animation: visitorSplash 2s ease-out; }
+.visitor-object[data-sound='otter'] .reacting .visitor-otter-body { animation: visitorSoftBob 2s ease-in-out; }
+.visitor-object[data-sound='otter'] .reacting .visitor-otter-paws { animation: visitorPawPat .5s ease-in-out 4; }
+.visitor-object[data-sound='otter'] .reacting .visitor-otter-tail { animation: visitorTailSwish 2s ease-in-out; }
+.visitor-object[data-sound='cicada'] .reacting .visitor-cicada-body { animation: visitorCicadaPulse 2s ease-in-out; }
+.visitor-object[data-sound='cicada'] .reacting .visitor-cicada-wings { animation: visitorWingBuzz .1s ease-in-out 20; }
+.visitor-object[data-sound='balloon'] .reacting .visitor-balloon-body { animation: visitorBalloonRise 2s ease-in-out; }
+.visitor-object[data-sound='balloon'] .reacting .visitor-balloon-flame { animation: visitorFlame .25s ease-in-out 8; }
+.visitor-object[data-sound='fox'] .reacting .visitor-fox-head { animation: visitorNod 2s ease-in-out; }
+.visitor-object[data-sound='fox'] .reacting .visitor-fox-tail,
+.visitor-object[data-sound='fox'] .reacting .visitor-fox-tail-tip { animation: visitorTailSwish 2s ease-in-out; }
+.visitor-object[data-sound='badger'] .reacting .visitor-badger-body { animation: visitorShuffle 2s ease-in-out; }
+.visitor-object[data-sound='badger'] .reacting .visitor-badger-head { animation: visitorNod 2s ease-in-out; }
+.visitor-object[data-sound='badger'] .reacting .visitor-badger-leaves { animation: visitorLeafRustle 2s ease-in-out; }
+.visitor-object[data-sound='moth'] .reacting .visitor-moth-wing-left,
+.visitor-object[data-sound='moth'] .reacting .visitor-moth-wing-right { animation: visitorMothFan .5s ease-in-out 4; }
+.visitor-object[data-sound='moth'] .reacting .visitor-moth-body { animation: visitorHover 2s ease-in-out; }
+.visitor-object[data-sound='shootingStar'] .reacting .visitor-meteor-body { animation: visitorMeteorDrift 2s ease-in-out; }
+.visitor-object[data-sound='shootingStar'] .reacting .visitor-meteor-ribbon { animation: visitorRibbon 2s ease-in-out; }
+.visitor-object[data-sound='shootingStar'] .reacting .visitor-meteor-sparks { animation: visitorSparkle 2s ease-in-out; }
+.visitor-object[data-sound='dove'] .reacting .visitor-dove-body { animation: visitorSoftBob 2s ease-in-out; }
+.visitor-object[data-sound='dove'] .reacting .visitor-dove-wing { animation: visitorDoveWing 2s ease-in-out; }
+.visitor-object[data-sound='dove'] .reacting .visitor-dove-head { animation: visitorNod 2s ease-in-out; }
+.visitor-object[data-sound='deer'] .reacting .visitor-deer-head { animation: visitorNod 2s ease-in-out; }
+.visitor-object[data-sound='deer'] .reacting .visitor-deer-ears { animation: visitorEarFlick 2s ease-in-out; }
+.visitor-object[data-sound='deer'] .reacting .visitor-deer-tail { animation: visitorTailSwish 2s ease-in-out; }
+
+@keyframes visitorSoftBob {
+  0%, 100% { transform: translateY(0); }
+  20%, 60% { transform: translateY(-3px) scale(1.02, .98); }
+  40%, 80% { transform: translateY(1px); }
+}
+@keyframes visitorBleat {
+  0%, 100% { transform: rotate(0); }
+  20%, 60% { transform: rotate(-7deg) translateY(-2px); }
+  40%, 80% { transform: rotate(3deg); }
+}
+@keyframes visitorNod {
+  0%, 100% { transform: rotate(0); }
+  20%, 60% { transform: rotate(-6deg); }
+  40%, 80% { transform: rotate(5deg); }
+}
+@keyframes visitorTailSwish {
+  0%, 100% { transform: rotate(0); }
+  25%, 65% { transform: rotate(-8deg); }
+  45%, 85% { transform: rotate(7deg); }
+}
+@keyframes visitorHover {
+  0%, 100% { transform: translate(0); }
+  30% { transform: translate(-3px, -5px); }
+  65% { transform: translate(3px, -2px); }
+}
+@keyframes visitorWingBuzz {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(.72); }
+}
+@keyframes visitorPollen {
+  0%, 100% { transform: translateY(0); }
+  30%, 70% { transform: translateY(3px) rotate(3deg); }
+}
+@keyframes visitorPeck {
+  0%, 100% { transform: rotate(-3deg); }
+  45% { transform: rotate(11deg) translateX(3px); }
+}
+@keyframes visitorFeatherRustle {
+  0%, 100% { transform: rotate(0); }
+  25%, 65% { transform: rotate(-10deg); }
+  45%, 85% { transform: rotate(3deg); }
+}
+@keyframes visitorWoodChips {
+  0%, 100% { opacity: 0; transform: translate(0); }
+  20% { opacity: 1; }
+  90% { opacity: 0; transform: translate(6px, 8px); }
+}
+@keyframes visitorPaddle {
+  0%, 100% { transform: translate(0); }
+  25% { transform: translate(-4px, 2px) rotate(-3deg); }
+  65% { transform: translate(4px, -1px) rotate(3deg); }
+}
+@keyframes visitorWaterRipple {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  35% { transform: scale(1.06, 1.2); opacity: .65; }
+  70% { transform: scale(.94, .9); opacity: .85; }
+}
+@keyframes visitorSplash {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  25%, 65% { transform: translateY(-5px); opacity: .8; }
+  45%, 85% { transform: translateY(2px); opacity: .4; }
+}
+@keyframes visitorPawPat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px) scaleX(.95); }
+}
+@keyframes visitorCicadaPulse {
+  0%, 100% { transform: scale(1); }
+  25%, 65% { transform: scale(1.025, .99); }
+  45%, 85% { transform: scale(.99, 1.02); }
+}
+@keyframes visitorBalloonRise {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  35% { transform: translateY(-7px) rotate(-2deg); }
+  65% { transform: translateY(-5px) rotate(2deg); }
+}
+@keyframes visitorFlame {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(.85, 1.2); }
+}
+@keyframes visitorShuffle {
+  0%, 100% { transform: translateX(0); }
+  25%, 65% { transform: translate(4px, -1px) rotate(-2deg); }
+  45%, 85% { transform: translate(-2px, 1px) rotate(1deg); }
+}
+@keyframes visitorLeafRustle {
+  0%, 100% { transform: rotate(0); }
+  25%, 65% { transform: rotate(4deg) translateY(-2px); }
+  45%, 85% { transform: rotate(-3deg); }
+}
+@keyframes visitorMothFan {
+  0%, 100% { transform: scaleX(1); }
+  50% { transform: scaleX(.82) scaleY(.97); }
+}
+@keyframes visitorMeteorDrift {
+  0%, 100% { transform: translate(0) rotate(0); }
+  35% { transform: translate(5px, 4px) rotate(3deg); }
+  65% { transform: translate(-4px, -3px) rotate(-3deg); }
+}
+@keyframes visitorRibbon {
+  0%, 100% { transform: scale(1); }
+  35% { transform: scale(1.05, .95); }
+  65% { transform: scale(.96, 1.04); }
+}
+@keyframes visitorSparkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  30% { opacity: .6; transform: scale(.92); }
+  65% { opacity: 1; transform: scale(1.04); }
+}
+@keyframes visitorDoveWing {
+  0%, 100% { transform: rotate(0); }
+  20%, 60% { transform: rotate(-14deg) scaleY(.9); }
+  40%, 80% { transform: rotate(4deg); }
+}
+@keyframes visitorEarFlick {
+  0%, 100% { transform: scaleX(1); }
+  20%, 60% { transform: scaleX(.9) rotate(-3deg); }
+  40%, 80% { transform: scaleX(1.02); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene .visitor-object .reacting .visitor-art,
+  .scene .visitor-object .reacting .visitor-art * {
+    animation: none !important;
+    transition: none !important;
+  }
+  .scene .visitor-object .reacting { animation: visitorReaction .01ms linear !important; }
+}

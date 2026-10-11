@@ -1,8 +1,5 @@
 import React from 'react';
-import { InteractiveObject } from './Scene';
+import { SceneObjects } from './Scene';
 export function GardenScene({audio}) {
-  return <>
-    <InteractiveObject audio={audio} sound="water" label="Outdoor faucet" className="faucet" />
-    <InteractiveObject audio={audio} sound="bird" label="Bird" className="bird" />
-  </>;
+  return <SceneObjects scene="garden" audio={audio} objects={[{sound:'water',label:'Outdoor faucet',className:'faucet'},{sound:'bird',label:'Bird',className:'bird'}]}/>;
 }

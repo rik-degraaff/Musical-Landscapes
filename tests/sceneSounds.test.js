@@ -3,17 +3,19 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 import ffmpeg from 'ffmpeg-static';
 import { createSceneSample, SCENE_SOUNDS, FIELD_RECORDINGS, WATER_DROP_TIMES, WATER_DURATION } from '../src/audio/sceneSounds.js';
+import { VISITOR_RECORDINGS } from '../src/audio/visitorSounds.js';
 
 const recordedSounds = ['rooster', 'water', ...Object.keys(FIELD_RECORDINGS)];
 
-test('cow and cricket WAVs reproduce the CC0 recordings, not synthetic replacements', () => {
+test('field recording WAVs reproduce the CC0 excerpts, not synthetic replacements', () => {
   const rate = 48000;
   for (const [type, recording] of Object.entries(FIELD_RECORDINGS)) {
     assert.equal(recording.license, 'CC0-1.0');
     const source = fileURLToPath(new URL(`../public/audio/scenery/source/${recording.file}`, import.meta.url));
-    const decoded = spawnSync(ffmpeg, ['-v', 'error', '-i', source, '-f', 'f32le', '-ac', '1', '-ar', String(rate), 'pipe:1'], { maxBuffer: 4 * 1024 * 1024 });
+    const decoded = spawnSync(ffmpeg, ['-v', 'error', '-i', source, '-f', 'f32le', '-ac', '1', '-ar', String(rate), 'pipe:1'], { maxBuffer: 32 * 1024 * 1024 });
     assert.equal(decoded.status, 0, decoded.stderr?.toString());
     const wave = readFileSync(new URL(`../public/audio/scenery/${type}.wav`, import.meta.url));
     const length = Math.round(recording.duration * rate);
@@ -22,13 +24,15 @@ test('cow and cricket WAVs reproduce the CC0 recordings, not synthetic replaceme
     assert.equal(wave.readUInt16LE(22), 1);
     assert.equal(wave.readUInt16LE(34), 16);
     assert.equal(wave.length, 44 + length * 2);
+    const offset = Math.round((recording.offset ?? 0) * rate);
     let energy = 0;
     for (let index = 0; index < length; index++) {
       const fade = Math.min(1, index / (rate * recording.fadeIn), (length - index - 1) / (rate * recording.fadeOut));
-      const faded = Math.fround(decoded.stdout.readFloatLE(index * 4) * fade);
+      const faded = Math.fround(decoded.stdout.readFloatLE((offset + index) * 4) * (recording.gain ?? 1) * fade);
       const expected = Math.round(Math.max(-1, Math.min(1, faded)) * 32767) || 0;
       const actual = wave.readInt16LE(44 + index * 2);
       assert.equal(actual, expected, `${type} sample ${index}`);
+      if (Object.hasOwn(VISITOR_RECORDINGS, type)) assert.ok(Math.abs(actual / 32768) <= 0.9, `${type} bounded peak`);
       energy += (actual / 32768) ** 2;
     }
     assert.ok(Math.sqrt(energy / length) > 0.005, `${type} is audible`);
@@ -64,7 +68,7 @@ test('each landscape object has a distinct, audible, bounded, click-free sample'
       energy += value * value;
     }
     assert.ok(Math.sqrt(energy / sample.length) > 0.025, `${type} must be audible`);
-    signatures.add(sample.slice(500, 510).join(','));
+    signatures.add(createHash('sha256').update(Buffer.from(sample.buffer)).digest('hex'));
   }
   assert.equal(signatures.size, SCENE_SOUNDS.length - recordedSounds.length);
 });
