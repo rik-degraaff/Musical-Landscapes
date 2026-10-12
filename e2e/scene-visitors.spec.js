@@ -63,7 +63,11 @@ for(const [tier,roll] of [[0,.1],[1,.27]])test.describe(`visitor tier ${tier+1}`
     await page.locator('.scene-farm .visitor-object').focus();await page.keyboard.press('Space');
     await expect(page.locator('.scene-farm .visitor-object .reacting')).toHaveCount(0);
     await page.evaluate(()=>window.__testVisitorRoll=.9);
-    for(let index=0;index<7;index++)await page.getByRole('button',{name:'Change landscape'}).click({force:true});
+    for(let index=0;index<7;index++){
+      await expect(page.locator('.celestial-control')).toHaveAttribute('data-settled','true');
+      await page.getByRole('button',{name:'Change landscape'}).click();
+      await expect(page.locator(`.scene-${scenes[(index+1)%7]}`)).toBeVisible();
+    }
     await expect(page.locator('.scene-farm .visitor-object')).toHaveCount(0);await expect(page.getByRole('button',{name:'Cow',exact:true})).toBeVisible();
     expect(errors).toEqual([]);
   });

@@ -10,6 +10,10 @@
     "icons:generate": "node scripts/generate-pwa-icons.mjs",
     "test": "node --test tests/*.test.js",
     "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test e2e/lifecycle.spec.js e2e/practice.spec.js e2e/string-voicing.spec.js e2e/children.spec.js e2e/settings.spec.js --project=desktop --project=phone-landscape",
+    "test:e2e:release": "playwright test --project=desktop --project=phone-landscape",
+    "test:production": "npm run build && npm run test:production:built",
+    "test:production:built": "playwright test --config=playwright.production.config.js",
     "samples:download": "node scripts/download-instruments.mjs",
     "scenery:download": "node scripts/download-scene-recordings.mjs",
     "audio:analyze": "node scripts/analyze-audio.mjs"
