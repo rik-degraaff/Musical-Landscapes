@@ -4,8 +4,10 @@ import {InstrumentArt} from './InstrumentArt';
 import './settings.css';
 import {useDismissible} from './useDismissible';
 import {SaveStatus} from './SaveStatus';
+import {HelpButton} from './CaregiverHelp';
+import {caregiverHelp} from '../utils/caregiverHelp';
 
-export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onClose,onMenu,settings,onSettings,saveError,onRetrySave}) {
+export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onClose,onMenu,settings,onSettings,saveError,onRetrySave,familiarity,onHelp}) {
   const [tab,setTab]=useState('Sound');
   const [selected,setSelected]=useState(settings.selected[2]);
   const modal=useRef(null);
@@ -42,18 +44,21 @@ export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onClose,on
   }
   return <div className="settings-backdrop">
     <section ref={modal} id="landscape-mixer" className="mixer settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-      <div className="mixer-head settings-head"><h2 id="settings-title"><Settings2 size={21}/>Settings</h2><button onClick={onClose} aria-label="Close settings" title="Close settings"><X size={20}/></button></div>
+      <div className="mixer-head settings-head"><HelpButton onOpen={onHelp}/><h2 id="settings-title"><Settings2 size={21}/>Settings</h2><button onClick={onClose} aria-label="Close settings" title="Close settings"><X size={20}/></button></div>
       <div className="settings-tabs" role="tablist" aria-label="Settings categories">{tabs.map(([name,Icon],index)=><button key={name} role="tab" id={`settings-tab-${name}`} aria-selected={tab===name} aria-controls="settings-panel" tabIndex={tab===name?0:-1} onClick={()=>setTab(name)} onKeyDown={event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:tabs.length-1))%tabs.length;setTab(tabs[next][0]);event.currentTarget.parentElement.children[next].focus();}}}><Icon size={16}/>{name}</button>)}</div>
       <div id="settings-panel" role="tabpanel" aria-labelledby={`settings-tab-${tab}`} tabIndex={0} className="settings-content">
         {tab==='Sound'?<div className="sound-settings">
           {Object.entries(instruments).map(([name,instrument])=><label className={`settings-volume volume-${name}`} key={name}><span><i className="settings-art" aria-hidden="true"><InstrumentArt type={name}/></i>{instrument.label}<output>{instrument.volume} dB</output></span><input aria-label={`${instrument.label} volume`} type="range" min="-24" max="6" step="1" value={instrument.volume} onChange={event=>onVolume(name,event.target.value)}/></label>)}
           <label className="settings-volume scenery-mixer-row"><span><Trees size={16}/>Scenery sounds<output>{sceneVolume<=-60?'Muted':`${sceneVolume} dB`}</output></span><input aria-label="Scenery sounds volume" type="range" min="-60" max="0" step="1" value={sceneVolume} onChange={event=>onSceneVolume(event.target.value)}/></label>
+          <p className="settings-explanation">{familiarity==='confident'?'These dB controls change relative gain, not pitch or tempo. Mix levels last for this play session.':familiarity==='new'?'Move a slider left for quieter sound or right for louder sound. This changes loudness, not the notes or beat. Sound levels last for this play session.':'Balance the band and scenery here. Volume changes loudness, not tempo; the mix lasts for this play session.'}</p>
         </div>:<>
           <div className="instrument-slots">{settings.selected.map((name,index)=><label key={index} className="settings-instrument"><i className="settings-art slot-art" aria-hidden="true"><InstrumentArt type={name}/></i><span className="slot-number">{index+1}</span><select aria-label={`Instrument slot ${index+1}`} value={name} onChange={event=>selectSlot(index,event.target.value)}>{Object.entries(instruments).map(([id,instrument])=><option value={id} key={id}>{instrument.label}</option>)}</select></label>)}</div>
           <div className="instrument-configuration">
           <label className="settings-instrument configure-instrument"><i className="settings-art configuration-art" aria-hidden="true"><InstrumentArt type={selected}/></i>Configure instrument<select aria-label="Configure instrument" value={selected} onChange={event=>setSelected(event.target.value)}>{Object.entries(instruments).map(([name,instrument])=><option key={name} value={name}>{instrument.label}</option>)}</select></label>
           <fieldset className="equipped-complexity"><legend><Hand size={16}/>Equipped complexity</legend><div className="complexity-segments">{[['Simple',.35,Sprout],['Standard',1,Layers],['Advanced',1.5,Sparkles]].map(([label,value,Icon])=><label className={`complexity-${label.toLowerCase()}`} key={label}><input type="radio" name="equipped-complexity" value={value} checked={options.complexity===value} onChange={()=>change('complexity',value)}/><span><Icon size={18}/>{label}</span></label>)}</div></fieldset>
+          <p className="settings-explanation">{caregiverHelp('settings',familiarity).items[0][1]} {caregiverHelp('settings',familiarity).note}</p>
           <details key={selected} className="settings-display-details"><summary><Eye size={16}/>Display details</summary>
+            <p className="settings-explanation">{caregiverHelp('settings',familiarity).items[1][1]}</p>
             <label className="settings-check"><input type="checkbox" checked={options.noteLabels} onChange={event=>change('noteLabels',event.target.checked)}/><Tag size={16}/>Show note and control labels</label>
             <label className="settings-check"><input type="checkbox" checked={options.playbackNotes} onChange={event=>change('playbackNotes',event.target.checked)}/><AudioLines size={16}/>Show playback note names</label>
             {['guitar','ukulele'].includes(selected)&&<label className="settings-check"><input type="checkbox" checked={options.fingeringCharts} onChange={event=>change('fingeringCharts',event.target.checked)}/><Hand size={16}/>Show chord fingering charts</label>}

@@ -26,7 +26,7 @@ export function YoungMusician({ child,equipped, accepting,onPractice }) {
   const practiceAction=useRef(onPractice);practiceAction.current=onPractice;
   useEffect(()=>{
     const pointers=new Map();
-    const inside=event=>{const node=element.current;if(!node||node.closest('[inert]'))return false;const instrument=event.target.closest('.instrument');if(instrument)return instrument.classList.contains('equipped-instrument');const box=node.getBoundingClientRect();return event.clientX>=box.left&&event.clientX<=box.right&&event.clientY>=box.top&&event.clientY<=box.bottom;};
+    const inside=event=>{const node=element.current;if(!node||node.closest('[inert]')||event.target.closest('dialog[open]'))return false;const instrument=event.target.closest('.instrument');if(instrument)return instrument.classList.contains('equipped-instrument');const box=node.getBoundingClientRect();return event.clientX>=box.left&&event.clientX<=box.right&&event.clientY>=box.top&&event.clientY<=box.bottom;};
     const down=event=>{if(event.button===0&&inside(event)){const instrument=event.target.closest('.equipped-instrument');pointers.set(event.pointerId,{x:event.clientX,y:event.clientY,time:performance.now(),playback:instrument?{name:instrument.id.slice(11),active:instrument.getAttribute('aria-pressed')==='true'}:null});}else previous.current=null;};
     const up=event=>{
       const start=pointers.get(event.pointerId);pointers.delete(event.pointerId);if(!start)return;

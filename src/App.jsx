@@ -14,9 +14,12 @@ import { LandscapeGuard, requestLandscape } from './components/LandscapeGuard';
 import {Metronome} from './components/Metronome';
 import {PracticeRoom} from './components/PracticeRoom';
 import {ParentGuide} from './components/ParentGuide';
-import {normalizeChild} from './utils/children';
+import {ChildEditor} from './components/ChildEditor';
+import {CaregiverHelp,HelpButton} from './components/CaregiverHelp';
+import {editChild,normalizeChild,removeChild} from './utils/children';
 import {useAppUpdates} from './components/useAppUpdates.js';
 import {createFamilyStorage,recoverFamilySnapshot} from './utils/familyStorage.js';
+import {defaultSettings} from './utils/settings.js';
 
 function initialInstruments(selected) {
   return Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,value])=>[name,{...value,...(selected.includes(name)?INSTRUMENT_SLOTS[selected.indexOf(name)]:{}),active:false}]));
@@ -33,6 +36,8 @@ export default function App({developmentPreview}={}) {
   const [metronomeOpen,setMetronomeOpen] = useState(false);
   const [practice,setPractice]=useState(null);
   const [parentGuide,setParentGuide]=useState(false);
+  const [editingId,setEditingId]=useState(null);
+  const [help,setHelp]=useState(null);
   const [storage]=useState(()=>developmentPreview ? {saveSnapshot:()=>({ok:true}),saveLegacySettings:()=>({ok:true})} : createFamilyStorage());
   const [initial]=useState(()=>developmentPreview ? { family: { children: [developmentPreview.child], selectedId: developmentPreview.child.id }, settings: developmentPreview.child.settings, saveError: false } : storage.load());
   const [saveError,setSaveError]=useState(Boolean(initial.saveError));
@@ -53,7 +58,7 @@ export default function App({developmentPreview}={}) {
   const [nearChild,setNearChild] = useState(false);
   const startupState=useRef({settings,sceneIndex});
   const mounted=useRef(false);
-  useAppUpdates({started,loading,parentGuide:parentGuide||saveError});
+  useAppUpdates({started,loading,parentGuide:parentGuide||Boolean(editingId)||Boolean(help)||saveError});
 
   useEffect(()=>{ stateRef.current=instruments; },[instruments]);
   useLayoutEffect(()=>{startupState.current={settings,sceneIndex};},[settings,sceneIndex]);
@@ -158,6 +163,15 @@ export default function App({developmentPreview}={}) {
     setSaveError(!storage.saveSnapshot({family,settings}).ok);
   }
 
+  function saveFamily(nextFamily) {
+    if(!nextFamily)return false;
+    const nextSettings=nextFamily.children.find(child=>child.id===nextFamily.selectedId)?.settings??defaultSettings();
+    if(!storage.saveProfileSnapshot({family:nextFamily,settings:nextSettings}).ok){setSaveError(true);return false;}
+    setSaveError(false);setFamily(nextFamily);setSettings(nextSettings);
+    const next=initialInstruments(nextSettings.selected);stateRef.current=next;setInstruments(next);
+    return true;
+  }
+
   function pointerDown(e,name) {
     if(e.pointerType==='mouse' && e.button!==0) return;
     if(drag.current) return;
@@ -250,7 +264,7 @@ export default function App({developmentPreview}={}) {
     const artSize=node=>{const art=node.querySelector('.instrument-illustration')?.getBoundingClientRect();return art?.width?{width:art.width,height:art.height}:null;};
     const size=artSize(element)??rect;
     const insetX=(rect.width-size.width)/2,insetY=(rect.height-size.height)/2;
-    const others=[...worldRef.current.querySelectorAll('.instrument,.interactive-object,#young-musician,.celestial-control[data-settled="true"]'),...document.querySelectorAll('.mixer-button,.metronome-mini')];
+    const others=[...worldRef.current.querySelectorAll('.instrument,.interactive-object,#young-musician,.celestial-control[data-settled="true"]'),...document.querySelectorAll('.mixer-button,.metronome-mini,.caregiver-help-corner')];
     const obstacles=others.filter(other=>other!==element).map(other=>{
       const bounds=other.getBoundingClientRect();
       const peer=other.id.startsWith('instrument-')?stateRef.current[other.id.slice(11)]:null;
@@ -298,14 +312,17 @@ export default function App({developmentPreview}={}) {
       {started && <button className="mixer-button" onClick={activateMixer} aria-expanded={mixer} aria-controls="landscape-mixer" aria-label={mixer?'Close settings':'Open settings'} title={mixer?'Close settings':'Double-click or double-tap to open settings'}>{mixer?<X size={22}/>:<Menu size={22}/>}</button>}
     </div>
 
-    {started && mixer && <Mixer saveError={saveError} onRetrySave={retrySave} instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} settings={settings} onSettings={updateSettings} onMenu={returnToMenu} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
+    {started && mixer && <Mixer familiarity={selectedChild?.profile.parent} onHelp={()=>setHelp({topic:'settings'})} saveError={saveError} onRetrySave={retrySave} instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} settings={settings} onSettings={updateSettings} onMenu={returnToMenu} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
     {started&&<Metronome audio={audioRef.current} open={metronomeOpen} disabled={mixer||Boolean(practice)} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}
 
     {equipped&&!practice&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={performanceRoot} options={settings.instruments[equipped]} settingsOpen={mixer} onClose={()=>equip(null)}/>}
-    {practice&&<PracticeRoom child={selectedChild} audio={audioRef.current} initialInstrument={practice} settings={settings} root={SCENES[sceneIndex].root} onClose={()=>setPractice(null)}/>}
+    {practice&&<PracticeRoom child={selectedChild} audio={audioRef.current} initialInstrument={practice} settings={settings} root={SCENES[sceneIndex].root} onHelp={instrument=>setHelp({topic:'practice',instrument})} onClose={()=>setPractice(null)}/>}
 
-    {!started && <StartScreen saveError={saveError} onRetrySave={retrySave} children={family.children} selectedId={family.selectedId} loading={loading} error={error} onStart={start} onSelect={selectChild} onAdd={()=>setParentGuide(true)}/>}
-    {!started&&parentGuide&&<ParentGuide settings={settings} onComplete={addChild} onClose={()=>setParentGuide(false)}/>}
+    {!started && <StartScreen saveError={saveError} onRetrySave={retrySave} children={family.children} selectedId={family.selectedId} loading={loading} error={error} onStart={start} onSelect={selectChild} onEdit={setEditingId} onAdd={()=>setParentGuide(true)}/>}
+    {!started&&parentGuide&&<ParentGuide familiarity={selectedChild?.profile.parent} settings={settings} onComplete={addChild} onClose={()=>setParentGuide(false)}/>}
+    {!started&&editingId&&<ChildEditor child={family.children.find(child=>child.id===editingId)} onSave={draft=>saveFamily(editChild(family,editingId,draft))} onDelete={()=>saveFamily(removeChild(family,editingId))} onClose={()=>setEditingId(null)}/>}
+    {!mixer&&!practice&&!parentGuide&&!editingId&&!loading&&<HelpButton className="caregiver-help-corner" onOpen={()=>{window.dispatchEvent(new Event('farmjam-input-reset'));setHelp({topic:started?(equipped?'instruments':'landscape'):'menu',instrument:equipped});}}/>}
+    {help&&<CaregiverHelp {...help} familiarity={selectedChild?.profile.parent} onClose={()=>setHelp(null)}/>}
     <LandscapeGuard/>
   </main>;
 }

@@ -1,9 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {AGE_SIZES,AVATAR_COLORS,AVATAR_OPTIONS,CHILDREN_KEY,DEFAULT_AVATAR,loadChildren,normalizeAvatar,normalizeChildren,saveChildren} from '../src/utils/children.js';
+import {AGE_SIZES,AVATAR_COLORS,AVATAR_OPTIONS,CHILDREN_KEY,DEFAULT_AVATAR,editChild,loadChildren,normalizeAvatar,normalizeChildren,removeChild,saveChildren} from '../src/utils/children.js';
 import {defaultSettings} from '../src/utils/settings.js';
 
 const child={id:'child-1',name:'  Alex  ',age:'5to7',avatar:{hair:'curls',top:'overalls',bottom:'shorts',hairColor:'#201f25'},profile:{music:'some',parent:'confident',instruments:['piano','piano','invalid']}};
+test('profile edits preserve identity, music settings and siblings; deletion chooses a surviving child',()=>{
+  const family=normalizeChildren({children:[child,{...child,id:'child-2',name:'Sam'}],selectedId:'child-1'});
+  const original=structuredClone(family);
+  const edited=editChild(family,'child-1',{id:'replacement',name:' Ally ',age:'8plus',avatar:{hair:'bob'},settings:defaultSettings(),profile:{parent:'new',music:'new'}});
+  assert.equal(edited.children[0].id,'child-1');assert.equal(edited.children[0].name,'Ally');assert.equal(edited.children[0].profile.age,'8plus');
+  assert.equal(edited.children[0].profile.parent,'new');assert.equal(edited.children[0].profile.music,'some');
+  assert.deepEqual(edited.children[0].settings,original.children[0].settings);assert.deepEqual(edited.children[1],original.children[1]);assert.deepEqual(family,original);
+  assert.equal(editChild(family,'missing',{}),null);assert.equal(editChild(family,'child-1',{name:' ',age:'8plus'}),null);
+  assert.equal(removeChild(family,'child-2').selectedId,'child-1');
+  const removed=removeChild(family,'child-1');assert.equal(removed.selectedId,'child-2');
+  assert.deepEqual(removeChild(removed,'child-2'),{children:[],selectedId:null});assert.deepEqual(family,original);
+});
 test('expanded styles and identical garment palettes preserve existing and new avatar choices',()=>{
   assert.ok(AVATAR_OPTIONS.hair.includes('longCurls'));assert.ok(AVATAR_OPTIONS.hair.includes('longStraight'));
   for(const field of ['topPrimary','topSecondary','bottomPrimary','bottomSecondary'])assert.deepEqual(AVATAR_COLORS[field],AVATAR_COLORS.topPrimary);

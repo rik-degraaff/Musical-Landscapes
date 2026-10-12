@@ -46,7 +46,28 @@ export function createFamilyStorage(storageProvider=()=>window.localStorage) {
     }
   }
 
-  return {load,saveSnapshot,saveLegacySettings};
+  function saveProfileSnapshot({family,settings}) {
+    if(loadError)return {ok:false,error:loadError};
+    let storage,previousSettings,settingsWritten=false;
+    try {
+      const normalizedFamily=normalizeChildren(family);
+      const selectedChild=normalizedFamily.children.find(child=>child.id===normalizedFamily.selectedId);
+      const familyJSON=JSON.stringify(normalizedFamily);
+      const settingsJSON=JSON.stringify(selectedChild?.settings??normalizeSettings(settings));
+      storage=storageProvider();previousSettings=storage.getItem(SETTINGS_KEY);
+      storage.setItem(SETTINGS_KEY,settingsJSON);settingsWritten=true;
+      storage.setItem(CHILDREN_KEY,familyJSON);
+      return {ok:true,error:null};
+    } catch(error) {
+      if(settingsWritten){
+        try {if(previousSettings===null)storage.removeItem(SETTINGS_KEY);else storage.setItem(SETTINGS_KEY,previousSettings);}
+        catch(rollbackError){return {ok:false,error,rollbackError};}
+      }
+      return {ok:false,error};
+    }
+  }
+
+  return {load,saveSnapshot,saveLegacySettings,saveProfileSnapshot};
 }
 
 export function recoverFamilySnapshot(initial,current,recovered) {

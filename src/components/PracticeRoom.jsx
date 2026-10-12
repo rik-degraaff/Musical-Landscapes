@@ -10,9 +10,10 @@ import {PracticeRoomArt} from './PracticeRoomArt';
 import {YoungMusicianArt} from './YoungMusician';
 import {Metronome} from './Metronome';
 import {PracticeFeedback} from './PracticeFeedback';
+import {HelpButton} from './CaregiverHelp';
 import './practice.css';
 
-export function PracticeRoom({child,audio,initialInstrument,settings,root,onClose}) {
+export function PracticeRoom({child,audio,initialInstrument,settings,root,onClose,onHelp}) {
   const [name,setName]=useState(initialInstrument);
   const [phraseIndex,setPhraseIndex]=useState(0);
   const [stage,setStage]=useState(0);
@@ -203,7 +204,7 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
   const progress=stage===1?Math.min(step,steps.length):stage===0?(complete?steps.length:0):attempt.current.reduce((sum,value)=>sum+value.hits,0);
   return <section ref={room} className="practice-room" role="dialog" aria-modal="true" aria-label="Farm practice room" onPointerDownCapture={captureInput} onKeyDownCapture={captureInput}>
     <PracticeRoomArt/>
-    <header className="practice-topbar"><h1 className="practice-room-title"><Music size={22}/>Farm Practice</h1>
+    <header className="practice-topbar"><HelpButton onOpen={()=>onHelp(name)}/><h1 className="practice-room-title"><Music size={22}/>Farm Practice</h1>
       <div className="practice-lineup" role="group" aria-label="Musician and instruments">
         <div className="practice-musician" data-child-name={child?.name}><YoungMusicianArt child={child}/><InstrumentArt type={name}/><span>{INSTRUMENTS[name].label}</span></div>
         <div className="practice-neighbors" aria-label="Other landscape instruments">{settings.selected.filter(instrument=>instrument!==name).map(instrument=><button key={instrument} className={companions[instrument]!==undefined?'is-accompanying':''} aria-label={`Switch to ${INSTRUMENTS[instrument].label}`} title={companions[instrument]!==undefined?`${INSTRUMENTS[instrument].label}, phrase ${companions[instrument]+1}`:`Practice ${INSTRUMENTS[instrument].label}`} onClick={()=>{cancel();setPhraseIndex(0);setName(instrument);}}><InstrumentArt type={instrument}/></button>)}</div>

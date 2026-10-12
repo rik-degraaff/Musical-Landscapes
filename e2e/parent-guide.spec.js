@@ -75,7 +75,7 @@ test('child setup cancels without saving and remains keyboard navigable',async({
   await page.getByRole('button',{name:'Next step'}).click();
   await expect(page.getByRole('heading',{name:'How familiar are you with music?'})).toBeFocused();
   await page.getByRole('button',{name:'Next step'}).focus();await page.keyboard.press('Tab');
-  await expect(page.getByRole('button',{name:'Cancel child setup'})).toBeFocused();
+  await expect(page.getByRole('button',{name:'Open caregiver help'})).toBeFocused();
   await page.keyboard.press('Shift+Tab');await expect(page.getByRole('button',{name:'Next step'})).toBeFocused();
   await page.getByRole('radio',{name:'New to music'}).check();
   await page.getByRole('button',{name:'Next step'}).click();await page.getByRole('radio',{name:'8+'}).check();

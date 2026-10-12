@@ -4,6 +4,31 @@ import {createFamilyStorage,recoverFamilySnapshot} from '../src/utils/familyStor
 import {CHILDREN_KEY,normalizeChildren} from '../src/utils/children.js';
 import {SETTINGS_KEY,defaultSettings,normalizeSettings} from '../src/utils/settings.js';
 
+test('profile replacement writes family last and never removes children on either write failure',()=>{
+  const originalFamily=normalizeChildren({children:[{id:'alex',name:'Alex',age:'5to7',settings:defaultSettings()}],selectedId:'alex'});
+  const previousSettings=normalizeSettings({instruments:{piano:{complexity:.35}}});
+  for(const failedKey of [CHILDREN_KEY,SETTINGS_KEY]) {
+    const data=new Map([[CHILDREN_KEY,JSON.stringify(originalFamily)],[SETTINGS_KEY,JSON.stringify(previousSettings)]]);
+    let blocked=true;
+    const adapter=createFamilyStorage(()=>({getItem:key=>data.get(key)??null,setItem(key,value){if(blocked&&key===failedKey)throw Error('blocked');data.set(key,value);},removeItem:key=>data.delete(key)}));
+    const snapshot={family:{children:[],selectedId:null},settings:defaultSettings()};
+    assert.equal(adapter.saveProfileSnapshot(snapshot).ok,false);
+    assert.deepEqual(JSON.parse(data.get(CHILDREN_KEY)),originalFamily);assert.deepEqual(JSON.parse(data.get(SETTINGS_KEY)),previousSettings);
+    blocked=false;assert.equal(adapter.saveProfileSnapshot(snapshot).ok,true);
+    assert.deepEqual(JSON.parse(data.get(CHILDREN_KEY)),snapshot.family);assert.deepEqual(JSON.parse(data.get(SETTINGS_KEY)),snapshot.settings);
+  }
+});
+
+test('profile write failure restores an absent settings mirror and read errors prevent profile writes',()=>{
+  const data=new Map([[CHILDREN_KEY,'{"children":[],"selectedId":null}']]);
+  const adapter=createFamilyStorage(()=>({getItem:key=>data.get(key)??null,setItem(key,value){if(key===CHILDREN_KEY)throw Error('blocked');data.set(key,value);},removeItem:key=>data.delete(key)}));
+  assert.equal(adapter.saveProfileSnapshot({family:{children:[],selectedId:null},settings:defaultSettings()}).ok,false);
+  assert.equal(data.has(SETTINGS_KEY),false);
+  let writes=0;
+  const unreadable=createFamilyStorage(()=>({getItem(){throw Error('read blocked');},setItem(){writes++;}}));
+  unreadable.load();assert.equal(unreadable.saveProfileSnapshot({family:{children:[],selectedId:null},settings:defaultSettings()}).ok,false);assert.equal(writes,0);
+});
+
 const child={id:'child-1',name:'Alex',age:'5to7'};
 function storage(initial={}) {
   const values=new Map(Object.entries(initial));

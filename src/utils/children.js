@@ -28,6 +28,18 @@ export function normalizeChildren(value) {
   return {children,selectedId:children.some(child=>child.id===value?.selectedId)?value.selectedId:children[0]?.id??null};
 }
 
+export function editChild(family,id,draft) {
+  const previous=family.children.find(child=>child.id===id);
+  if(!previous)return null;
+  const child=normalizeChild({...previous,name:draft.name,age:draft.age,avatar:draft.avatar,profile:{...previous.profile,parent:draft.profile?.parent??previous.profile.parent}});
+  if(!child)return null;
+  return {...family,children:family.children.map(value=>value.id===id?child:value)};
+}
+
+export function removeChild(family,id) {
+  return normalizeChildren({...family,children:family.children.filter(child=>child.id!==id)});
+}
+
 export function loadChildren(storage) {
   try{return normalizeChildren(JSON.parse(storage.getItem(CHILDREN_KEY)??'null'));}catch{return {children:[],selectedId:null};}
 }

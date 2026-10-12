@@ -5,6 +5,7 @@ export function useDismissible(ref,open,onDismiss) {
   useEffect(()=>{
     if(!open)return;
     const outside=event=>{
+      if(event.target.closest('dialog[open]'))return;
       if(ref.current?.contains(event.target))return;
       if(event.button!==0)return;
       const {clientX,clientY}=event;

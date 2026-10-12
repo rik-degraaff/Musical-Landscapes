@@ -11,6 +11,7 @@ test.beforeEach(async({page})=>{
 async function start(page) {
   const viewport=page.viewportSize();if(viewport.height>viewport.width)await page.setViewportSize({width:viewport.height,height:viewport.width});
   await page.goto('/');
+  await expect(page.locator('.start-overlay')).toBeVisible();
   await page.evaluate(async()=>{
     const source=await (await fetch('/src/App.jsx')).text();
     const url=/from\s+["']([^"']*\/audio\/AudioEngine[^"']*)["']/.exec(source)[1];
@@ -20,6 +21,7 @@ async function start(page) {
   });
   await page.getByRole('button',{name:'Tap to play'}).click();
   await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:20000});
+  await expect(page.getByRole('button',{name:'Open settings',exact:true})).toBeVisible();
 }
 async function equip(page,name) {await page.locator(`#instrument-${name}`).focus();await page.keyboard.press('e');await expect(page.locator(`.performance-${name}`)).toBeVisible();}
 async function settings(page,tab) {await page.getByRole('button',{name:'Open settings'}).dblclick();await expect(page.getByRole('dialog',{name:'Settings'})).toBeVisible();if(tab)await page.getByRole('tab',{name:tab,exact:true}).click();}
@@ -121,9 +123,9 @@ test('settings modal keeps sound controls, traps focus, and hides advanced infor
   await expect(page.getByRole('tab')).toHaveText(['Sound','Instruments']);
   await expect(page.getByRole('slider',{name:'Scenery sounds volume',exact:true})).toBeVisible();
   await page.getByRole('slider',{name:'Piano volume',exact:true}).fill('-18');await expect(page.getByRole('slider',{name:'Piano volume',exact:true})).toHaveValue('-18');
-  await page.getByRole('button',{name:'Close settings',exact:true}).focus();await page.keyboard.press('Shift+Tab');
+  await page.getByRole('button',{name:'Open caregiver help',exact:true}).focus();await page.keyboard.press('Shift+Tab');
   await expect(page.getByRole('button',{name:'Return to main menu'})).toBeFocused();
-  await page.keyboard.press('Tab');await expect(page.getByRole('button',{name:'Close settings',exact:true})).toBeFocused();
+  await page.keyboard.press('Tab');await expect(page.getByRole('button',{name:'Open caregiver help',exact:true})).toBeFocused();
   await page.screenshot({path:testInfo.outputPath('settings-sound.png')});
   await page.keyboard.press('Escape');await expect(page.locator('.settings-dialog')).toHaveCount(0);
   await expect(page.getByRole('button',{name:'Open settings'})).toBeFocused();
