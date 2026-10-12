@@ -6,7 +6,7 @@ Play requires a selected child whose setup has been completed. The start menu sh
 
 The default six are piano, drums, ukulele, trumpet, marimba, and pan flute. Settings > Instruments has six slot selectors drawn from an eight-instrument catalog: guitar and concert flute remain available as alternatives. Selections persist locally; choosing an instrument already in another slot swaps the two rather than duplicating it. Removing an active or equipped instrument stops its voices and closes its performance surface safely.
 
-FarmJam suppresses in-page context menus, selection, native dragging, pinch zoom, and page scrolling while preserving multi-finger instrument playing. Browser chrome and operating-system gestures cannot be intercepted by a web app. The mixer remains scrollable with a mouse wheel.
+FarmJam suppresses gameplay pinch zoom and page scrolling while preserving multi-finger instrument playing. The child menu, caregiver setup and Settings permit browser zoom; caregiver dialogs remain scrollable. In-page context menus, selection and native dragging are suppressed. Browser chrome and operating-system gestures cannot be intercepted by a web app.
 
 Equipped and unequipped instruments use the same active playback state. Tap an instrument to toggle music, including while it is equipped. Playing its manual controls stops that instrument's automatic phrase; tap its drawing to resume. Equipping or putting down an active instrument preserves sounding notes, queued events, and the transport position. Putting down a playing instrument leaves it active.
 
@@ -49,7 +49,7 @@ Then open the Vite URL shown in the terminal.
 
 Deploy the production build to an HTTPS origin, then use the browser's install action (or Add to Home Screen on iOS). The app shell and bundled instrument/scenery audio are cached for offline use after the first successful load.
 
-Installed copies check for deployed changes while online. The service worker installs the new build and reloads the app automatically; while offline, the last cached version remains available and updates when the app reconnects.
+Installed copies check for deployed changes while online. A complete new build waits while sounds load, play is active, child setup is open, or changes could not be saved. It activates and reloads at the child menu once those conditions clear. While offline, the last successfully cached build remains available. Failed saves leave choices usable in the current session and show a caregiver warning with a retry control; device storage is not a permanent backup.
 
 Run the phrase-library checks and production build with:
 
@@ -66,6 +66,8 @@ npm run test:e2e
 ```
 
 The browser suite starts Vite locally. It measures actual Web Audio waveforms for the instruments and scene objects, decodes all bundled recordings, tests failed-load retry, verifies saved gain corrections and full-mix headroom, exercises rapid toggles and repeated taps, checks dragging, cancellation, keyboard control, audio suspension recovery, mixer persistence and reduced motion, and captures each landscape at desktop, portrait phone and compact landscape sizes. Screenshots and failure traces go into the ignored `test-results/` directory.
+
+Run `npm run test:e2e:release` for the complete desktop/compact-touch gate and `npm run test:production` for a fresh build plus actual service-worker offline, interrupted-install and deferred-update checks. See [release validation](docs/release-validation.md), [the executed engineering roadmap](docs/engineering-roadmap.md) and [potential feature ideas](docs/feature-ideas.md). The proposals are documented only, not implemented.
 
 The focused [scene-composition test](e2e/scene-composition.spec.js) covers all 28 regular and visitor objects across seven scenes using regular, frequent and rare rolls at 1440x900, 1024x768, 852x393, 780x284 and 640x360. It captures unequipped object details and whole-scene screenshots both unequipped and with piano equipped. Checks cover viewport bounds, sensible sizes, ground/water/sky habitat thresholds, object-to-object overlap, equipped-instrument/settings clearance, reachable object centers and instrument clearance from the settled sun or moon. Screenshots support visual habitat review; the numeric thresholds alone do not prove exact contact with a branch or bank. Run this slice with `npm run test:e2e -- e2e/scene-composition.spec.js --project=desktop`. This describes coverage, not a claim that the full suite has passed.
 
