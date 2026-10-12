@@ -107,7 +107,7 @@ export function difficultyLevel(options={}) {
   return value<=.5?'Simple':value<=1?'Standard':'Advanced';
 }
 
-export function equippedProfile(name,root,options={}) {
+export function buildEquippedProfile(name,root,options={}) {
   const level=difficultyLevel(options);
   const strings=STRING_INSTRUMENTS[name];
   const library=strings?.library[root];
@@ -129,5 +129,29 @@ export function equippedProfile(name,root,options={}) {
   const played=phrases.flatMap(phrase=>phrase.events.flatMap(event=>event.notes??[event.note]));
   const notes=name==='drums'?[]:[...new Set(played)].sort((first,second)=>noteMidi(first)-noteMidi(second));
   const keyboardNotes=notes.length?Array.from({length:noteMidi(notes.at(-1))-noteMidi(notes[0])+1},(_,index)=>midiNote(noteMidi(notes[0])+index)):[];
-  return {level,phrases,chords,notes,keyboardNotes,hits,registers,fluteRegisters};
+  return structuredClone({level,phrases,chords,notes,keyboardNotes,hits,registers,fluteRegisters});
+}
+
+const profileCache=new Map();
+const PROFILE_CACHE_LIMIT=96;
+
+function freezeProfile(value) {
+  if(value&&typeof value==='object'&&!Object.isFrozen(value)){
+    for(const nested of Object.values(value))freezeProfile(nested);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+export function equippedProfile(name,root,options={}) {
+  const key=JSON.stringify([name,root,difficultyLevel(options)]);
+  if(profileCache.has(key)){
+    const profile=profileCache.get(key);
+    profileCache.delete(key);profileCache.set(key,profile);
+    return profile;
+  }
+  const profile=freezeProfile(buildEquippedProfile(name,root,options));
+  profileCache.set(key,profile);
+  if(profileCache.size>PROFILE_CACHE_LIMIT)profileCache.delete(profileCache.keys().next().value);
+  return profile;
 }

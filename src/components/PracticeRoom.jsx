@@ -33,6 +33,7 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
   const [metronomeOpen,setMetronomeOpen]=useState(false);
   const state=useRef({});
   const attempt=useRef([]);
+  const resultSnapshot=useRef([]);
   const learned=useRef({step:-1,remaining:[]});
   const session=useRef(null);
   const cycle=useRef(0);
@@ -77,7 +78,14 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
   }
   function reset() {
     setFeedbackItems([]);inputLocation.current=null;
-    cancel();learned.current={step:-1,remaining:[]};setStep(0);state.current.step=0;setComplete(false);state.current.complete=false;setSummary(null);setResults([]);setFeedback({tone:'pending',text:'Ready'});
+    cancel();learned.current={step:-1,remaining:[]};setStep(0);state.current.step=0;setComplete(false);state.current.complete=false;setSummary(null);setResults([]);resultSnapshot.current=[];setFeedback({tone:'pending',text:'Ready'});
+  }
+  function updateResults() {
+    const previous=resultSnapshot.current;
+    const next=attempt.current.map(value=>({status:value.missed?'missed':value.remaining.length===0?'correct':'pending',hits:value.hits}));
+    if(next.length===previous.length&&next.every((value,index)=>value.status===previous[index].status&&value.hits===previous[index].hits))return;
+    resultSnapshot.current=next;
+    setResults(next.map(value=>value.status));
   }
   function updateSummary() {
     const current=attemptSummary(attempt.current);
@@ -90,7 +98,7 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
     if(state.current.stage===0){state.current.complete=true;setComplete(true);cycle.current=nextCycle;return;}
     const previous=attemptSummary(attempt.current);
     totals.current.hits+=previous.hits;totals.current.total+=previous.total;
-    cycle.current=nextCycle;attempt.current=createTimingAttempt(sourcePhrase);setResults([]);updateSummary();
+    cycle.current=nextCycle;attempt.current=createTimingAttempt(sourcePhrase);setResults([]);resultSnapshot.current=[];updateSummary();
   }
   useEffect(()=>{
     audio.beginPractice(initialInstrument);
@@ -124,7 +132,7 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
         const result=scoreTimedInput(attempt.current,note,beatInBar,PRACTICE_TIMING_TOLERANCE,(expected,actual)=>matchesNote(current.name,actual,expected));
         showInputFeedback(note,result.correct?'correct':'wrong');
         setFeedback({tone:result.correct?'correct':'wrong',text:result.correct?'On time!':'Try the highlighted note'});
-        setResults(attempt.current.map(value=>value.missed?'missed':value.remaining.length===0?'correct':'pending'));
+        updateResults();
         updateSummary();
         if(attempt.current.every(value=>value.remaining.length===0)){current.complete=true;setComplete(true);setFeedback({tone:'correct',text:'Phrase complete!'});}
       }
@@ -185,7 +193,7 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
         const beatInBar=(elapsedTicks-nextCycle*session.current.barTicks)/session.current.beatTicks;
         if(stage>1)expireSteps(attempt.current,beatInBar,PRACTICE_TIMING_TOLERANCE);
       }
-      setResults(attempt.current.map(value=>value.missed?'missed':value.remaining.length===0?'correct':'pending'));
+      updateResults();
       frame.current=requestAnimationFrame(tick);
     };
     frame.current=requestAnimationFrame(tick);
