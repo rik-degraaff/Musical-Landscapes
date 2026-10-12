@@ -1,4 +1,152 @@
 {
   "version": 1,
-  "rules": []
+  "rules": [
+    {
+      "selector": ".scene .interactive-object[data-sound=\"windmill\"]",
+      "attributes": {},
+      "styles": {
+        "--object-x": "76.27%",
+        "--object-base": "46.05%"
+      }
+    },
+    {
+      "selector": ".scene .interactive-object[data-sound=\"frog\"]",
+      "attributes": {},
+      "styles": {
+        "--object-x": "78.55%",
+        "--object-base": "93.98%"
+      }
+    },
+    {
+      "selector": "#instrument-piano",
+      "attributes": {},
+      "styles": {
+        "left": "15.00%",
+        "top": "35.00%",
+        "right": "auto",
+        "bottom": "auto",
+        "transform": "translate(-50%, -50%)"
+      }
+    },
+    {
+      "selector": ".scene-pond .landscape-art > path:nth-of-type(7)",
+      "attributes": {},
+      "styles": {
+        "translate": "-1.28px 0.00px"
+      }
+    },
+    {
+      "selector": ".scene .interactive-object[data-sound=\"duck\"]",
+      "attributes": {},
+      "styles": {
+        "--object-x": "35.67%",
+        "--object-base": "84.69%"
+      }
+    },
+    {
+      "selector": ".scene .interactive-object[data-sound=\"otter\"]",
+      "attributes": {},
+      "styles": {
+        "--object-x": "60.01%",
+        "--object-base": "76.87%"
+      }
+    },
+    {
+      "selector": ".scene .interactive-object[data-sound=\"tractor\"]",
+      "attributes": {},
+      "styles": {
+        "--object-x": "27.44%",
+        "--object-base": "55.47%"
+      }
+    },
+    {
+      "selector": ".scene .interactive-object[data-sound=\"moo\"]",
+      "attributes": {},
+      "styles": {
+        "--object-x": "26.95%",
+        "--object-base": "74.29%"
+      }
+    },
+    {
+      "selector": ".scene .interactive-object[data-sound=\"sheep\"]",
+      "attributes": {},
+      "styles": {
+        "--object-x": "83.97%",
+        "--object-base": "86.96%"
+      }
+    },
+    {
+      "selector": ".scene .interactive-object[data-sound=\"horse\"]",
+      "attributes": {},
+      "styles": {
+        "--object-x": "9.90%",
+        "--object-base": "83.43%"
+      }
+    },
+    {
+      "selector": ".scene .interactive-object[data-sound=\"bee\"]",
+      "attributes": {},
+      "styles": {
+        "--object-x": "38%",
+        "--object-size": "clamp(50px, min(10vh, 9vw), 80px)",
+        "--object-height": "calc(clamp(50px, min(10vh, 9vw), 80px) * .875)"
+      }
+    },
+    {
+      "selector": ".scene .interactive-object[data-sound=\"woodpecker\"]",
+      "attributes": {},
+      "styles": {
+        "--object-x": "85.40%",
+        "--object-base": "93.43%"
+      }
+    },
+    {
+      "selector": ".scene .interactive-object[data-sound=\"airplane\"]",
+      "attributes": {},
+      "styles": {
+        "--object-x": "68.50%",
+        "--object-center": "16.69%"
+      }
+    },
+    {
+      "selector": ".scene .interactive-object[data-sound=\"cricket\"]",
+      "attributes": {},
+      "styles": {
+        "--object-x": "16.02%",
+        "--object-base": "94.73%"
+      }
+    },
+    {
+      "selector": ".scene .interactive-object[data-sound=\"cicada\"]",
+      "attributes": {},
+      "styles": {
+        "--object-x": "87.39%",
+        "--object-base": "93.04%"
+      }
+    },
+    {
+      "selector": ".scene .interactive-object[data-sound=\"balloon\"]",
+      "attributes": {},
+      "styles": {
+        "--object-x": "20.06%",
+        "--object-center": "12.65%"
+      }
+    },
+    {
+      "selector": ".scene .interactive-object[data-sound=\"fox\"]",
+      "attributes": {},
+      "styles": {
+        "--object-x": "82.16%",
+        "--object-base": "88.34%"
+      }
+    },
+    {
+      "selector": ".scene .interactive-object[data-sound=\"badger\"]",
+      "attributes": {},
+      "styles": {
+        "--object-x": "27.22%",
+        "--object-base": "90.77%"
+      }
+    }
+  ]
 }
