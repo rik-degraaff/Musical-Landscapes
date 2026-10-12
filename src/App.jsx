@@ -11,11 +11,12 @@ import { PerformancePanel } from './components/PerformancePanel';
 import { slidePosition } from './utils/performance';
 import './components/controls.css';
 import { LandscapeGuard, requestLandscape } from './components/LandscapeGuard';
-import {loadSettings,SETTINGS_KEY} from './utils/settings';
 import {Metronome} from './components/Metronome';
 import {PracticeRoom} from './components/PracticeRoom';
 import {ParentGuide} from './components/ParentGuide';
-import {CHILDREN_KEY,loadChildren,saveChildren,normalizeChild} from './utils/children';
+import {normalizeChild} from './utils/children';
+import {useAppUpdates} from './components/useAppUpdates.js';
+import {createFamilyStorage} from './utils/familyStorage.js';
 
 function initialInstruments(selected) {
   return Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,value])=>[name,{...value,...(selected.includes(name)?INSTRUMENT_SLOTS[selected.indexOf(name)]:{}),active:false}]));
@@ -31,15 +32,12 @@ export default function App() {
   const [metronomeOpen,setMetronomeOpen] = useState(false);
   const [practice,setPractice]=useState(null);
   const [parentGuide,setParentGuide]=useState(false);
-  const [family,setFamily]=useState(()=>loadChildren(localStorage));
+  const [storage]=useState(()=>createFamilyStorage());
+  const [initial]=useState(()=>storage.load());
+  const [saveError,setSaveError]=useState(Boolean(initial.saveError));
+  const [family,setFamily]=useState(initial.family);
   const selectedChild=family.children.find(child=>child.id===family.selectedId)??null;
-  const [settings,setSettings] = useState(()=>{
-    try{
-      const saved=JSON.parse(localStorage.getItem(CHILDREN_KEY)??'null');
-      if(saved?.children?.find(child=>child.id===family.selectedId)?.settings)return selectedChild.settings;
-    }catch{}
-    return loadSettings(localStorage);
-  });
+  const [settings,setSettings] = useState(initial.settings);
   const [sceneVolume,setSceneVolume] = useState(-4);
   const mixerTap = useRef(null);
   const [instruments,setInstruments] = useState(()=>initialInstruments(settings.selected));
@@ -51,12 +49,18 @@ export default function App() {
   const [equipped,setEquipped] = useState(null);
   const [dragging,setDragging] = useState(null);
   const [nearChild,setNearChild] = useState(false);
+  const startupState=useRef({settings,sceneIndex});
+  const mounted=useRef(false);
+  useAppUpdates({started,loading,parentGuide:parentGuide||saveError});
 
   useEffect(()=>{ stateRef.current=instruments; },[instruments]);
-  useEffect(()=>()=>audioRef.current?.dispose(),[]);
+  useLayoutEffect(()=>{startupState.current={settings,sceneIndex};},[settings,sceneIndex]);
+  useEffect(()=>{mounted.current=true;return ()=>{mounted.current=false;audioRef.current?.dispose();};},[]);
+  useEffect(()=>{
+    if(!initial.saveError&&!storage.saveLegacySettings(initial.settings).ok)setSaveError(true);
+  },[storage,initial]);
   useEffect(()=>{
     if(audioRef.current)audioRef.current.updatePerformanceSettings(settings.instruments);
-    try {localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));}catch{}
   },[settings]);
 
   async function start() {
@@ -66,20 +70,21 @@ export default function App() {
     startInProgress.current=true;
     setLoading(true); setError(null);
     try {
-      if(!audioRef.current) {
-        audioRef.current = new AudioEngine();
-        audioRef.current.onActiveChange=(name,active)=>{
+      if(!audioRef.current)audioRef.current = new AudioEngine();
+      const engine=audioRef.current;
+      engine.onActiveChange=(name,active)=>{
+          if(!mounted.current||audioRef.current!==engine)return;
           const next={...stateRef.current,[name]:{...stateRef.current[name],active}};
           stateRef.current=next;setInstruments(next);
-        };
-      }
-      await audioRef.current.init();
-      audioRef.current.performanceSettings=settings.instruments;
-      audioRef.current.setSceneKey(SCENES[sceneIndex].root);
+      };
+      await engine.init();
+      if(!mounted.current||audioRef.current!==engine)return;
+      engine.updatePerformanceSettings(startupState.current.settings.instruments);
+      engine.setSceneKey(SCENES[startupState.current.sceneIndex].root);
       setStarted(true);
     }
-    catch(e) { console.error(e); setError('The sound engine could not start. Try tapping play again.'); }
-    finally { startInProgress.current=false; setLoading(false); }
+    catch(e) { if(mounted.current){console.error(e);setError('The sound engine could not start. Try tapping play again.');} }
+    finally { startInProgress.current=false;if(mounted.current)setLoading(false); }
   }
 
   function toggle(name) {
@@ -106,26 +111,31 @@ export default function App() {
       stateRef.current=positions;setInstruments(positions);
     }
     setSettings(next);
-    if(selectedChild){
-      const nextFamily={...family,children:family.children.map(child=>child.id===selectedChild.id?{...child,settings:next}:child)};
-      saveChildren(localStorage,nextFamily);setFamily(nextFamily);
-    }
+    const nextFamily={...family,children:family.children.map(child=>child.id===selectedChild?.id?{...child,settings:next}:child)};
+    setSaveError(!storage.saveSnapshot({family:nextFamily,settings:next}).ok);
+    setFamily(nextFamily);
   }
 
   function selectChild(id) {
     const child=family.children.find(value=>value.id===id);if(!child)return;
     const nextFamily={...family,selectedId:id};
-    saveChildren(localStorage,nextFamily);setFamily(nextFamily);setSettings(child.settings);
+    setSaveError(!storage.saveSnapshot({family:nextFamily,settings:child.settings}).ok);
+    setFamily(nextFamily);setSettings(child.settings);
     const next=initialInstruments(child.settings.selected);stateRef.current=next;setInstruments(next);
   }
 
   function addChild(draft) {
     const child=normalizeChild({...draft,id:crypto.randomUUID()});if(!child)return false;
     const nextFamily={children:[...family.children,child],selectedId:child.id};
-    if(!saveChildren(localStorage,nextFamily))return false;
+    if(!storage.saveSnapshot({family:nextFamily,settings:child.settings}).ok){setSaveError(true);return false;}
+    setSaveError(false);
     setFamily(nextFamily);setSettings(child.settings);
     const next=initialInstruments(child.settings.selected);stateRef.current=next;setInstruments(next);
     setParentGuide(false);return true;
+  }
+
+  function retrySave() {
+    setSaveError(!storage.saveSnapshot({family,settings}).ok);
   }
 
   function pointerDown(e,name) {
@@ -268,13 +278,13 @@ export default function App() {
       {started && <button className="mixer-button" onClick={activateMixer} aria-expanded={mixer} aria-controls="landscape-mixer" aria-label={mixer?'Close settings':'Open settings'} title={mixer?'Close settings':'Double-click or double-tap to open settings'}>{mixer?<X size={22}/>:<Menu size={22}/>}</button>}
     </div>
 
-    {started && mixer && <Mixer instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} settings={settings} onSettings={updateSettings} onMenu={returnToMenu} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
+    {started && mixer && <Mixer saveError={saveError} onRetrySave={retrySave} instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} settings={settings} onSettings={updateSettings} onMenu={returnToMenu} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
     {started&&<Metronome audio={audioRef.current} open={metronomeOpen} disabled={mixer||Boolean(practice)} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}
 
     {equipped&&!practice&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={SCENES[sceneIndex].root} options={settings.instruments[equipped]} settingsOpen={mixer} onClose={()=>equip(null)}/>}
     {practice&&<PracticeRoom child={selectedChild} audio={audioRef.current} initialInstrument={practice} settings={settings} root={SCENES[sceneIndex].root} onClose={()=>setPractice(null)}/>}
 
-    {!started && <StartScreen children={family.children} selectedId={family.selectedId} loading={loading} error={error} onStart={start} onSelect={selectChild} onAdd={()=>setParentGuide(true)}/>}
+    {!started && <StartScreen saveError={saveError} onRetrySave={retrySave} children={family.children} selectedId={family.selectedId} loading={loading} error={error} onStart={start} onSelect={selectChild} onAdd={()=>setParentGuide(true)}/>}
     {!started&&parentGuide&&<ParentGuide settings={settings} onComplete={addChild} onClose={()=>setParentGuide(false)}/>}
     <LandscapeGuard/>
   </main>;

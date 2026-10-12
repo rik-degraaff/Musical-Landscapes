@@ -6,7 +6,8 @@ export default defineConfig({
 	plugins: [
 		react(),
 		VitePWA({
-			registerType: 'autoUpdate',
+			registerType: 'prompt',
+			injectRegister: false,
 			includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
 			manifest: {
 				name: 'FarmJam',
@@ -24,6 +25,8 @@ export default defineConfig({
 				],
 			},
 			workbox: {
+				skipWaiting: false,
+				clientsClaim: false,
 				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,mp3,wav,flac}'],
 				maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
 			},

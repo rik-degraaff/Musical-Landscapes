@@ -46,7 +46,7 @@ export function ParentGuide({settings,onComplete,onClose}) {
   },[step]);
   useEffect(()=>{
     const bodyTouchAction=document.body.style.touchAction;
-    document.body.style.touchAction='pan-y';
+    document.body.style.touchAction='pan-y pinch-zoom';
     const previous=returnFocus.current;
     dialog.current?.querySelector('button,select,input')?.focus();
     const keydown=event=>{

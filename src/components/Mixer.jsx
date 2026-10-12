@@ -3,8 +3,9 @@ import {X,Trees,Volume2,Music,Settings2,Sprout,Layers,Sparkles,Eye,Tag,AudioLine
 import {InstrumentArt} from './InstrumentArt';
 import './settings.css';
 import {useDismissible} from './useDismissible';
+import {SaveStatus} from './SaveStatus';
 
-export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onClose,onMenu,settings,onSettings}) {
+export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onClose,onMenu,settings,onSettings,saveError,onRetrySave}) {
   const [tab,setTab]=useState('Sound');
   const [selected,setSelected]=useState(settings.selected[2]);
   const modal=useRef(null);
@@ -44,6 +45,7 @@ export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onClose,on
       <div className="mixer-head settings-head"><h2 id="settings-title"><Settings2 size={21}/>Settings</h2><button onClick={onClose} aria-label="Close settings" title="Close settings"><X size={20}/></button></div>
       <div className="settings-tabs" role="tablist" aria-label="Settings categories">{tabs.map(([name,Icon],index)=><button key={name} role="tab" id={`settings-tab-${name}`} aria-selected={tab===name} aria-controls="settings-panel" tabIndex={tab===name?0:-1} onClick={()=>setTab(name)} onKeyDown={event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:tabs.length-1))%tabs.length;setTab(tabs[next][0]);event.currentTarget.parentElement.children[next].focus();}}}><Icon size={16}/>{name}</button>)}</div>
       <div id="settings-panel" role="tabpanel" aria-labelledby={`settings-tab-${tab}`} tabIndex={0} className="settings-content">
+        {saveError&&<SaveStatus onRetry={onRetrySave}/>}
         {tab==='Sound'?<div className="sound-settings">
           {Object.entries(instruments).map(([name,instrument])=><label className={`settings-volume volume-${name}`} key={name}><span><i className="settings-art" aria-hidden="true"><InstrumentArt type={name}/></i>{instrument.label}<output>{instrument.volume} dB</output></span><input aria-label={`${instrument.label} volume`} type="range" min="-24" max="6" step="1" value={instrument.volume} onChange={event=>onVolume(name,event.target.value)}/></label>)}
           <label className="settings-volume scenery-mixer-row"><span><Trees size={16}/>Scenery sounds<output>{sceneVolume<=-60?'Muted':`${sceneVolume} dB`}</output></span><input aria-label="Scenery sounds volume" type="range" min="-60" max="0" step="1" value={sceneVolume} onChange={event=>onSceneVolume(event.target.value)}/></label>
