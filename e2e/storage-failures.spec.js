@@ -109,7 +109,7 @@ test('denied storage getter does not crash the menu or discard a caregiver draft
   expect(errors).toEqual([]);
 });
 
-for(const deniedKey of ['getter','farmjam-children-v1','farmjam-settings-v1']) {
+for(const deniedKey of ['getter','farmjam-children-v1','farmjam-settings-v1','farmjam-caregiver-settings-v1']) {
   test(`retry after transient ${deniedKey} read failure preserves recovered profiles`,async({page})=>{
     await page.goto('/');
     const original=await page.evaluate(()=>{

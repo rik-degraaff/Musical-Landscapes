@@ -167,12 +167,12 @@ patterns.panflute = [
 export const DEFAULT_INSTRUMENTS = ['piano','drums','ukulele','melody','marimba','panflute'];
 export const INSTRUMENT_SLOTS = [{x:15,y:35},{x:50,y:35},{x:85,y:35},{x:15,y:67},{x:50,y:67},{x:85,y:67}];
 export const INSTRUMENTS = {
-  piano:{label:'Piano', icon:'🎹', volume:-7, x:15, y:35, seed:11},
-  drums:{label:'Drums', icon:'🥁', volume:-9, x:50, y:35, seed:23},
-  guitar:{label:'Acoustic guitar', icon:'🎸', volume:-5, x:85, y:35, seed:37},
-  melody:{label:'Trumpet', icon:'🎺', volume:-10, x:15, y:67, seed:51},
-  marimba:{label:'Marimba', icon:'🎶', volume:-9, x:50, y:67, seed:63},
-  flute:{label:'Flute', icon:'🪈', volume:-12, x:85, y:67, seed:77},
-  ukulele:{label:'Ukulele',icon:'🎸',volume:-7,x:85,y:35,seed:89},
-  panflute:{label:'Pan flute',icon:'🪈',volume:-12,x:85,y:67,seed:101},
+  piano:{label:'Piano', icon:'🎹', volume:-9, x:15, y:35, seed:11},
+  drums:{label:'Drums', icon:'🥁', volume:-6, x:50, y:35, seed:23},
+  guitar:{label:'Acoustic guitar', icon:'🎸', volume:-9, x:85, y:35, seed:37},
+  melody:{label:'Trumpet', icon:'🎺', volume:-4, x:15, y:67, seed:51},
+  marimba:{label:'Marimba', icon:'🎶', volume:-14, x:50, y:67, seed:63},
+  flute:{label:'Flute', icon:'🪈', volume:-3, x:85, y:67, seed:77},
+  ukulele:{label:'Ukulele',icon:'🎸',volume:-13,x:85,y:35,seed:89},
+  panflute:{label:'Pan flute',icon:'🪈',volume:-6,x:85,y:67,seed:101},
 };

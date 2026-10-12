@@ -268,6 +268,41 @@ test('faucet drops share impact timing and rapid taps restart a single sequence'
   expect(errors).toEqual([]);
 });
 
+test('default instrument gains balance representative played notes',async({page},testInfo)=>{
+  await startWorld(page);
+  const levels=await page.evaluate(async()=>{
+    const {parseMidi,selectNearestSample}=await import('/src/audio/sampleSelection.js');
+    const {INSTRUMENTS}=await import('/src/utils/music.js');
+    const engine=window.audioEngine;
+    const levels=[];
+    for(const [name,note] of [['piano','C4'],['drums','kick'],['guitar','C4'],['melody','C4'],['marimba','C5'],['flute','C4'],['ukulele','C4'],['panflute','C4']]) {
+      const selected=name==='drums'?{note:'C2',midi:36}:selectNearestSample(engine.nodes[name].sampleCandidates,parseMidi(note));
+      const loop=engine.nodes[name].sustainLoops?.[selected.note];
+      const buffer=loop?.buffer??engine.nodes[name].buffers[selected.note].get();
+      const context=new OfflineAudioContext(1,Math.ceil(buffer.sampleRate*.5),buffer.sampleRate);
+      const source=context.createBufferSource();source.buffer=buffer;
+      source.playbackRate.value=name==='drums'?1:2**((parseMidi(note)-selected.midi)/12);
+      if(loop){source.loop=true;source.loopStart=loop.loopStart;source.loopEnd=loop.loopEnd;}
+      const gain=context.createGain();gain.gain.setValueAtTime(0,0);
+      gain.gain.linearRampToValueAtTime(.65*10**(engine.volumes[name]/20),['flute','panflute'].includes(name)?.035:name==='drums'?.002:.006);
+      source.connect(gain);gain.connect(context.destination);source.start();
+      const rendered=await context.startRendering();const values=rendered.getChannelData(0);
+      let rms=0;
+      for(let offset=0;offset+2048<=values.length;offset+=256) {
+        const window=values.subarray(offset,offset+2048);
+        rms=Math.max(rms,Math.sqrt(window.reduce((sum,value)=>sum+value*value,0)/window.length));
+      }
+      source.disconnect();gain.disconnect();
+      levels.push({name,gain:engine.volumes[name],expectedGain:INSTRUMENTS[name].volume,rms,db:20*Math.log10(rms)});
+    }
+    return levels;
+  });
+  await testInfo.attach('default-instrument-levels',{body:JSON.stringify(levels,null,2),contentType:'application/json'});
+  for(const level of levels){expect(level.rms,level.name).toBeGreaterThan(.001);expect(level.gain,level.name).toBe(level.expectedGain);}
+  const spread=Math.max(...levels.map(level=>level.db))-Math.min(...levels.map(level=>level.db));
+  expect(spread,`representative notes stay within 6 dB: ${JSON.stringify(levels)}`).toBeLessThan(6);
+});
+
 test('saved loudness corrections are applied and the combined mix retains headroom', async ({ page }, testInfo) => {
   const errors = await startWorld(page);
   const calibration = await page.evaluate(async () => {

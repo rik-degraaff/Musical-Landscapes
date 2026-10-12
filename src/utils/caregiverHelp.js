@@ -11,5 +11,28 @@ export function caregiverHelp(topic,familiarity='some') {
   return {title:content.title,items:content.items,note:content.notes[familiarity]??content.notes.some};
 }
 
+const INSTRUMENT_HELP={
+  piano:{action:'Press or hold the piano keys. The orange keys show the part currently sounding.',new:'Each key makes one note. Try one at a time, or press several together to make a chord.',some:'Higher notes are to the right. Try repeating a short melody, then adding two or three notes together.',confident:'The keyboard is chromatic. Orange highlights show the current voicing; explore intervals, inversions and a melodic response to the loop.'},
+  marimba:{action:'Tap or hold the bars. Orange highlights show the notes to follow.',new:'Each bar makes a different note. Play one, then answer it with another.',some:'Compare a stepwise melody with a pattern that skips between bars.',confident:'The bars provide pitched percussion. Compare conjunct and disjunct motion and listen to the attack and decay.'},
+  drums:{action:'Tap the pads to play individual drum sounds. Copy a short rhythm, then trade turns.',new:'A beat is a steady pulse. Tap one pad along with the pulse, then try a different sound.',some:'Keep a steady pulse on one pad and add a contrasting rhythm with another.',confident:'Combine kick, snare and cymbal timbres. Explore subdivisions and syncopation without changing the shared tempo.'},
+  guitar:{action:'Choose a chord on the neck, then swipe across the strings on the soundhole side to strum. Orange markers show the sounding finger positions.',new:'A chord is several notes together. Choosing a chord sets the fingers for you; strumming plays its strings.',some:'Try changing chords while keeping the same strumming rhythm. Filled markers mean fretted strings; rings mean open strings.',confident:'Chord voicings follow the current key. Compare inversions and diatonic functions; the canonical frets match the notes actually sounded.'},
+  ukulele:{action:'Choose a chord on the neck, then swipe across the strings on the soundhole side to strum. Orange rings mark open strings.',new:'A chord is several notes together. Select one and brush across the four strings to hear it.',some:'Try two chords with the same rhythm. Rings show strings played without pressing a fret.',confident:'The four strings use re-entrant G4-C4-E4-A4 tuning. Compare diatonic chord voicings and the upper G string in each inversion.'},
+  panflute:{action:'Tap or slide across the pipes. Hold a pipe to sustain its note.',new:'Each pipe makes one note. Hold it for a longer sound, or move between pipes to make a tune.',some:'Compare short and sustained notes, then play a melody that moves between neighboring pipes.',confident:'Pipe selection controls pitch and hold time controls articulation. Explore interval patterns within the equipped range.'},
+  flute:{action:'Hold the highlighted physical keys together. Move the headjoint register control higher or lower to change octaves; unsupported key combinations are silent.',new:'Several finger buttons work together to make one note. An octave is a higher or lower version of a similar sound; the headjoint control chooses that height.',some:'Follow the finger pattern, then change register to compare the same fingering at different octaves.',confident:'The Boehm fingering model combines keys with a register selector. Shared fingerings can produce different octaves; unsupported combinations and extended techniques are not simulated.'},
+  melody:{action:'Hold the embouchure area to blow, slide left or right to change lip register, and hold the valves to change the note. Release the embouchure to stop.',new:'The embouchure area stands for your lips and breath. The valves are finger buttons; try holding one while sliding to a higher or lower sound.',some:'Keep holding the breath area while sliding between registers for a smooth change. Valve combinations change the notes within each register.',confident:'Embouchure position selects the harmonic register, while valves alter pitch. Sliding produces legato lip slurs; small movement adds pitch bend. Pitches are in concert pitch.'}
+};
+
+export function instrumentHelp(instrument,familiarity='some') {
+  const content=INSTRUMENT_HELP[instrument];
+  return content?{action:content.action,note:content[familiarity]??content.some}:null;
+}
+
+export function discoveryHelp({hasEquipped=false,hasPracticed=false}={},familiarity='some') {
+  const items=[];
+  if(!hasEquipped)items.push(['Equip an instrument',"Drag an instrument onto your child's avatar to open its playable controls. "+(familiarity==='confident'?'Manual input replaces that instrument\'s ostinato; the other parts keep the shared transport.':familiarity==='new'?'You can then make your own sounds with its keys, pads, pipes or strings.':'Play your own phrase while the other instruments keep their repeating parts.')]);
+  if(!hasPracticed)items.push(['Enter the practice room',"Double-tap your child's avatar. You can enter with or without an equipped instrument. "+(familiarity==='confident'?'Separate pitch learning from onset and duration, then add accompaniment.':familiarity==='new'?'Listen first, follow the highlighted sounds, then try playing with the beat.':'Choose Listen, Learn, Rhythm or Together to build up the phrase at your own pace.')]);
+  return items;
+}
+
 export const CAREGIVER_FAMILIARITY=[['new','New to music'],['some','Know a few basics'],['confident','Comfortable with music']];
 export const CHILD_AGE_OPTIONS=[['under3','Under 3'],['3to4','3\u20134'],['5to7','5\u20137'],['8plus','8+']];

@@ -38,10 +38,10 @@ test('editing name, age and appearance is a draft; save preserves sibling settin
   await page.getByRole('textbox',{name:'Child name'}).fill(' ');await expect(page.getByRole('button',{name:'Save changes'})).toBeDisabled();
   await page.getByRole('textbox',{name:'Child name'}).fill(' Ally ');await page.getByRole('radio',{name:'8+',exact:true}).check();
   await page.getByRole('radio',{name:'Bob',exact:true}).check();await page.getByRole('radio',{name:'Top primary color: Teal',exact:true}).check();
-  await page.getByRole('radio',{name:'Comfortable with music',exact:true}).check();
+  await expect(page.getByRole('radio',{name:'Comfortable with music',exact:true})).toHaveCount(0);
   await fits(page,'.caregiver-dialog');await page.screenshot({path:`test-results/caregiver-${testInfo.project.name}-editor.png`});
   await page.getByRole('button',{name:'Save changes'}).click();await expect(editor).toHaveCount(0);
-  const saved=await family(page);const edited=saved.children[0];expect(edited.name).toBe('Ally');expect(edited.age).toBe('8plus');expect(edited.avatar.hair).toBe('bob');expect(edited.profile.parent).toBe('confident');
+  const saved=await family(page);const edited=saved.children[0];expect(edited.name).toBe('Ally');expect(edited.age).toBe('8plus');expect(edited.avatar.hair).toBe('bob');expect(edited.profile.parent).toBe(original.children[0].profile.parent);
   expect(edited.settings).toEqual(original.children[0].settings);expect(edited.profile.music).toBe('some');expect(saved.children[1]).toEqual(original.children[1]);
   await page.reload();expect(await family(page)).toEqual(saved);await expect(page.getByRole('radio',{name:'Select Ally',exact:true})).toBeChecked();
   await page.getByRole('button',{name:'Tap to play'}).click();await expect(page.locator('#young-musician')).toHaveAttribute('data-child-name','Ally',{timeout:30000});
@@ -67,8 +67,8 @@ test('context help needs double activation, uses saved familiarity, and closes w
   const help=page.getByRole('button',{name:'Open caregiver help',exact:true});await help.click();await expect(page.getByRole('dialog',{name:'Caregiver help',exact:true})).toHaveCount(0);
   await help.blur();await openHelp(page);await expect(page.getByText('Your family band',{exact:true})).toBeVisible();await fits(page,'.caregiver-dialog');await page.keyboard.press('Escape');await expect(help).toBeFocused();
   await page.getByRole('button',{name:'Tap to play'}).click();await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});
-  await openHelp(page);await expect(page.locator('.caregiver-dialog')).toContainText('A beat is a steady pulse');await page.keyboard.press('Escape');
-  await page.locator('#instrument-piano').focus();await page.keyboard.press('e');await openHelp(page);await expect(page.locator('.caregiver-dialog')).toContainText('A phrase is a short musical idea');await expect(page.locator('.caregiver-dialog')).toContainText('Press or hold the piano keys');await page.keyboard.press('Escape');
+  await openHelp(page);await expect(page.locator('.caregiver-dialog')).toContainText('A beat is a steady pulse');await expect(page.locator('.discovery-help')).toContainText('Equip an instrument');await expect(page.locator('.discovery-help')).toContainText('Enter the practice room');await expect(page.locator('.discovery-help')).toContainText('with or without');await page.keyboard.press('Escape');
+  await page.locator('#instrument-piano').focus();await page.keyboard.press('e');await openHelp(page);await expect(page.locator('.caregiver-dialog h3').first()).toHaveText('Piano');await expect(page.locator('.discovery-help')).not.toContainText('Equip an instrument');await expect(page.locator('.discovery-help')).toContainText('Enter the practice room');await expect(page.locator('.instrument-help')).toContainText('Each key makes one note');await expect(page.locator('.caregiver-dialog')).toContainText('A phrase is a short musical idea');await expect(page.locator('.caregiver-dialog')).toContainText('Press or hold the piano keys');await page.keyboard.press('Escape');
   await page.getByRole('button',{name:'Open settings',exact:true}).dblclick();const settings=page.getByRole('dialog',{name:'Settings',exact:true});
   await expect(settings).toContainText('quieter sound');await page.getByRole('tab',{name:'Instruments',exact:true}).click();await expect(settings).toContainText('A note is one musical sound');
   await openHelp(page);await expect(page.locator('.caregiver-dialog')).toContainText('A note is one musical sound');await page.getByRole('button',{name:'Back to Settings',exact:true}).click();await expect(settings).toBeVisible();
@@ -76,7 +76,63 @@ test('context help needs double activation, uses saved familiarity, and closes w
   await page.locator('#young-musician').focus();await page.keyboard.press('Enter');const practice=page.getByRole('dialog',{name:'Farm practice room',exact:true});await expect(practice).toBeVisible();
   await openHelp(page);await expect(page.locator('.caregiver-dialog')).toContainText('A chord means several notes');await fits(page,'.caregiver-dialog');
   await page.screenshot({path:`test-results/caregiver-${testInfo.project.name}-help.png`});await page.keyboard.press('Escape');await expect(practice).toBeVisible();
-  await fits(page,'.practice-topbar');await page.getByRole('button',{name:'Leave practice through the open door'}).click();expect(errors).toEqual([]);
+  await fits(page,'.practice-topbar');await page.getByRole('button',{name:'Leave practice through the open door'}).click();await openHelp(page);await expect(page.locator('.discovery-help')).toHaveCount(0);await page.keyboard.press('Escape');expect(errors).toEqual([]);
+});
+
+test('global familiarity changes help immediately, survives child selection and reload, and setup asks to reconfirm',async({page},testInfo)=>{
+  await start(page,'new');
+  await page.getByRole('radio',{name:'Select Sam',exact:true}).check();await page.reload();
+  await page.getByRole('button',{name:'Add child',exact:true}).click();
+  for(let step=0;step<2;step++)await page.getByRole('button',{name:'Next step'}).click();
+  await expect(page.getByRole('radio',{name:'New to music',exact:true})).toBeChecked();await expect(page.getByText(/Is this still correct/)).toBeVisible();
+  await page.getByRole('radio',{name:'Comfortable with music',exact:true}).check();await page.getByRole('button',{name:'Cancel child setup'}).click();
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('farmjam-caregiver-settings-v1')).familiarity)).toBe('new');
+  await page.getByRole('button',{name:'Tap to play'}).click();await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});
+  await page.locator('#instrument-piano').focus();await page.keyboard.press('e');
+  await page.getByRole('button',{name:'Open settings',exact:true}).dblclick();
+  const settings=page.getByRole('dialog',{name:'Settings',exact:true});await expect(settings.getByRole('radio',{name:'New to music',exact:true})).toBeChecked();
+  await settings.getByRole('radio',{name:'Comfortable with music',exact:true}).check();await expect(settings).toContainText('relative gain');
+  await fits(page,'.settings-dialog');await page.screenshot({path:`test-results/caregiver-${testInfo.project.name}-global-settings.png`});
+  await openHelp(page);await expect(page.locator('.caregiver-dialog h3').first()).toHaveText('Piano');await expect(page.locator('.instrument-help')).toContainText('chromatic');await expect(page.locator('.instrument-help')).not.toContainText('Each key makes one note');await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'Return to main menu',exact:true}).click();await page.getByRole('radio',{name:'Select Alex',exact:true}).check();await page.reload();
+  await page.getByRole('button',{name:'Add child',exact:true}).click();
+  for(let step=0;step<2;step++)await page.getByRole('button',{name:'Next step'}).click();
+  await expect(page.getByRole('radio',{name:'Comfortable with music',exact:true})).toBeChecked();await expect(page.getByText(/Is this still correct/)).toBeVisible();
+  await page.getByRole('radio',{name:'Know a few basics',exact:true}).check();
+  for(let step=2;step<10;step++){if(step===3)await page.getByRole('textbox',{name:'Child name'}).fill('Charlie');await page.getByRole('button',{name:'Next step'}).click();}
+  await page.locator('.parent-guide-footer').getByRole('button',{name:'Add child',exact:true}).click();await expect(page.getByRole('button',{name:'Edit Charlie',exact:true})).toBeVisible();
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('farmjam-caregiver-settings-v1')).familiarity)).toBe('some');
+  expect((await family(page)).children.slice(0,2).map(child=>child.profile.parent)).toEqual(['new','confident']);
+});
+
+test('practice-first discovery is independent of equipping and resets in a new play session',async({page})=>{
+  await start(page);await page.getByRole('button',{name:'Tap to play'}).click();await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});
+  await page.locator('#young-musician').focus();await page.keyboard.press('Enter');await expect(page.getByRole('dialog',{name:'Farm practice room',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Leave practice through the open door'}).click();await openHelp(page);
+  await expect(page.locator('.discovery-help')).toContainText('Equip an instrument');await expect(page.locator('.discovery-help')).not.toContainText('Enter the practice room');await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'Open settings',exact:true}).dblclick();await page.getByRole('button',{name:'Return to main menu',exact:true}).click();
+  await page.getByRole('button',{name:'Tap to play'}).click();await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});await openHelp(page);
+  await expect(page.locator('.discovery-help')).toContainText('Equip an instrument');await expect(page.locator('.discovery-help')).toContainText('Enter the practice room');
+});
+
+test('global familiarity save failures retain the live wording and retry the global preference',async({page})=>{
+  await start(page);
+  await page.getByRole('button',{name:'Tap to play'}).click();await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});
+  await page.getByRole('button',{name:'Open settings',exact:true}).dblclick();
+  await page.evaluate(()=>{
+    const original=Storage.prototype.setItem;
+    window.restoreCaregiverWrites=()=>{Storage.prototype.setItem=original;};
+    Storage.prototype.setItem=function(key,value){if(key==='farmjam-caregiver-settings-v1')throw new DOMException('Full','QuotaExceededError');return original.call(this,key,value);};
+  });
+  await page.getByRole('radio',{name:'Comfortable with music',exact:true}).check();await expect(page.locator('.save-status')).toBeVisible();
+  await expect(page.getByRole('dialog',{name:'Settings',exact:true})).toContainText('relative gain');
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('farmjam-caregiver-settings-v1')).familiarity)).toBe('new');
+  await page.getByRole('button',{name:'Retry saving',exact:true}).click();await expect(page.locator('.save-status')).toBeVisible();
+  await page.evaluate(()=>window.restoreCaregiverWrites());await page.getByRole('button',{name:'Retry saving',exact:true}).click();await expect(page.locator('.save-status')).toHaveCount(0);
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('farmjam-caregiver-settings-v1')).familiarity)).toBe('confident');
+  await page.getByRole('button',{name:'Return to main menu',exact:true}).click();await page.reload();
+  await page.getByRole('button',{name:'Add child',exact:true}).click();for(let step=0;step<2;step++)await page.getByRole('button',{name:'Next step'}).click();
+  await expect(page.getByRole('radio',{name:'Comfortable with music',exact:true})).toBeChecked();
 });
 
 test('experienced caretaker sees musical explanations in setup and in-game help',async({page})=>{

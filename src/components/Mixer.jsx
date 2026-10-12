@@ -5,9 +5,9 @@ import './settings.css';
 import {useDismissible} from './useDismissible';
 import {SaveStatus} from './SaveStatus';
 import {HelpButton} from './CaregiverHelp';
-import {caregiverHelp} from '../utils/caregiverHelp';
+import {CAREGIVER_FAMILIARITY,caregiverHelp} from '../utils/caregiverHelp';
 
-export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onClose,onMenu,settings,onSettings,saveError,onRetrySave,familiarity,onHelp}) {
+export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onClose,onMenu,settings,onSettings,saveError,onRetrySave,familiarity,onFamiliarity,onHelp}) {
   const [tab,setTab]=useState('Sound');
   const [selected,setSelected]=useState(settings.selected[2]);
   const modal=useRef(null);
@@ -65,6 +65,7 @@ export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onClose,on
           </details>
           </div>
         </>}
+        <fieldset className="parent-choices caregiver-familiarity"><legend>Caregiver music familiarity</legend><div>{CAREGIVER_FAMILIARITY.map(([value,label])=><label key={value} className={familiarity===value?'is-selected':''}><input type="radio" name="caregiver-familiarity" checked={familiarity===value} onChange={()=>onFamiliarity(value)}/><span>{label}</span></label>)}</div><p className="settings-explanation">Shared by all children on this device. Changes the wording in help and setup, not the music or difficulty.</p></fieldset>
       </div>
       {saveError&&<SaveStatus onRetry={onRetrySave}/>}
       <footer className="settings-footer"><button onClick={onMenu} aria-label="Return to main menu"><Home size={18}/>Main menu</button></footer>

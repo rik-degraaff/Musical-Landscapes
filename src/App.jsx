@@ -20,6 +20,7 @@ import {editChild,normalizeChild,removeChild} from './utils/children';
 import {useAppUpdates} from './components/useAppUpdates.js';
 import {createFamilyStorage,recoverFamilySnapshot} from './utils/familyStorage.js';
 import {defaultSettings} from './utils/settings.js';
+import {createCaregiverStorage,normalizeFamiliarity} from './utils/caregiverSettings.js';
 
 function initialInstruments(selected) {
   return Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,value])=>[name,{...value,...(selected.includes(name)?INSTRUMENT_SLOTS[selected.indexOf(name)]:{}),active:false}]));
@@ -40,7 +41,14 @@ export default function App({developmentPreview}={}) {
   const [help,setHelp]=useState(null);
   const [storage]=useState(()=>developmentPreview ? {saveSnapshot:()=>({ok:true}),saveLegacySettings:()=>({ok:true})} : createFamilyStorage());
   const [initial]=useState(()=>developmentPreview ? { family: { children: [developmentPreview.child], selectedId: developmentPreview.child.id }, settings: developmentPreview.child.settings, saveError: false } : storage.load());
+  const [caregiverStorage]=useState(()=>createCaregiverStorage(developmentPreview?()=>({getItem:()=>null,setItem(){}}):undefined));
+  const [initialCaregiver]=useState(()=>caregiverStorage.load(initial.family.children.find(child=>child.id===initial.family.selectedId)?.profile.parent));
+  const [familiarity,setFamiliarity]=useState(initialCaregiver.familiarity);
+  const [familiarityEstablished,setFamiliarityEstablished]=useState(initialCaregiver.established||initial.family.children.length>0);
+  const [caregiverSaveError,setCaregiverSaveError]=useState(Boolean(initialCaregiver.error));
+  const caregiverEdited=useRef(false);
   const [saveError,setSaveError]=useState(Boolean(initial.saveError));
+  const saveWarning=saveError||caregiverSaveError;
   const storageReadFailed=useRef(Boolean(initial.saveError));
   const [family,setFamily]=useState(initial.family);
   const selectedChild=family.children.find(child=>child.id===family.selectedId)??null;
@@ -54,11 +62,13 @@ export default function App({developmentPreview}={}) {
   const worldRef = useRef(null);
   const equippedRef = useRef(null);
   const [equipped,setEquipped] = useState(null);
+  const [hasEquipped,setHasEquipped]=useState(false);
+  const [hasPracticed,setHasPracticed]=useState(false);
   const [dragging,setDragging] = useState(null);
   const [nearChild,setNearChild] = useState(false);
   const startupState=useRef({settings,sceneIndex});
   const mounted=useRef(false);
-  useAppUpdates({started,loading,parentGuide:parentGuide||Boolean(editingId)||Boolean(help)||saveError});
+  useAppUpdates({started,loading,parentGuide:parentGuide||Boolean(editingId)||Boolean(help)||saveWarning});
 
   useEffect(()=>{ stateRef.current=instruments; },[instruments]);
   useLayoutEffect(()=>{startupState.current={settings,sceneIndex};},[settings,sceneIndex]);
@@ -67,6 +77,12 @@ export default function App({developmentPreview}={}) {
   useEffect(()=>{
     if(!developmentPreview&&!initial.saveError&&!storage.saveLegacySettings(initial.settings).ok)setSaveError(true);
   },[storage,initial]);
+  useEffect(()=>{
+    if(!initialCaregiver.established&&!initialCaregiver.error&&!initial.saveError&&initial.family.children.length>0){
+      caregiverEdited.current=true;
+      setCaregiverSaveError(!caregiverStorage.save(initialCaregiver.familiarity).ok);
+    }
+  },[caregiverStorage,initialCaregiver,initial]);
   useEffect(()=>{
     if(audioRef.current)audioRef.current.updatePerformanceSettings(settings.instruments);
   },[settings]);
@@ -145,15 +161,40 @@ export default function App({developmentPreview}={}) {
     setSaveError(false);
     setFamily(nextFamily);setSettings(child.settings);
     const next=initialInstruments(child.settings.selected);stateRef.current=next;setInstruments(next);
+    updateFamiliarity(child.profile.parent);
     setParentGuide(false);return true;
   }
 
+  function updateFamiliarity(value) {
+    const next=normalizeFamiliarity(value);
+    caregiverEdited.current=true;setFamiliarity(next);setFamiliarityEstablished(true);
+    setCaregiverSaveError(!caregiverStorage.save(next).ok);
+  }
+
   function retrySave() {
+    if(caregiverSaveError){
+      const recovered=caregiverStorage.load(familiarity);
+      if(recovered.error){setCaregiverSaveError(true);return;}
+      if(caregiverEdited.current)setCaregiverSaveError(!caregiverStorage.save(familiarity).ok);
+      else {setFamiliarity(recovered.familiarity);setFamiliarityEstablished(recovered.established);setCaregiverSaveError(false);}
+    }
     if(storageReadFailed.current){
       const recovered=storage.load();
       if(recovered.saveError){setSaveError(true);return;}
       const snapshot=recoverFamilySnapshot(initial,{family,settings},recovered);
       storageReadFailed.current=false;
+      if(!caregiverEdited.current&&!initialCaregiver.established){
+        const legacy=snapshot.family.children.find(child=>child.id===snapshot.family.selectedId)?.profile.parent;
+        const recoveredCaregiver=caregiverStorage.load(legacy);
+        if(!recoveredCaregiver.error){
+          setFamiliarity(recoveredCaregiver.familiarity);
+          setFamiliarityEstablished(recoveredCaregiver.established||snapshot.family.children.length>0);
+          if(!recoveredCaregiver.established&&snapshot.family.children.length>0){
+            caregiverEdited.current=true;
+            setCaregiverSaveError(!caregiverStorage.save(recoveredCaregiver.familiarity).ok);
+          }
+        }
+      }
       if(started)arrangeSelection(snapshot.settings);
       setFamily(snapshot.family);setSettings(snapshot.settings);
       if(!started){const next=initialInstruments(snapshot.settings.selected);stateRef.current=next;setInstruments(next);}
@@ -237,6 +278,7 @@ export default function App({developmentPreview}={}) {
 
   function equip(name, resetPrevious=true) {
     if(!started) return;
+    if(name)setHasEquipped(true);
     const previous=equippedRef.current;
     equippedRef.current=name;setEquipped(name);
     audioRef.current.setManualInstrument(name);
@@ -287,13 +329,14 @@ export default function App({developmentPreview}={}) {
     setSceneIndex(i=>{ const next=(i+1)%SCENES.length; audioRef.current?.setSceneKey(SCENES[next].root); return next; });
   }
 
-  function enterPractice(playback){if(playback)audioRef.current.setInstrumentActive(playback.name,playback.active);drag.current=null;setDragging(null);setNearChild(false);setMixer(false);setMetronomeOpen(false);setPractice(equippedRef.current??settings.selected[0]);}
+  function enterPractice(playback){if(playback)audioRef.current.setInstrumentActive(playback.name,playback.active);drag.current=null;setDragging(null);setNearChild(false);setMixer(false);setMetronomeOpen(false);setHasPracticed(true);setPractice(equippedRef.current??settings.selected[0]);}
 
   function returnToMenu() {
     window.dispatchEvent(new Event('farmjam-input-reset'));
     audioRef.current?.dispose();audioRef.current=null;
     drag.current=null;equippedRef.current=null;mixerTap.current=null;
     setEquipped(null);setDragging(null);setNearChild(false);setPractice(null);
+    setHasEquipped(false);setHasPracticed(false);
     setMixer(false);setMetronomeOpen(false);setStarted(false);setSceneIndex(0);setError(null);
     const next=initialInstruments(settings.selected);stateRef.current=next;setInstruments(next);
   }
@@ -312,17 +355,17 @@ export default function App({developmentPreview}={}) {
       {started && <button className="mixer-button" onClick={activateMixer} aria-expanded={mixer} aria-controls="landscape-mixer" aria-label={mixer?'Close settings':'Open settings'} title={mixer?'Close settings':'Double-click or double-tap to open settings'}>{mixer?<X size={22}/>:<Menu size={22}/>}</button>}
     </div>
 
-    {started && mixer && <Mixer familiarity={selectedChild?.profile.parent} onHelp={()=>setHelp({topic:'settings'})} saveError={saveError} onRetrySave={retrySave} instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} settings={settings} onSettings={updateSettings} onMenu={returnToMenu} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
+    {started && mixer && <Mixer familiarity={familiarity} onFamiliarity={updateFamiliarity} onHelp={()=>setHelp({topic:'settings',instrument:equipped})} saveError={saveWarning} onRetrySave={retrySave} instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} settings={settings} onSettings={updateSettings} onMenu={returnToMenu} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
     {started&&<Metronome audio={audioRef.current} open={metronomeOpen} disabled={mixer||Boolean(practice)} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}
 
     {equipped&&!practice&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={performanceRoot} options={settings.instruments[equipped]} settingsOpen={mixer} onClose={()=>equip(null)}/>}
     {practice&&<PracticeRoom child={selectedChild} audio={audioRef.current} initialInstrument={practice} settings={settings} root={SCENES[sceneIndex].root} onHelp={instrument=>setHelp({topic:'practice',instrument})} onClose={()=>setPractice(null)}/>}
 
-    {!started && <StartScreen saveError={saveError} onRetrySave={retrySave} children={family.children} selectedId={family.selectedId} loading={loading} error={error} onStart={start} onSelect={selectChild} onEdit={setEditingId} onAdd={()=>setParentGuide(true)}/>}
-    {!started&&parentGuide&&<ParentGuide familiarity={selectedChild?.profile.parent} settings={settings} onComplete={addChild} onClose={()=>setParentGuide(false)}/>}
+    {!started && <StartScreen saveError={saveWarning} onRetrySave={retrySave} children={family.children} selectedId={family.selectedId} loading={loading} error={error} onStart={start} onSelect={selectChild} onEdit={setEditingId} onAdd={()=>setParentGuide(true)}/>}
+    {!started&&parentGuide&&<ParentGuide familiarity={familiarity} familiarityEstablished={familiarityEstablished} settings={settings} onComplete={addChild} onClose={()=>setParentGuide(false)}/>}
     {!started&&editingId&&<ChildEditor child={family.children.find(child=>child.id===editingId)} onSave={draft=>saveFamily(editChild(family,editingId,draft))} onDelete={()=>saveFamily(removeChild(family,editingId))} onClose={()=>setEditingId(null)}/>}
     {!mixer&&!practice&&!parentGuide&&!editingId&&!loading&&<HelpButton className="caregiver-help-corner" onOpen={()=>{window.dispatchEvent(new Event('farmjam-input-reset'));setHelp({topic:started?(equipped?'instruments':'landscape'):'menu',instrument:equipped});}}/>}
-    {help&&<CaregiverHelp {...help} familiarity={selectedChild?.profile.parent} onClose={()=>setHelp(null)}/>}
+    {help&&<CaregiverHelp {...help} discovery={started&&help.topic!=='practice'?{hasEquipped,hasPracticed}:null} familiarity={familiarity} onClose={()=>setHelp(null)}/>}
     <LandscapeGuard/>
   </main>;
 }
