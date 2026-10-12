@@ -4,9 +4,15 @@ import './styles.css';
 import App from './App.jsx';
 import { installGestureGuard } from './utils/gestureGuard.js';
 import { observeAppUpdates } from './utils/updatePolicy.js';
+import visualOverrides from './data/visual-overrides.json';
+import { installVisualOverrides } from './utils/visualOverrides.js';
 
-const removeGestureGuard = installGestureGuard();
-if (import.meta.hot) import.meta.hot.dispose(removeGestureGuard);
+const editorRoute = import.meta.env.DEV && location.pathname.startsWith('/__editor');
+if (!editorRoute) {
+	const removeGestureGuard = installGestureGuard();
+	const visuals = installVisualOverrides(document, visualOverrides);
+	if (import.meta.hot) import.meta.hot.dispose(() => { removeGestureGuard(); visuals.dispose(); });
+}
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 	let disposed = false;
@@ -19,4 +25,7 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 	if (import.meta.hot) import.meta.hot.dispose(() => { disposed = true; removeAppUpdates?.(); });
 }
 
-createRoot(document.getElementById('root')).render(<App />);
+const root = createRoot(document.getElementById('root'));
+if (import.meta.env.DEV && editorRoute) {
+	import('./dev/VisualEditor.jsx').then(({ mountVisualEditor }) => mountVisualEditor(root));
+} else root.render(<App />);

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { FarmScene } from './FarmScene';
 import { GardenScene } from './GardenScene';
 import { PondScene } from './PondScene';
@@ -25,8 +25,11 @@ export const SCENES = [
   { id:'dawn', name:'First Light', root:SCENE_ROOTS.dawn, component:DawnScene },
 ];
 
+export const ScenePreviewContext = createContext(null);
+
 export function SceneObjects({scene,objects,audio}) {
-  const [pair]=useState(()=>sceneObjectPair(scene,objects,visitorRoll()));
+  const preview = useContext(ScenePreviewContext);
+  const [pair]=useState(()=>sceneObjectPair(scene,objects,preview === null ? visitorRoll() : preview));
   return <>{pair.map((object,index)=><InteractiveObject key={`${index}:${object.sound}`} audio={audio} {...object} className={`${object.className}${object.slot!==undefined?' visitor-object':''}`}/>)}</>;
 }
 

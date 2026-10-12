@@ -22,19 +22,19 @@ function initialInstruments(selected) {
   return Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,value])=>[name,{...value,...(selected.includes(name)?INSTRUMENT_SLOTS[selected.indexOf(name)]:{}),active:false}]));
 }
 
-export default function App() {
-  const audioRef = useRef(null);
-  const [started,setStarted] = useState(false);
+export default function App({developmentPreview}={}) {
+  const audioRef = useRef(developmentPreview?.audio ?? null);
+  const [started,setStarted] = useState(Boolean(developmentPreview)&&developmentPreview.playing!==false);
   const [loading,setLoading] = useState(false);
   const [error,setError] = useState(null);
-  const [sceneIndex,setSceneIndex] = useState(0);
+  const [sceneIndex,setSceneIndex] = useState(developmentPreview?.sceneIndex ?? 0);
   const [performanceRoot,setPerformanceRoot] = useState(SCENES[0].root);
   const [mixer,setMixer] = useState(false);
   const [metronomeOpen,setMetronomeOpen] = useState(false);
   const [practice,setPractice]=useState(null);
   const [parentGuide,setParentGuide]=useState(false);
-  const [storage]=useState(()=>createFamilyStorage());
-  const [initial]=useState(()=>storage.load());
+  const [storage]=useState(()=>developmentPreview ? {saveSnapshot:()=>({ok:true}),saveLegacySettings:()=>({ok:true})} : createFamilyStorage());
+  const [initial]=useState(()=>developmentPreview ? { family: { children: [developmentPreview.child], selectedId: developmentPreview.child.id }, settings: developmentPreview.child.settings, saveError: false } : storage.load());
   const [saveError,setSaveError]=useState(Boolean(initial.saveError));
   const storageReadFailed=useRef(Boolean(initial.saveError));
   const [family,setFamily]=useState(initial.family);
@@ -58,8 +58,9 @@ export default function App() {
   useEffect(()=>{ stateRef.current=instruments; },[instruments]);
   useLayoutEffect(()=>{startupState.current={settings,sceneIndex};},[settings,sceneIndex]);
   useEffect(()=>{mounted.current=true;return ()=>{mounted.current=false;audioRef.current?.dispose();};},[]);
+  useEffect(()=>{if(developmentPreview)setSceneIndex(developmentPreview.sceneIndex);},[developmentPreview?.sceneIndex]);
   useEffect(()=>{
-    if(!initial.saveError&&!storage.saveLegacySettings(initial.settings).ok)setSaveError(true);
+    if(!developmentPreview&&!initial.saveError&&!storage.saveLegacySettings(initial.settings).ok)setSaveError(true);
   },[storage,initial]);
   useEffect(()=>{
     if(audioRef.current)audioRef.current.updatePerformanceSettings(settings.instruments);

@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { visualEditorPlugin } from './scripts/visual-editor-plugin.mjs';
 
 export default defineConfig({
 	plugins: [
+		visualEditorPlugin(),
 		react(),
 		VitePWA({
 			registerType: 'prompt',

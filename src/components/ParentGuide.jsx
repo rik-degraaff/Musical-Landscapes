@@ -11,11 +11,15 @@ const AGE_OPTIONS=[['under3','Under 3'],['3to4','3–4'],['5to7','5–7'],['8plu
 const EXPERIENCE=[['new','Just starting'],['some','Has tried a little'],['familiar','Already plays or sings']];
 const FAMILIARITY=[['new','New to music'],['some','Know a few basics'],['confident','Comfortable with music']];
 
-export function ParentGuide({settings,onComplete,onClose}) {
-  const [step,setStep]=useState(0);
-  const [profile,setProfile]=useState(()=>({age:'5to7',parent:'some',music:'new',instruments:[]}));
-  const [name,setName]=useState('');
-  const [avatar,setAvatar]=useState(()=>({...DEFAULT_AVATAR}));
+export function ParentGuide({settings,onComplete,onClose,developmentPreview}) {
+  const preview=import.meta.env.DEV?developmentPreview:null;
+  const [step,setStep]=useState(preview?.step??0);
+  const [profile,setProfile]=useState(()=>({age:preview?.age??'5to7',parent:'some',music:'new',instruments:[]}));
+  const [name,setName]=useState(preview?.name??'');
+  const [avatar,setAvatar]=useState(()=>({...DEFAULT_AVATAR,...preview?.avatar}));
+  const changePreviewAvatar=useRef(preview?.onAvatarChange);changePreviewAvatar.current=preview?.onAvatarChange;
+  useEffect(()=>{changePreviewAvatar.current?.(avatar);},[avatar]);
+  useEffect(()=>{if(preview?.avatar)setAvatar(current=>JSON.stringify(current)===JSON.stringify(preview.avatar)?current:preview.avatar);},[preview?.avatar]);
   const [completionError,setCompletionError]=useState('');
   const [completing,setCompleting]=useState(false);
   const [applied,setApplied]=useState(false);

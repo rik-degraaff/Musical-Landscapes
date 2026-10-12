@@ -15,7 +15,8 @@ export function LandscapeArt({ scene, phase }) {
   const [stretch, setStretch] = useState(() => 1440 * window.innerHeight / (900 * window.innerWidth));
   useEffect(() => {
     const resize = () => {
-      const bounds=artRef.current.getBoundingClientRect();
+      const bounds=artRef.current?.getBoundingClientRect();
+      if(!bounds?.width)return;
       setStretch(1440*bounds.height/(900*bounds.width));
     };
     const observer=new ResizeObserver(resize);
