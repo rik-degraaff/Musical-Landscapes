@@ -16,7 +16,7 @@ import {PracticeRoom} from './components/PracticeRoom';
 import {ParentGuide} from './components/ParentGuide';
 import {normalizeChild} from './utils/children';
 import {useAppUpdates} from './components/useAppUpdates.js';
-import {createFamilyStorage} from './utils/familyStorage.js';
+import {createFamilyStorage,recoverFamilySnapshot} from './utils/familyStorage.js';
 
 function initialInstruments(selected) {
   return Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,value])=>[name,{...value,...(selected.includes(name)?INSTRUMENT_SLOTS[selected.indexOf(name)]:{}),active:false}]));
@@ -35,6 +35,7 @@ export default function App() {
   const [storage]=useState(()=>createFamilyStorage());
   const [initial]=useState(()=>storage.load());
   const [saveError,setSaveError]=useState(Boolean(initial.saveError));
+  const storageReadFailed=useRef(Boolean(initial.saveError));
   const [family,setFamily]=useState(initial.family);
   const selectedChild=family.children.find(child=>child.id===family.selectedId)??null;
   const [settings,setSettings] = useState(initial.settings);
@@ -101,7 +102,7 @@ export default function App() {
     audioRef.current.setVolumes({[name]:Number(value)});
   }
 
-  function updateSettings(next) {
+  function arrangeSelection(next) {
     const changed=next.selected.some((name,index)=>name!==settings.selected[index]);
     if(changed) {
       if(equippedRef.current&&!next.selected.includes(equippedRef.current))equip(null);
@@ -110,6 +111,10 @@ export default function App() {
       next.selected.forEach((name,index)=>{if(settings.selected[index]!==name)positions[name]={...positions[name],...INSTRUMENT_SLOTS[index]};});
       stateRef.current=positions;setInstruments(positions);
     }
+  }
+
+  function updateSettings(next) {
+    arrangeSelection(next);
     setSettings(next);
     const nextFamily={...family,children:family.children.map(child=>child.id===selectedChild?.id?{...child,settings:next}:child)};
     setSaveError(!storage.saveSnapshot({family:nextFamily,settings:next}).ok);
@@ -135,6 +140,17 @@ export default function App() {
   }
 
   function retrySave() {
+    if(storageReadFailed.current){
+      const recovered=storage.load();
+      if(recovered.saveError){setSaveError(true);return;}
+      const snapshot=recoverFamilySnapshot(initial,{family,settings},recovered);
+      storageReadFailed.current=false;
+      if(started)arrangeSelection(snapshot.settings);
+      setFamily(snapshot.family);setSettings(snapshot.settings);
+      if(!started){const next=initialInstruments(snapshot.settings.selected);stateRef.current=next;setInstruments(next);}
+      setSaveError(!storage.saveSnapshot(snapshot).ok);
+      return;
+    }
     setSaveError(!storage.saveSnapshot({family,settings}).ok);
   }
 

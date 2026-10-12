@@ -25,7 +25,8 @@ export function createUpdatePolicy({ applyUpdate = null } = {}) {
       if (state?.started !== false || state?.loading !== false || state?.parentGuide !== false) return false;
       applying = true;
       try {
-        await applyUpdate();
+        const applied=await applyUpdate(getAppState);
+        if(applied===false)return false;
         pending = false;
         notify();
         return true;
@@ -46,6 +47,9 @@ export function observeAppUpdates(registration, serviceWorkers, {
 } = {}) {
   let activationRequested = false;
   let previousController = null;
+  let awaitingReload = false;
+  let getCurrentState = null;
+  const safe = state => state?.started===false&&state?.loading===false&&state?.parentGuide===false;
   const workers = new Set();
   const checkWaiting = () => {
     if (registration.waiting && (registration.active || serviceWorkers.controller)) policy.requestUpdate();
@@ -61,9 +65,13 @@ export function observeAppUpdates(registration, serviceWorkers, {
   const controllerChanged = () => {
     if (!activationRequested || !serviceWorkers.controller || serviceWorkers.controller === previousController) return;
     activationRequested = false;
-    reload();
+    if(safe(getCurrentState?.()))reload();
+    else {awaitingReload=true;policy.requestUpdate();}
   };
-  policy.setApplyUpdate(() => {
+  policy.setApplyUpdate(getAppState => {
+    getCurrentState=getAppState;
+    if(awaitingReload){awaitingReload=false;reload();return true;}
+    if(activationRequested)return false;
     const worker = registration.waiting;
     if (!worker) throw new Error('No waiting app update');
     previousController = serviceWorkers.controller;

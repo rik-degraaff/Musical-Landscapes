@@ -160,3 +160,21 @@ test('observes a later installing worker and removes listeners on cleanup', asyn
   registration.installing.dispatchEvent(new Event('statechange'));
   assert.equal(otherPolicy.getSnapshot(), false);
 });
+
+test('controller activation after menu reentry waits for the next safe menu before reload',async()=>{
+  const policy=createUpdatePolicy();
+  const serviceWorkers=new EventTarget();serviceWorkers.controller=worker();
+  const registration=new EventTarget();registration.active=serviceWorkers.controller;registration.waiting=worker();
+  let state=menu,reloads=0;
+  const cleanup=observeAppUpdates(registration,serviceWorkers,{policy,reload:()=>reloads++});
+  await policy.applyWhenSafe(()=>state);
+  state={...menu,parentGuide:true};
+  serviceWorkers.controller=registration.waiting;registration.waiting=null;
+  serviceWorkers.dispatchEvent(new Event('controllerchange'));
+  assert.equal(reloads,0);assert.equal(policy.getSnapshot(),true);
+  assert.equal(await policy.applyWhenSafe(()=>state),false);
+  state=menu;
+  assert.equal(await policy.applyWhenSafe(()=>state),true);
+  assert.equal(reloads,1);assert.equal(policy.getSnapshot(),false);
+  cleanup();
+});

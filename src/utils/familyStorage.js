@@ -2,9 +2,10 @@ import {CHILDREN_KEY,normalizeChild,normalizeChildren} from './children.js';
 import {SETTINGS_KEY,defaultSettings,normalizeSettings} from './settings.js';
 
 export function createFamilyStorage(storageProvider=()=>window.localStorage) {
+  let loadError=null;
   function load() {
     let storage,saveError=null;
-    try {storage=storageProvider();}catch(error){return {family:normalizeChildren(null),settings:defaultSettings(),saveError:error};}
+    try {storage=storageProvider();}catch(error){loadError=error;return {family:normalizeChildren(null),settings:defaultSettings(),saveError:error};}
     function read(key) {
       try {return JSON.parse(storage.getItem(key)??'null');}catch(error){saveError??=error;return null;}
     }
@@ -14,10 +15,12 @@ export function createFamilyStorage(storageProvider=()=>window.localStorage) {
     const rawChild=selectedChild&&rawFamily.children.find(child=>normalizeChild(child)?.id===selectedChild.id);
     const settings=rawChild&&Object.hasOwn(rawChild,'settings')?normalizeSettings(selectedChild.settings):normalizeSettings(read(SETTINGS_KEY));
     if(selectedChild)selectedChild.settings=normalizeSettings(settings);
+    loadError=saveError;
     return {family,settings,saveError};
   }
 
   function saveSnapshot({family,settings}) {
+    if(loadError)return {ok:false,error:loadError};
     try {
       const normalizedFamily=normalizeChildren(family);
       const selectedChild=normalizedFamily.children.find(child=>child.id===normalizedFamily.selectedId);
@@ -34,6 +37,7 @@ export function createFamilyStorage(storageProvider=()=>window.localStorage) {
   }
 
   function saveLegacySettings(settings) {
+    if(loadError)return {ok:false,error:loadError};
     try {
       storageProvider().setItem(SETTINGS_KEY,JSON.stringify(normalizeSettings(settings)));
       return {ok:true,error:null};
@@ -43,4 +47,16 @@ export function createFamilyStorage(storageProvider=()=>window.localStorage) {
   }
 
   return {load,saveSnapshot,saveLegacySettings};
+}
+
+export function recoverFamilySnapshot(initial,current,recovered) {
+  const children=recovered.family.children.map(saved=>{
+    const previous=initial.family.children.find(child=>child.id===saved.id);
+    const edited=current.family.children.find(child=>child.id===saved.id);
+    return previous&&edited&&JSON.stringify(previous)!==JSON.stringify(edited)?edited:saved;
+  });
+  const selectedId=current.family.selectedId!==initial.family.selectedId&&children.some(child=>child.id===current.family.selectedId)
+    ?current.family.selectedId:recovered.family.selectedId;
+  const settings=children.find(child=>child.id===selectedId)?.settings??recovered.settings;
+  return {family:{children,selectedId},settings};
 }

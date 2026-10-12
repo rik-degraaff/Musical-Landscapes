@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createFamilyStorage} from '../src/utils/familyStorage.js';
+import {createFamilyStorage,recoverFamilySnapshot} from '../src/utils/familyStorage.js';
 import {CHILDREN_KEY,normalizeChildren} from '../src/utils/children.js';
 import {SETTINGS_KEY,defaultSettings,normalizeSettings} from '../src/utils/settings.js';
 
@@ -35,6 +35,8 @@ test('the default provider guards the localStorage getter and retries it on late
   assert.deepEqual(adapter.saveSnapshot(snapshot),{ok:false,error});
   assert.deepEqual(snapshot,original);
   blocked=false;
+  assert.equal(adapter.saveSnapshot(snapshot).ok,false);
+  adapter.load();
   assert.deepEqual(adapter.saveSnapshot(snapshot),{ok:true,error:null});
   assert.deepEqual(adapter.load(),{...snapshot,saveError:null});
   assert.equal(accesses,4);
@@ -235,4 +237,28 @@ test('loading, editing and switching children keep sibling settings independent 
   assert.deepEqual(reloaded.family.children[0].settings,snapshot.settings);
   assert.deepEqual(reloaded.family.children[1].settings,second);
   assert.deepEqual(switched,original);
+});
+
+test('a failed startup read cannot overwrite temporarily inaccessible profiles',()=>{
+  const original={children:[child,{...child,id:'sibling',name:'Sam'}],selectedId:child.id};
+  const local=storage({[CHILDREN_KEY]:JSON.stringify(original)});let denied=true;
+  const adapter=createFamilyStorage(()=>{if(denied)throw Error('Denied');return local;});
+  const initial=adapter.load();denied=false;
+  assert.equal(adapter.saveSnapshot(initial).ok,false);
+  assert.equal(adapter.saveLegacySettings(defaultSettings()).ok,false);
+  assert.equal(local.getItem(CHILDREN_KEY),JSON.stringify(original));
+  const recovered=adapter.load();
+  const snapshot=recoverFamilySnapshot(initial,initial,recovered);
+  assert.equal(adapter.saveSnapshot(snapshot).ok,true);
+  assert.deepEqual(adapter.load().family,normalizeChildren(original));
+});
+
+test('read recovery merges known edits without losing newly readable sibling profiles',()=>{
+  const initial={family:normalizeChildren({children:[child]}),settings:defaultSettings()};
+  const current=structuredClone(initial);current.family.children[0].settings.instruments.piano.complexity=.35;
+  const recovered={family:normalizeChildren({children:[child,{...child,id:'sibling',name:'Sam'}]}),settings:defaultSettings()};
+  const snapshot=recoverFamilySnapshot(initial,current,recovered);
+  assert.equal(snapshot.family.children.length,2);
+  assert.equal(snapshot.settings.instruments.piano.complexity,.35);
+  assert.deepEqual(snapshot.family.children[1],recovered.family.children[1]);
 });

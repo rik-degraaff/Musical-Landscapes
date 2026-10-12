@@ -175,6 +175,33 @@ test('deferred registration events use imported observer without automatic activ
   expect(result).toEqual({ pending: true, before: { messages: 0, reloads: 0 }, messages: [{ type: 'SKIP_WAITING' }], reloads: 1 });
 });
 
+test('late controller change keeps a reentered caregiver draft until the next menu (mock worker)',async({page})=>{
+  await page.goto('/');
+  await page.evaluate(async()=>{
+    const {appUpdates,observeAppUpdates}=await import('/src/utils/updatePolicy.js');
+    const serviceWorkers=new EventTarget();serviceWorkers.controller={};
+    const registration=new EventTarget();registration.active=serviceWorkers.controller;
+    registration.waiting=new EventTarget();
+    window.updateMessages=0;window.updateReloads=0;
+    registration.waiting.postMessage=()=>{window.updateMessages++;};
+    observeAppUpdates(registration,serviceWorkers,{policy:appUpdates,reload:()=>{window.updateReloads++;}});
+    window.finishControllerChange=()=>{
+      serviceWorkers.controller=registration.waiting;registration.waiting=null;
+      serviceWorkers.dispatchEvent(new Event('controllerchange'));
+    };
+  });
+  await expect.poll(()=>page.evaluate(()=>window.updateMessages)).toBe(1);
+  await page.getByRole('button',{name:'Add child',exact:true}).click();
+  for(let step=0;step<3;step++)await page.getByRole('button',{name:'Next step'}).click();
+  await page.getByLabel('Child name or nickname').fill('Reentered draft');
+  await page.evaluate(()=>window.finishControllerChange());
+  await expect(page.getByLabel('Child name or nickname')).toHaveValue('Reentered draft');
+  expect(await page.evaluate(()=>window.updateReloads)).toBe(0);
+  await page.keyboard.press('Escape');
+  await expect.poll(()=>page.evaluate(()=>window.updateReloads)).toBe(1);
+  expect(await page.evaluate(()=>window.updateMessages)).toBe(1);
+});
+
 test('caregiver menu and unsaved dialog permit zoom events and pinch through every ancestor', async ({ page }) => {
   await page.goto('/');
   const viewport = await page.locator('meta[name="viewport"]').getAttribute('content');

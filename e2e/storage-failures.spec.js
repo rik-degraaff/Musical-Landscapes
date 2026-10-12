@@ -108,3 +108,48 @@ test('denied storage getter does not crash the menu or discard a caregiver draft
   await expect(page.getByRole('textbox',{name:'Child name'})).toHaveValue('Draft');
   expect(errors).toEqual([]);
 });
+
+for(const deniedKey of ['getter','farmjam-children-v1','farmjam-settings-v1']) {
+  test(`retry after transient ${deniedKey} read failure preserves recovered profiles`,async({page})=>{
+    await page.goto('/');
+    const original=await page.evaluate(()=>{
+      const family=JSON.parse(localStorage.getItem('farmjam-children-v1'));
+      family.children.push({...family.children[0],id:'saved-sibling',name:'Saved sibling',settings:{instruments:{piano:{complexity:.35}}}});
+      localStorage.setItem('farmjam-children-v1',JSON.stringify(family));return family;
+    });
+    await page.addInitScript(key=>{
+      const getter=Object.getOwnPropertyDescriptor(window,'localStorage');
+      const read=Storage.prototype.getItem;
+      let denied=true;
+      if(key==='getter')Object.defineProperty(window,'localStorage',{configurable:true,get(){if(denied)throw new DOMException('Denied','SecurityError');return getter.get.call(window);}});
+      else Storage.prototype.getItem=function(name){if(denied&&name===key)throw new DOMException('Denied','SecurityError');return read.call(this,name);};
+      window.restoreReads=()=>{denied=false;};
+    },deniedKey);
+    await page.reload();await expect(page.locator('.save-status')).toBeVisible();
+    await page.getByRole('button',{name:'Retry saving'}).click();
+    await expect(page.locator('.save-status')).toBeVisible();
+    if(deniedKey==='farmjam-settings-v1'){
+      await page.getByRole('button',{name:'Tap to play'}).click();
+      await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});
+      await page.locator('#instrument-drums').click();
+      await page.getByRole('button',{name:'Open settings'}).dblclick();
+      await page.getByRole('tab',{name:'Instruments',exact:true}).click();
+      await page.getByRole('combobox',{name:'Configure instrument'}).selectOption('piano');
+      await page.getByRole('radio',{name:'Simple',exact:true}).check();
+    }
+    await page.evaluate(()=>window.restoreReads());
+    await page.getByRole('button',{name:'Retry saving'}).click();
+    await expect(page.locator('.save-status')).toHaveCount(0);
+    if(deniedKey==='farmjam-settings-v1'){
+      await expect(page.getByRole('radio',{name:'Simple',exact:true})).toBeChecked();
+      await page.keyboard.press('Escape');
+      await expect(page.locator('#instrument-drums')).toHaveAttribute('aria-pressed','true');
+      await page.getByRole('button',{name:'Open settings'}).dblclick();
+      await page.getByRole('button',{name:'Return to main menu'}).click();
+    }
+    await expect(page.getByRole('radio',{name:'Select Saved sibling'})).toBeVisible();
+    expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('farmjam-children-v1')).children.map(child=>({id:child.id,name:child.name})))).toEqual(original.children.map(child=>({id:child.id,name:child.name})));
+    await page.getByRole('radio',{name:'Select Saved sibling'}).click();
+    expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('farmjam-settings-v1')).instruments.piano.complexity)).toBe(.35);
+  });
+}
