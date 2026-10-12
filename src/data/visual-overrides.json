@@ -18,17 +18,6 @@
       }
     },
     {
-      "selector": "#instrument-piano",
-      "attributes": {},
-      "styles": {
-        "left": "15.00%",
-        "top": "35.00%",
-        "right": "auto",
-        "bottom": "auto",
-        "transform": "translate(-50%, -50%)"
-      }
-    },
-    {
       "selector": ".scene-pond .landscape-art > path:nth-of-type(7)",
       "attributes": {},
       "styles": {
