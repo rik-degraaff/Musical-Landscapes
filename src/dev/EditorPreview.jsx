@@ -8,8 +8,10 @@ import { INSTRUMENTS } from '../utils/music';
 import { DEFAULT_AVATAR, normalizeChild } from '../utils/children';
 import { normalizeSettings } from '../utils/settings';
 import { SCENE_SOUNDS } from '../audio/sceneSounds';
-import { installVisualOverrides } from '../utils/visualOverrides';
+import { installVisualOverrides, visualSource } from '../utils/visualOverrides';
 import { describeNode, sceneEntities, targetFor } from './editorSelection';
+import { installSvgPointEditor } from './SvgPointEditor';
+import { measureGeometry, resizeGeometry } from './canvasGeometry';
 import '../components/parent-guide.css';
 import './preview.css';
 
@@ -45,13 +47,29 @@ export function EditorPreview() {
   });
   useEffect(() => () => audio.close(), [audio]);
   useEffect(() => {
-    const overrides = installVisualOverrides(document, { version: 1, rules: [] });
+    const overrides = installVisualOverrides(document, { version: 1, rules: [] }, { preview: true });
+    let draft = { version: 1, rules: [] };
     const outline = document.createElement('div');
     outline.className = 'editor-selection-outline';
     document.body.append(outline);
+    for (const grip of ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']) {
+      const handle = document.createElement('button');
+      handle.dataset.resizeGrip = grip;
+      handle.className = `editor-object-grip grip-${grip}`;
+      handle.setAttribute('aria-label', `Resize selected item ${grip}`);
+      handle.title = `Resize ${grip}`;
+      outline.append(handle);
+    }
+    const points = installSvgPointEditor(document, {
+      onEdit: ({ attributes }) => { if (selected.current) send({ type: 'drag', value: { selector: describeNode(selected.current).selector, attributes } }); },
+      onGestureEnd: () => { send({ type: 'drag-end' }); if (selected.current) choose(selected.current); },
+    });
     const choose = node => {
       selected.current = node;
       const value = describeNode(node);
+      points.select(node, configRef.current.points && configRef.current.mode !== 'interact');
+      const world = node.closest('.landscape-world')?.getBoundingClientRect();
+      if (value && world) value.geometry = measureGeometry(node, world);
       if (value) send({ type: 'selection', value });
     };
     const message = event => {
@@ -59,11 +77,20 @@ export function EditorPreview() {
       const { type, value } = event.data;
       if (type === 'config') {
         setConfig(value);
+        configRef.current = value;
+        points.select(selected.current, value.points && value.mode !== 'interact');
+        overrides.setPreview(value.mode !== 'interact');
+        document.body.classList.toggle('editor-interacting', value.mode === 'interact');
         document.body.classList.toggle('editor-animations-paused', value.paused);
         if (value.sound) audio.enable().then(() => send({ type: 'sound-ready' })).catch(error => send({ type: 'error', value: error.message }));
         else audio.disable();
       }
-      if (type === 'draft') overrides.update(value);
+      if (type === 'draft') { draft = value; overrides.update(value); points.refresh(); }
+      if (type === 'measure') requestAnimationFrame(() => requestAnimationFrame(() => {
+        const node = document.querySelector(value.selector);
+        const world = node?.closest('.landscape-world')?.getBoundingClientRect();
+        send({ type: 'measurement', value: { id: value.id, geometry: world ? measureGeometry(node, world) : null, kind: node instanceof SVGElement && node.ownerSVGElement ? 'svg' : 'box' } });
+      }));
       if (type === 'select') {
         const node = document.querySelector(value);
         if (node) { choose(node); node.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
@@ -79,15 +106,20 @@ export function EditorPreview() {
     };
     const down = event => {
       const current = configRef.current;
+      if (event.target.closest('[data-svg-handle],[data-svg-point-editor]')) return;
       if (current.mode === 'interact' || event.button !== 0) return;
-      const node = targetFor(event.target, current.parts);
+      const grip = event.target.closest('[data-resize-grip]')?.dataset.resizeGrip;
+      const node = grip ? selected.current : targetFor(visualSource(event.target), current.parts);
       if (!node) return;
       event.preventDefault(); event.stopImmediatePropagation(); choose(node);
       const bounds = node.getBoundingClientRect();
       const world = document.querySelector('.landscape-world')?.getBoundingClientRect();
-      if (current.mode === 'drag' && current.view === 'scene' && world) {
-        drag.current = { node, pointerId: event.pointerId, x: event.clientX, y: event.clientY, bounds, world, svg: node instanceof SVGElement, baseTranslate: getComputedStyle(node).translate };
-        node.setPointerCapture(event.pointerId);
+      if ((grip || current.mode === 'drag') && current.view === 'scene' && world) {
+        const selector = describeNode(node).selector;
+        const layout = draft.rules.find(rule => rule.selector === selector)?.layout;
+        if (layout && !current.endpoint) return;
+        drag.current = { node, grip, layout, selector, pointerId: event.pointerId, x: event.clientX, y: event.clientY, bounds, world, svg: node instanceof SVGElement && Boolean(node.ownerSVGElement), baseTranslate: getComputedStyle(node).translate, baseScale: getComputedStyle(node).scale };
+        document.body.setPointerCapture(event.pointerId);
       }
     };
     const move = event => {
@@ -97,6 +129,24 @@ export function EditorPreview() {
       const dx = event.clientX - current.x, dy = event.clientY - current.y;
       const { node, bounds, world } = current;
       let styles;
+      if (configRef.current.endpoint && current.layout) {
+        const geometry = current.grip ? resizeGeometry(bounds, world, current.grip, dx, dy, configRef.current.ratioLocked) : { ...measureGeometry({ getBoundingClientRect: () => bounds }, world), x: (bounds.left + bounds.width / 2 + dx - world.left) / world.width * 100, y: (bounds.top + bounds.height / 2 + dy - world.top) / world.height * 100 };
+        send({ type: 'drag', value: { selector: current.selector, layout: { ...current.layout, [configRef.current.endpoint]: geometry } } });
+        return;
+      }
+      if (current.grip) {
+        const geometry = resizeGeometry(bounds, world, current.grip, dx, dy, configRef.current.ratioLocked);
+        if (current.svg) {
+          const previousScale = current.baseScale === 'none' ? [1, 1] : current.baseScale.split(' ').map(Number);
+          const matrix = node.parentElement.getScreenCTM();
+          const origin = new DOMPoint(0, 0).matrixTransform(matrix.inverse());
+          const delta = new DOMPoint((geometry.x / 100 * world.width + world.left) - bounds.left - bounds.width / 2, (geometry.y / 100 * world.height + world.top) - bounds.top - bounds.height / 2).matrixTransform(matrix.inverse());
+          const previous = current.baseTranslate.split(' ').map(parseFloat);
+          styles = { scale: `${previousScale[0] * geometry.width / bounds.width} ${(previousScale[1] ?? previousScale[0]) * geometry.height / bounds.height}`, 'transform-origin': 'center', 'transform-box': 'fill-box', translate: `${(previous[0] || 0) + delta.x - origin.x}px ${(previous[1] || 0) + delta.y - origin.y}px` };
+        } else styles = { width: `${geometry.width.toFixed(2)}px`, height: `${geometry.height.toFixed(2)}px`, left: `${geometry.x}%`, top: `${geometry.y}%`, right: 'auto', bottom: 'auto', transform: 'translate(-50%, -50%)' };
+        send({ type: 'drag', value: { selector: current.selector, styles } });
+        return;
+      }
       if (current.svg) {
         const matrix = node.ownerSVGElement?.getScreenCTM();
         const point = matrix ? new DOMPoint(dx, dy).matrixTransform(matrix.inverse()) : { x: dx, y: dy };
@@ -116,7 +166,7 @@ export function EditorPreview() {
       if (!drag.current) return;
       event.preventDefault(); event.stopImmediatePropagation();
       const node = drag.current.node;
-      try { node.releasePointerCapture(drag.current.pointerId); } catch {}
+      try { document.body.releasePointerCapture(drag.current.pointerId); } catch {}
       drag.current = null;
       send({ type: 'drag-end' }); choose(node);
     };
@@ -129,6 +179,8 @@ export function EditorPreview() {
       if (node?.isConnected && configRef.current.mode !== 'interact') {
         const box = node.getBoundingClientRect();
         Object.assign(outline.style, { display: 'block', left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px` });
+        const layout = draft.rules.find(rule => rule.selector === describeNode(node)?.selector)?.layout;
+        outline.classList.toggle('can-resize', configRef.current.view === 'scene' && !configRef.current.points && (!layout || configRef.current.endpoint));
       } else outline.style.display = 'none';
       frame = requestAnimationFrame(paint);
     };
@@ -138,7 +190,7 @@ export function EditorPreview() {
     document.addEventListener('click', click, true);
     send({ type: 'ready' });
     return () => {
-      overrides.dispose(); outline.remove(); cancelAnimationFrame(frame); window.removeEventListener('message', message);
+      points.dispose(); overrides.dispose(); outline.remove(); cancelAnimationFrame(frame); window.removeEventListener('message', message);
       document.removeEventListener('pointerdown', down, true); document.removeEventListener('pointermove', move, true);
       document.removeEventListener('pointerup', up, true); document.removeEventListener('pointercancel', up, true);
       document.removeEventListener('click', click, true);

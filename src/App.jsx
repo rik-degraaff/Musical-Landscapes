@@ -21,9 +21,15 @@ import {useAppUpdates} from './components/useAppUpdates.js';
 import {createFamilyStorage,recoverFamilySnapshot} from './utils/familyStorage.js';
 import {defaultSettings} from './utils/settings.js';
 import {createCaregiverStorage,normalizeFamiliarity} from './utils/caregiverSettings.js';
+import savedVisuals from './data/visual-overrides.json';
+import {instrumentHome} from './utils/responsiveVisuals.js';
 
-function initialInstruments(selected) {
-  return Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,value])=>[name,{...value,...(selected.includes(name)?INSTRUMENT_SLOTS[selected.indexOf(name)]:{}),active:false}]));
+function initialInstruments(selected, preview = false) {
+  const size = {width:window.innerWidth,height:window.innerHeight};
+  return Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,value])=>{
+    const home = {...value,...(selected.includes(name)?INSTRUMENT_SLOTS[selected.indexOf(name)]:{})};
+    return [name,{...(preview?home:instrumentHome(savedVisuals,name,home,size)),active:false}];
+  }));
 }
 
 export default function App({developmentPreview}={}) {
@@ -55,7 +61,7 @@ export default function App({developmentPreview}={}) {
   const [settings,setSettings] = useState(initial.settings);
   const [sceneVolume,setSceneVolume] = useState(-4);
   const mixerTap = useRef(null);
-  const [instruments,setInstruments] = useState(()=>initialInstruments(settings.selected));
+  const [instruments,setInstruments] = useState(()=>initialInstruments(settings.selected,Boolean(developmentPreview)));
   const stateRef = useRef(instruments);
   const drag = useRef(null);
   const startInProgress = useRef(false);
@@ -133,7 +139,11 @@ export default function App({developmentPreview}={}) {
       if(equippedRef.current&&!next.selected.includes(equippedRef.current))equip(null);
       for(const name of settings.selected)if(!next.selected.includes(name))audioRef.current?.setInstrumentActive(name,false);
       const positions={...stateRef.current};
-      next.selected.forEach((name,index)=>{if(settings.selected[index]!==name)positions[name]={...positions[name],...INSTRUMENT_SLOTS[index]};});
+      next.selected.forEach((name,index)=>{if(settings.selected[index]!==name){
+        const fallback=INSTRUMENT_SLOTS[index];
+        const home=developmentPreview?fallback:instrumentHome(savedVisuals,name,fallback,{width:window.innerWidth,height:window.innerHeight});
+        positions[name]={...positions[name],...home};
+      }});
       stateRef.current=positions;setInstruments(positions);
     }
   }
@@ -283,7 +293,8 @@ export default function App({developmentPreview}={}) {
     equippedRef.current=name;setEquipped(name);
     audioRef.current.setManualInstrument(name);
     if(previous&&previous!==name&&resetPrevious) {
-      const home=INSTRUMENT_SLOTS[settings.selected.indexOf(previous)]??INSTRUMENTS[previous];
+      const fallback=INSTRUMENT_SLOTS[settings.selected.indexOf(previous)]??INSTRUMENTS[previous];
+      const home=developmentPreview?fallback:instrumentHome(savedVisuals,previous,fallback,{width:window.innerWidth,height:window.innerHeight});
       const next={...stateRef.current,[previous]:{...stateRef.current[previous],x:home.x,y:home.y}};
       stateRef.current=next;setInstruments(next);
     }

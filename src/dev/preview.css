@@ -1,5 +1,18 @@
 body { touch-action: auto; }
 .editor-selection-outline { position: fixed; border: 2px solid #0a8575; background: #0a857512; pointer-events: none; z-index: 100000; min-width: 4px; min-height: 4px; }
+.editor-object-grip { display: none; position: absolute; width: 14px; height: 14px; padding: 0; border: 2px solid #fff; background: #087c6b; pointer-events: auto; touch-action: none; }
+.can-resize .editor-object-grip { display: block; }
+.grip-nw { left: -8px; top: -8px; cursor: nwse-resize; }
+.grip-n { left: calc(50% - 7px); top: -8px; cursor: ns-resize; }
+.grip-ne { right: -8px; top: -8px; cursor: nesw-resize; }
+.grip-e { right: -8px; top: calc(50% - 7px); cursor: ew-resize; }
+.grip-se { right: -8px; bottom: -8px; cursor: nwse-resize; }
+.grip-s { left: calc(50% - 7px); bottom: -8px; cursor: ns-resize; }
+.grip-sw { left: -8px; bottom: -8px; cursor: nesw-resize; }
+.grip-w { left: -8px; top: calc(50% - 7px); cursor: ew-resize; }
+.landscape-art[data-visual-layer] { pointer-events: none !important; }
+.landscape-art[data-visual-layer] :is(g,path,circle,ellipse,rect,polygon,polyline,line) { pointer-events: visiblePainted; }
+.editor-interacting .landscape-art,.editor-interacting .landscape-art * { pointer-events: none !important; }
 .editor-animations-paused *, .editor-animations-paused *::before, .editor-animations-paused *::after { animation-play-state: paused !important; transition: none !important; }
 .landscape-art { pointer-events: auto !important; }
 .landscape-art > path:last-child { pointer-events: none; }

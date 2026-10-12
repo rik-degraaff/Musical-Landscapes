@@ -62,6 +62,12 @@ body:has(.visual-editor) { overflow: hidden; touch-action: auto; background: #e8
 .editor-add-property { display: flex; gap: 4px; margin: 14px 0; }
 .editor-add-property select { flex: 1; }
 .editor-avatar label { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 8px 0; text-transform: capitalize; }
+.editor-item-tools,.editor-layer-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.editor-layer-tools input { width: 64px; }
+.editor-formula { display: block; font-size: 10px; line-height: 1.7; overflow-wrap: anywhere; background: #edf4f0; padding: 7px; }
+.editor-endpoint-status { font-size: 11px; color: #087c6b; margin: 9px 0; }
+.editor-fit { border: 1px solid var(--studio-border) !important; }
+.editor-viewport-toolbar .editor-segment button[aria-pressed=true] { background: #d9eee5; color: #076253; }
 @media(max-width:900px) { .editor-header { gap: 8px; } .editor-brand span { display: none; } .editor-body { grid-template-columns: minmax(0,1fr) 280px; } .editor-tabs button { padding: 6px 9px; } }
 @media(max-height:550px) and (min-width:651px) { .editor-body { overflow: auto; } .editor-preview-area { min-height: 350px; } .editor-inspector { max-height: 350px; } }
 @media(max-width:650px) { .editor-header { padding: 8px; } .editor-brand { width: 100%; } .editor-actions { margin-left: 0; } .editor-body { display: flex; flex-direction: column; overflow-y: auto; } .editor-preview-area { min-height: 430px; flex-shrink: 0; } .editor-inspector { overflow: visible; border-left: 0; border-top: 1px solid var(--studio-border); } .editor-toolbar,.editor-viewport-toolbar { padding-left: 8px; } .editor-entity-list { max-height: 130px; } }

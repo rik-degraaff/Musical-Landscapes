@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { celestialPosition } from '../utils/dayCycle';
 
 function Tree({ x, y, size = 1, stretch = 1, color = '#397b59' }) {
-  return <g transform={`translate(${x} ${y}) scale(${size * stretch} ${size})`}>
+  return <g data-name={`Tree ${x < 720 ? 'left' : 'right'} ${x}`} transform={`translate(${x} ${y}) scale(${size * stretch} ${size})`}>
     <path d="M-7 0 L-4-105 L8-105 L12 0Z" fill="#805a49" />
     <path d="M1-64 L-28-92 M4-82 L31-118" fill="none" stroke="#805a49" strokeWidth="7" />
     <path d="M0-205 C-50-210-64-175-52-151 C-99-123-65-67-25-82 C-5-55 28-63 39-89 C90-84 97-139 56-151 C66-187 31-216 0-205Z" fill={color} />
@@ -41,7 +41,7 @@ export function LandscapeArt({ scene, phase }) {
       <linearGradient id={`${scene}-water`} x2="0" y2="1"><stop stopColor="#8bc7cb" /><stop offset="1" stopColor="#468f9b" /></linearGradient>
       <pattern id={`${scene}-grain`} width="37" height="31" patternUnits="userSpaceOnUse"><circle cx="8" cy="6" r=".8" fill="#fff" opacity=".12" /><circle cx="24" cy="20" r=".7" fill="#173d36" opacity=".1" /></pattern>
     </defs>
-    <path fill={`url(#${scene}-sky)`} d="M0 0H1440V900H0Z" />
+    <path data-name="Sky" fill={`url(#${scene}-sky)`} d="M0 0H1440V900H0Z" />
     <g className={`celestial-art ${celestial.moon ? 'is-moon' : 'is-sun'}`} transform={`translate(${celestialX} ${celestialY})`} opacity={celestial.opacity}>
       <g transform={`scale(${stretch} 1)`}>
         <circle className="celestial-halo" r={celestialRadius * 1.18} fill={celestial.moon ? '#f8edc3' : '#fff4ce'} opacity=".24" />
@@ -55,20 +55,20 @@ export function LandscapeArt({ scene, phase }) {
       <g className="scenery-cloud" fill="#fffdf3" opacity=".75"><g transform={`translate(104 184) scale(${stretch} 1)`}><path d="M0 0 C-23-19-5-49 20-45 C35-80 80-72 86-42 C120-51 141-19 121-1Z" /></g><g transform={`translate(710 116) scale(${stretch} 1)`}><path d="M0 0 C-24-15-7-44 16-37 C40-73 83-50 81-33 C117-42 137-16 116 0Z" /></g><g transform={`translate(1290 275) scale(${stretch} 1)`}><path d="M0 0 C-20-24 7-45 24-41 C41-71 81-66 90-32 C130-42 144-12 120 0Z" /></g></g>
       <g fill="none" stroke="#638b93" strokeWidth="3" strokeLinecap="round"><path d="M415 142q10-12 20 0q10-12 20 0 M476 170q8-10 16 0q8-10 16 0" /></g>
     </>}
-    <path d="M0 403 Q180 269 370 376 T750 378 T1120 349 T1440 366 V900H0Z" fill={palette[2]} />
-    <path d="M0 482 Q220 332 474 463 Q699 521 923 417 T1440 481 V900H0Z" fill={palette[3]} />
+    <path data-name="Distant hills" d="M0 403 Q180 269 370 376 T750 378 T1120 349 T1440 366 V900H0Z" fill={palette[2]} />
+    <path data-name="Near hills" d="M0 482 Q220 332 474 463 Q699 521 923 417 T1440 481 V900H0Z" fill={palette[3]} />
     <g opacity=".6">{[0, 80, 148, 1270, 1340, 1440].map((position, index) => <Tree key={position} stretch={stretch} x={position} y={465 + index % 2 * 35} size={0.55 + index % 3 * 0.1} color={night ? '#3e5960' : '#6c9b7a'} />)}</g>
-    <path d="M0 577 Q205 502 423 561 T940 532 T1440 559 V900H0Z" fill={`url(#${scene}-ground)`} />
+    <path data-name="Meadow ground" d="M0 577 Q205 502 423 561 T940 532 T1440 559 V900H0Z" fill={`url(#${scene}-ground)`} />
     {!pond && !lateNight && <path d="M915 510 Q1040 623 750 709 Q604 766 641 900 H925 Q803 780 921 725 Q1152 618 945 510Z" fill={night ? '#6e7970' : '#ded4aa'} opacity=".7" />}
     {scene === 'farm' && <>
       <path d="M0 678Q262 580 535 640L331 900H0Z" fill="#adc168" /><path d="M0 730Q226 622 487 675 M0 791Q210 670 433 727 M0 853Q166 749 379 790" stroke="#6e944c" strokeWidth="13" fill="none" />
-      <g transform={`translate(1055 448) scale(${stretch} 1)`}><path d="M-118 12H118V154H-118Z" fill="#cc6c59" /><path d="M-143 15L0-108L143 15Z" fill="#764a49" /><path d="M-111 15L0-79L111 15Z" fill="#dd8970" /><path d="M-41 154V58H41V154" fill="#854b43" stroke="#ffe3b9" strokeWidth="7" /><path d="M-37 63L37 150 M37 63L-37 150" stroke="#ffe3b9" strokeWidth="5" /><rect x="-17" y="-31" width="34" height="34" fill="#f3dba2" /><path d="M-110 36H-67 M66 36H110" stroke="#ecb091" strokeWidth="6" /></g>
+      <g data-name="Barn" transform={`translate(1055 448) scale(${stretch} 1)`}><path d="M-118 12H118V154H-118Z" fill="#cc6c59" /><path d="M-143 15L0-108L143 15Z" fill="#764a49" /><path d="M-111 15L0-79L111 15Z" fill="#dd8970" /><path d="M-41 154V58H41V154" fill="#854b43" stroke="#ffe3b9" strokeWidth="7" /><path d="M-37 63L37 150 M37 63L-37 150" stroke="#ffe3b9" strokeWidth="5" /><rect x="-17" y="-31" width="34" height="34" fill="#f3dba2" /><path d="M-110 36H-67 M66 36H110" stroke="#ecb091" strokeWidth="6" /></g>
       <g stroke="#fff0cf" strokeWidth="9" fill="none"><path d="M0 578Q235 537 458 583 M0 607Q235 566 458 612 M1170 587L1440 562 M1170 616L1440 591" />{[24, 91, 158, 225, 292, 359, 426, 1190, 1257, 1324, 1391].map(position => <path key={position} d={`M${position} ${position < 460 ? 550 + Math.abs(230 - position) / 14 : 565}v86`} />)}</g>
       <Tree stretch={stretch} x={95} y={626} size={1.15} color="#428362" />
     </>}
     {dawn && <>
       <path d="M0 605Q350 548 716 588T1440 585 M0 650Q310 601 620 638T1440 643" stroke="#f1e8d4" strokeWidth="16" opacity=".22" fill="none" />
-      <g transform={`translate(1050 478) scale(${stretch * 0.8} .8)`}>
+      <g data-name="Dawn cottage" transform={`translate(1050 478) scale(${stretch * 0.8} .8)`}>
         <path d="M-125 20H125V155H-125Z" fill="#d5b997" /><path d="M-150 20L0-85L150 20Z" fill="#8e777b" />
         <path d="M-85 56h53v53h-53Z" fill="#e8d394" stroke="#967d67" strokeWidth="5" /><path d="M30 155V66H88V155Z" fill="#927d6b" />
         <path d="M-116 45H116M-116 123H116" stroke="#b69d84" strokeWidth="4" />
@@ -79,7 +79,7 @@ export function LandscapeArt({ scene, phase }) {
     </>}
     {dusk && <>
       <path d="M0 669Q300 581 584 630T1440 604" stroke="#b7c5b0" strokeWidth="8" fill="none" opacity=".35"/>
-      <g transform={`translate(1100 512) scale(${stretch * .85} .85)`}>
+      <g data-name="Evening cottage" transform={`translate(1100 512) scale(${stretch * .85} .85)`}>
         <path d="M-84 0H84V111H-84Z" fill="#a59788"/><path d="M-104 4L0-66L104 4Z" fill="#56666a"/>
         <rect x="-55" y="36" width="35" height="34" fill="#f1d19a" stroke="#6a7465" strokeWidth="5"/><path d="M26 111V41h34v70" fill="#62776d"/>
         <path d="M-37 37v32m-16-16h31" stroke="#6a7465" strokeWidth="3"/>
@@ -96,7 +96,7 @@ export function LandscapeArt({ scene, phase }) {
     </>}
     {pond && <>
       <path d="M404 579 Q692 525 1052 605 T1310 780 L1440 900 H198 Q270 829 305 792 Q345 758 305 715 Q347 642 404 579Z" fill="#afc99a" />
-      <path d="M426 600 Q698 551 1037 621 T1285 791 L1390 900 H249 Q313 835 352 797 Q400 755 349 716 Q379 653 426 600Z" fill={`url(#${scene}-water)`} />
+      <path data-name="Pond water" d="M426 600 Q698 551 1037 621 T1285 791 L1390 900 H249 Q313 835 352 797 Q400 755 349 716 Q379 653 426 600Z" fill={`url(#${scene}-water)`} />
       <g className="pond-reflections" stroke="#d1eee2" strokeWidth="4" strokeLinecap="round" opacity=".45"><path d="M480 652h98 M843 684h110 M540 758h127 M1090 803h108 M759 857h143 M1025 730h47 M378 822h59" /></g>
       <g fill="#4f8e69"><ellipse cx="675" cy="787" rx="43" ry="13" /><ellipse cx="1030" cy="717" rx="35" ry="10" /><ellipse cx="1133" cy="846" rx="48" ry="14" /></g>
       <g fill="#f5c2cc"><path d="M659 785q-3-33 16-13q16-27 25 6Z" /><path d="M1017 715q-6-24 12-14q14-20 25 11Z" /></g>

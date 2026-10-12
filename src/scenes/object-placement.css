@@ -1,5 +1,9 @@
+.landscape-world {
+  --visual-unit: min(clamp(0px, calc((100vw - 360px) / 1560), 1px), clamp(0px, calc((100vh - 240px) / 840), 1px));
+}
+
 .scene .interactive-object[data-sound] {
-  --object-size: clamp(76px, min(13.4vh, 12vw), 120px);
+  --object-size: calc(76px + 44 * var(--visual-unit, 1px));
   --object-height: calc(var(--object-size) * .875);
   --object-x: 32%;
   --object-base: 82%;
@@ -18,11 +22,11 @@
 }
 
 .scene .interactive-object[data-sound='moo'] { --object-x: 32%; --object-base: 80%; }
-.scene .interactive-object[data-sound='tractor'] { --object-size: clamp(84px, min(16vh, 14vw), 145px); --object-x: 73%; --object-base: 84%; }
+.scene .interactive-object[data-sound='tractor'] { --object-size: calc(84px + 61 * var(--visual-unit, 1px)); --object-x: 73%; --object-base: 84%; }
 .scene .interactive-object[data-sound='water'] { --object-x: 26%; --object-base: 84%; }
 .scene .interactive-object[data-sound='bird'] { --object-x: 9%; --object-base: 62%; }
 .scene .interactive-object[data-sound='frog'] { --object-x: 22%; --object-base: 84%; }
-.scene .interactive-object[data-sound='windmill'] { --object-size: clamp(90px, min(18vh, 15vw), 160px); --object-height: var(--object-size); --object-x: 94%; --object-base: 76%; }
+.scene .interactive-object[data-sound='windmill'] { --object-size: calc(90px + 70 * var(--visual-unit, 1px)); --object-height: var(--object-size); --object-x: 94%; --object-base: 76%; }
 .scene .interactive-object[data-sound='bell'] { --object-x: 84%; --object-base: 63%; }
 .scene .interactive-object[data-sound='owl'] { --object-x: 13%; --object-base: 62%; }
 .scene .interactive-object[data-sound='rooster'] { --object-x: 32%; --object-base: 82%; }
@@ -50,7 +54,7 @@
   top: max(calc(var(--safe-top, 0px) + 4px), calc(var(--object-center) - var(--object-height) / 2));
   bottom: auto;
 }
-.scene .interactive-object[data-sound='airplane'] { --object-size: clamp(76px, min(15vh, 12vw), 128px); --object-x: 6%; --object-center: 30%; }
+.scene .interactive-object[data-sound='airplane'] { --object-size: calc(76px + 52 * var(--visual-unit, 1px)); --object-x: 6%; --object-center: 30%; }
 .scene .interactive-object[data-sound='bat'] { --object-x: 94%; --object-center: 32%; }
 .scene .interactive-object[data-sound='balloon'] { --object-x: 6%; --object-center: 22%; }
 .scene .interactive-object[data-sound='moth'] { --object-x: 9%; --object-center: 43%; }
