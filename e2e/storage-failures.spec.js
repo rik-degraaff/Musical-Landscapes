@@ -13,8 +13,23 @@ async function blockWrites(page,key) {
   },key);
 }
 
+async function captureSaveWarning(page,testInfo,label) {
+  const warning=page.locator('.save-status');
+  const bounds=await warning.boundingBox();
+  const viewport=page.viewportSize();
+  expect(bounds.x).toBeGreaterThanOrEqual(0);expect(bounds.y).toBeGreaterThanOrEqual(0);
+  expect(bounds.x+bounds.width).toBeLessThanOrEqual(viewport.width);
+  expect(bounds.y+bounds.height).toBeLessThanOrEqual(viewport.height);
+  const retry=page.getByRole('button',{name:'Retry saving'});
+  expect(await retry.evaluate(element=>{
+    const rect=element.getBoundingClientRect();
+    return element.contains(document.elementFromPoint(rect.left+rect.width/2,rect.top+rect.height/2));
+  })).toBe(true);
+  await page.screenshot({path:testInfo.outputPath(`${label}-save-warning.png`)});
+}
+
 for(const key of ['farmjam-children-v1','farmjam-settings-v1']) {
-  test(`${key} failures retain live settings, report unsaved changes and recover`,async({page})=>{
+  test(`${key} failures retain live settings, report unsaved changes and recover`,async({page},testInfo)=>{
     await page.goto('/');
     await page.getByRole('button',{name:'Tap to play'}).click();
     await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});
@@ -24,6 +39,7 @@ for(const key of ['farmjam-children-v1','farmjam-settings-v1']) {
     await blockWrites(page,key);
     await page.getByRole('radio',{name:'Simple',exact:true}).check();
     await expect(page.locator('.save-status')).toContainText('could not save');
+    await captureSaveWarning(page,testInfo,'settings');
     await expect(page.getByRole('radio',{name:'Simple',exact:true})).toBeChecked();
     await page.keyboard.press('Escape');
     await page.locator('#instrument-piano').focus();await page.keyboard.press('e');
@@ -48,7 +64,7 @@ for(const key of ['farmjam-children-v1','farmjam-settings-v1']) {
   });
 }
 
-test('selection failures retain the selected child and defer updates until a successful save',async({page})=>{
+test('selection failures retain the selected child and defer updates until a successful save',async({page},testInfo)=>{
   await page.goto('/');
   await page.evaluate(()=>{
     const family=JSON.parse(localStorage.getItem('farmjam-children-v1'));
@@ -60,6 +76,7 @@ test('selection failures retain the selected child and defer updates until a suc
   await page.getByRole('radio',{name:'Select Sibling'}).click();
   await expect(page.getByRole('radio',{name:'Select Sibling'})).toBeChecked();
   await expect(page.getByRole('status')).toContainText('could not save');
+  await captureSaveWarning(page,testInfo,'menu');
   await page.evaluate(async()=>{
     window.appliedUpdates=0;
     const {appUpdates}=await import('/src/utils/updatePolicy.js');
