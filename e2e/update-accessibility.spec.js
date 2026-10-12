@@ -231,8 +231,8 @@ test('body-targeted zoom keys use focus or visible dialog; gameplay still suppre
   await expect(page.locator('#instrument-piano')).toHaveCSS('touch-action', 'none');
   expect((await zoomEvents(page, 'body')).filter(event => event.type === 'keydown').every(event => event.prevented)).toBe(true);
   await page.getByRole('button', { name: 'Open settings' }).dblclick();
-  expect((await zoomEvents(page, '.settings-head button')).every(event => !event.prevented)).toBe(true);
-  await expectPinchAncestry(page, '.settings-head button');
+  expect((await zoomEvents(page, '.settings-head button[aria-label="Close settings"]')).every(event => !event.prevented)).toBe(true);
+  await expectPinchAncestry(page, '.settings-head button[aria-label="Close settings"]');
   await page.getByRole('slider', { name: 'Piano volume', exact: true }).focus();
   expect((await zoomEvents(page, 'body')).filter(event => event.type === 'keydown').every(event => !event.prevented)).toBe(true);
   await page.evaluate(() => document.activeElement.blur());

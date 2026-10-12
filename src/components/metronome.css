@@ -1,6 +1,8 @@
 .metronome-widget { position:absolute;left:12px;bottom:12px;z-index:75; }
 .manual-open .metronome-widget:not(.is-open) { bottom:calc(var(--performance-height) + 12px); }
 .metronome-widget.is-open { position:fixed;bottom:12px;z-index:110; }
+.metronome-widget.is-open,.metronome-widget.is-open .metronome-menu,.metronome-widget.is-open .metronome-mechanism { pointer-events:none; }
+.metronome-widget.is-open .metronome-weight,.metronome-widget.is-open .metronome-sound { pointer-events:auto; }
 .metronome-widget button { cursor:pointer;color:#355e4c;font:inherit;touch-action:none; }
 .metronome-mini { position:relative;width:46px;height:62px;background:transparent;border:0;padding:0;filter:drop-shadow(0 3px 3px #27445a33); }
 .metronome-body { width:100%;height:100%;display:block;pointer-events:none; }
@@ -22,3 +24,4 @@
 .metronome-widget.is-held .metronome-weight { background:#f3d998; }
 .metronome-widget.is-held .metronome-rail { transition:none; }
 @media(prefers-reduced-motion:reduce) { .mini-pendulum,.metronome-rail { transition:none; } }
+@media(max-height:400px) and (orientation:landscape) { .manual-open .metronome-widget:not(.is-open) { left:72px; } }

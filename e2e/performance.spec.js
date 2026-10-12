@@ -412,10 +412,11 @@ test('tapping the sun over an instrument advances the scene without activating t
 test('sun and moon advance the day, remain circular, and keep controls aligned through rotation and equip', async ({page}, testInfo) => {
   const errors = await start(page);
   const control = page.getByRole('button',{name:'Change landscape'});
-  await expect(page.locator('.celestial-control')).toHaveCSS('z-index','1');
-  await expect(page.locator('.instrument-layer')).toHaveCSS('z-index','40');
-  await expect(page.locator('.scene .interactive-object').first()).toHaveCSS('z-index','45');
-  const skyLayers = await page.locator('.landscape-art').evaluate(svg => {
+  expect(await control.evaluate(element=>{
+    const bounds=element.getBoundingClientRect();
+    return element.contains(document.elementFromPoint(bounds.x+bounds.width/2,bounds.y+bounds.height/2));
+  })).toBe(true);
+  const skyLayers = await page.locator('.landscape-art:not([data-visual-layer])').evaluate(svg => {
     const sun = svg.querySelector('.celestial-art');
     const terrain = [...svg.querySelectorAll('path')].find(path => path.getAttribute('d')?.startsWith('M0 403'));
     return {sunBeforeTerrain:Boolean(sun && terrain && (sun.compareDocumentPosition(terrain) & Node.DOCUMENT_POSITION_FOLLOWING)),pulse:getComputedStyle(svg.querySelector('.celestial-pulse')).animationName};

@@ -70,3 +70,5 @@
 }
 
 .app-shell.manual-open .scene .interactive-object[data-sound='duck'] { --object-x: 62%; }
+
+.app-shell.manual-open .scene .interactive-object[data-sound='windmill'] { max-height:60% !important; }

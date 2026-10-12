@@ -155,7 +155,7 @@ test('audio resumes after suspension, mixer settings persist and reduced motion 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await tap(page.getByRole('button', { name: 'Cow', exact: true }), testInfo);
   await expect(page.locator('.cow .reacting')).toHaveCount(0);
-  const scenery = page.locator('.landscape-art');
+  const scenery = page.locator('.landscape-art:not([data-visual-layer])');
   await expect(scenery).toBeVisible();
   expect(await scenery.locator('path').count()).toBeGreaterThan(10);
   expect(errors).toEqual([]);
