@@ -9,6 +9,10 @@ import { STRING_INSTRUMENTS } from '../utils/guitar';
 import {equippedProfile} from '../utils/difficulty';
 import {beatOffset} from '../utils/practice';
 import {releaseManualVoice} from './voiceCleanup';
+import { AudioResources } from './resources';
+import { parseMidi, prepareSampleCandidates, selectNearestSample } from './sampleSelection';
+import { disconnectManualVoice, finishManualVoice } from './manualVoice';
+import { capturePracticeSnapshot, restorePracticeSnapshot, findPhraseIndex } from './session';
 
 const MIN_GAIN = -60;
 const FADE_SECONDS = 0.045;
@@ -54,47 +58,67 @@ export class AudioEngine {
     this.practiceRun=null;
     this.practiceRunVersion=0;
     this.onPracticeInterrupt=null;
+    this.audioGeneration = 0;
+    this.initPromise = null;
+    this.initializationAttempt = null;
+    this.resources = null;
   }
 
   async init() {
     if (this.ready) return;
     if (this.initPromise) return this.initPromise;
-    this.initPromise = this.initialize();
+    const attempt = { generation: ++this.audioGeneration, resources: new AudioResources(), nodes: {} };
+    this.initializationAttempt = attempt;
+    const promise = Promise.race([
+      this.initialize(),
+      attempt.resources.cancelled.then(() => { throw new Error('Audio initialization cancelled'); }),
+    ]);
+    this.initPromise = promise;
     try {
-      await this.initPromise;
+      await promise;
     } catch (error) {
-      this.dispose();
+      attempt.resources.dispose();
+      if (this.initializationAttempt === attempt) this.dispose();
       throw error;
     } finally {
-      this.initPromise = null;
+      if (this.initPromise === promise) this.initPromise = null;
+      if (this.initializationAttempt === attempt) this.initializationAttempt = null;
     }
   }
 
   async initialize() {
+    const attempt = this.initializationAttempt;
+    const resources = attempt.resources;
     await Tone.start();
+    resources.check();
     Tone.Transport.bpm.value = this.tempo;
     Tone.Transport.swing = 0;
     Tone.Transport.swingSubdivision = '8n';
-    this.limiter = new Tone.Limiter(-1).toDestination();
-    this.master = new Tone.Gain(0.8).connect(this.limiter);
-    this.metronomeSynth = new Tone.Synth({oscillator:{type:'sine'},envelope:{attack:.001,decay:.035,sustain:0,release:.015},volume:-20}).connect(this.master);
+    attempt.limiter = resources.own(new Tone.Limiter(-1)).toDestination();
+    attempt.master = resources.own(new Tone.Gain(0.8)).connect(attempt.limiter);
+    attempt.metronomeSynth = resources.own(new Tone.Synth({oscillator:{type:'sine'},envelope:{attack:.001,decay:.035,sustain:0,release:.015},volume:-20})).connect(attempt.master);
+    attempt.reverb = resources.own(new Tone.Reverb({ decay: 1.2, preDelay: 0.018, wet: 0.09 })).connect(attempt.master);
+    const loads = [resources.load(attempt.reverb, () => attempt.reverb.ready)];
+    for (const name of instrumentNames) {
+      const gain = resources.own(new Tone.Volume(MIN_GAIN)).connect(name === 'drums' ? attempt.master : attempt.reverb);
+      attempt.nodes[name] = { gain };
+      loads.push(this.createSampledInstrument(name, attempt));
+    }
+    await Promise.all(loads);
+    resources.check();
+    await this.createSceneSounds(attempt);
+    resources.check();
+    if (this.initializationAttempt !== attempt || this.audioGeneration !== attempt.generation) throw new Error('Audio initialization cancelled');
+    for (const key of ['nodes', 'limiter', 'master', 'metronomeSynth', 'reverb', 'sceneGain', 'sceneBuffers', 'scenePlayers', 'sceneVoices']) this[key] = attempt[key];
+    this.resources = resources;
+    this.ready = true;
     this.metronomeEvent = Tone.Transport.scheduleRepeat(time=>{
-      if(this.tempoHeld||this.backgrounded)return;
+      if(!this.ready||attempt.generation!==this.audioGeneration||this.tempoHeld||this.backgrounded)return;
       const version=this.playbackVersion;
       const beat=this.beatIndex++;
       if(this.metronomeSound)this.metronomeSynth.triggerAttackRelease(beat%4===0?'C6':'G5',.035,time,.5);
-      Tone.Draw.schedule(()=>{if(!this.tempoHeld&&!this.backgrounded&&version===this.playbackVersion)this.onMetronomeBeat?.(beat);},time);
+      Tone.Draw.schedule(()=>{if(this.ready&&!this.tempoHeld&&!this.backgrounded&&version===this.playbackVersion)this.onMetronomeBeat?.(beat);},time);
     },'4n');
-    this.reverb = new Tone.Reverb({ decay: 1.2, preDelay: 0.018, wet: 0.09 }).connect(this.master);
-    const loads = [];
-    for (const name of instrumentNames) {
-      const gain = new Tone.Volume(MIN_GAIN).connect(name === 'drums' ? this.master : this.reverb);
-      this.nodes[name] = { gain };
-      loads.push(this.createSampledInstrument(name));
-    }
-    await Promise.all([this.reverb.ready, ...loads]);
-    await this.createSceneSounds();
-    this.ready = true;
     this.installLifecycle();
     this.ensureTransport();
   }
@@ -153,16 +177,19 @@ export class AudioEngine {
   resumePlayback() {
     if(!this.ready||!this.backgrounded||document.hidden)return Promise.resolve();
     if(this.resumePromise)return this.resumePromise;
-    this.resumePromise=Tone.start().then(()=>{
-      if(!this.ready||document.hidden||Tone.getContext().rawContext.state!=='running')return;
+    const generation=this.audioGeneration;
+    const promise=Tone.start().then(()=>{
+      if(generation!==this.audioGeneration||!this.ready||document.hidden||Tone.getContext().rawContext.state!=='running')return;
       this.backgrounded=false;
       for(const [name,node] of Object.entries(this.nodes))node.gain.volume.rampTo(!this.tempoHeld&&(this.active[name]||this.manualInstrument===name)?this.volumes[name]:MIN_GAIN,.025);
       this.ensureTransport();
-    }).catch(error=>console.warn('Audio resume requires a new user gesture',error)).finally(()=>{this.resumePromise=null;});
-    return this.resumePromise;
+    }).catch(error=>console.warn('Audio resume requires a new user gesture',error)).finally(()=>{if(this.resumePromise===promise)this.resumePromise=null;});
+    this.resumePromise=promise;
+    return promise;
   }
 
-  async createSampledInstrument(name) {
+  async createSampledInstrument(name, attempt) {
+    const { resources, nodes } = attempt;
     const baseUrl = `${import.meta.env.BASE_URL}audio/instruments/`;
     const urls = name === 'drums' ? {
       C2: `drums/${DRUM_SAMPLES.kick.file}`,
@@ -177,11 +204,12 @@ export class AudioEngine {
       F2: `drums/${DRUM_SAMPLES.floorTom.file}`,
     } : sampleUrls(name);
     const buffers = {};
-    this.nodes[name].buffers = buffers;
+    nodes[name].buffers = buffers;
     await Promise.all(Object.entries(urls).map(async ([note, file]) => {
-      const buffer = new Tone.ToneAudioBuffer();
+      const buffer = resources.own(new Tone.ToneAudioBuffer());
       buffers[note] = buffer;
-      await buffer.load(`${baseUrl}${file}`);
+      await resources.load(buffer, () => buffer.load(`${baseUrl}${file}`));
+      resources.check();
       const correction = Tone.dbToGain(audioLevels[`instruments/${file}`].gainDb);
       const decoded = buffer.get();
       for (let channel = 0; channel < decoded.numberOfChannels; channel++) {
@@ -189,18 +217,19 @@ export class AudioEngine {
         for (let index = 0; index < waveform.length; index++) waveform[index] *= correction;
       }
       if (['melody','flute','panflute'].includes(name)) {
-        const parts = /^([A-G]#?)(\d+)$/.exec(note);
-        const midi = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].indexOf(parts[1]) + (Number(parts[2]) + 1) * 12;
+        const midi = parseMidi(note);
         const channels = Array.from({length:decoded.numberOfChannels},(_,channel)=>decoded.getChannelData(channel));
         const loop = createSustainLoop(channels, decoded.sampleRate, 440 * 2 ** ((midi - 69) / 12));
         const sustain = Tone.getContext().rawContext.createBuffer(decoded.numberOfChannels, loop.waveforms[0].length, decoded.sampleRate);
         loop.waveforms.forEach((waveform,channel)=>sustain.copyToChannel(waveform,channel));
-        this.nodes[name].sustainLoops ??= {};
-        this.nodes[name].sustainLoops[note] = { buffer:sustain, loopStart:loop.loopStart, loopEnd:loop.loopEnd };
+        nodes[name].sustainLoops ??= {};
+        nodes[name].sustainLoops[note] = { buffer:sustain, loopStart:loop.loopStart, loopEnd:loop.loopEnd };
       }
     }));
+    resources.check();
+    nodes[name].sampleCandidates = prepareSampleCandidates(buffers);
     return new Promise((resolve, reject) => {
-      const sampler = new Tone.Sampler({
+      const sampler = resources.own(new Tone.Sampler({
         urls: buffers,
         baseUrl,
         attack: 0.002,
@@ -208,22 +237,24 @@ export class AudioEngine {
         curve: 'exponential',
         onload: resolve,
         onerror: error => reject(new Error(`Could not load ${INSTRUMENTS[name].label} recordings`, { cause: error })),
-      }).connect(this.nodes[name].gain);
-      this.nodes[name].synth = sampler;
+      })).connect(nodes[name].gain);
+      nodes[name].synth = sampler;
     });
   }
 
-  async createSceneSounds() {
-    this.sceneGain = new Tone.Volume(this.sceneVolume).connect(this.master);
-    this.sceneBuffers = {};
-    this.scenePlayers = {};
-    this.sceneVoices = {};
+  async createSceneSounds(attempt) {
+    const { resources } = attempt;
+    attempt.sceneGain = resources.own(new Tone.Volume(this.sceneVolume)).connect(attempt.master);
+    attempt.sceneBuffers = {};
+    attempt.scenePlayers = {};
+    attempt.sceneVoices = {};
     await Promise.all(SCENE_SOUNDS.map(async type => {
-      const buffer = new Tone.ToneAudioBuffer();
-      this.sceneBuffers[type] = buffer;
-      await buffer.load(`${import.meta.env.BASE_URL}audio/scenery/${type}.wav`);
-      this.scenePlayers[type] = Array.from({ length: 3 }, () => new Tone.Player({ url: buffer, fadeOut: 0.025, volume: audioLevels[`scenery/${type}.wav`].gainDb }).connect(this.sceneGain));
-      this.sceneVoices[type] = 0;
+      const buffer = resources.own(new Tone.ToneAudioBuffer());
+      attempt.sceneBuffers[type] = buffer;
+      await resources.load(buffer, () => buffer.load(`${import.meta.env.BASE_URL}audio/scenery/${type}.wav`));
+      resources.check();
+      attempt.scenePlayers[type] = Array.from({ length: 3 }, () => resources.own(new Tone.Player({ url: buffer, fadeOut: 0.025, volume: audioLevels[`scenery/${type}.wav`].gainDb })).connect(attempt.sceneGain));
+      attempt.sceneVoices[type] = 0;
     }));
   }
 
@@ -318,15 +349,10 @@ export class AudioEngine {
       this.playEvent(name, { note, velocity }, Tone.immediate() + 0.015);
       return;
     }
-    const match = /^([A-G]#?)(\d+)$/.exec(note);
-    if (!match) return;
-    const pitch = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].indexOf(match[1]) + (Number(match[2]) + 1) * 12;
-    const candidates = Object.keys(this.nodes[name].buffers).map(value => {
-      const parts = /^([A-G]#?)(\d+)$/.exec(value);
-      return { note: value, midi: ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].indexOf(parts[1]) + (Number(parts[2]) + 1) * 12 };
-    });
-    candidates.sort((first, second) => Math.abs(first.midi - pitch) - Math.abs(second.midi - pitch));
-    const selected = candidates[0];
+    const pitch = parseMidi(note);
+    if (pitch === null) return;
+    const selected = selectNearestSample(this.nodes[name].sampleCandidates, pitch);
+    if (!selected) return;
     const context = Tone.getContext().rawContext;
     const source = context.createBufferSource();
     const envelope = context.createGain();
@@ -345,11 +371,7 @@ export class AudioEngine {
     envelope.gain.linearRampToValueAtTime(velocity, when + (['flute','panflute'].includes(name) ? 0.035 : 0.006));
     const voice = { source, envelope, note, name, rate:source.playbackRate.value };
     this.manualVoices.set(token, voice);
-    source.onended = () => {
-      source.disconnect(); envelope.disconnect();
-      this.retiringVoices.delete(voice);
-      if (this.manualVoices.get(token) === voice) this.manualVoices.delete(token);
-    };
+    source.onended = () => finishManualVoice(voice, token, this.manualVoices, this.retiringVoices);
     source.start(when,legato && loop ? loop.loopStart : 0);
   }
 
@@ -401,7 +423,8 @@ export class AudioEngine {
     if(this.tempoHeld||this.backgrounded||document.hidden)return;
     if(this.practiceSession)return;
     if (this.transportEvent === null) {
-      this.transportEvent = Tone.Transport.scheduleRepeat(time => this.scheduleBar(time), BAR);
+      const generation = this.audioGeneration;
+      this.transportEvent = Tone.Transport.scheduleRepeat(time => { if(this.ready&&generation===this.audioGeneration)this.scheduleBar(time); }, BAR);
     }
     if (Tone.Transport.state !== 'started') Tone.Transport.start('+0.04');
   }
@@ -461,7 +484,7 @@ export class AudioEngine {
 
   beginPractice(name) {
     if(this.practiceSession)return;
-    this.practiceSession={active:{...this.active},manual:this.manualInstrument,root:this.root,metronomeSound:this.metronomeSound,tempo:this.tempo,equippedPhrase:this.equippedPhrase,phraseIdentity:this.phraseIdentity,phrasePinned:this.phrasePinned};
+    this.practiceSession=capturePracticeSnapshot(this);
     this.stopPracticeRun();this.clearPendingEvents();this.stopManualVoices();
     window.dispatchEvent(new Event('farmjam-input-reset'));
     for(const node of Object.values(this.nodes)){node.synth.releaseAll();node.gain.volume.value=MIN_GAIN;}
@@ -554,11 +577,12 @@ export class AudioEngine {
 
   endPractice() {
     const saved=this.practiceSession;if(!saved)return;
+    const restored=restorePracticeSnapshot(saved);
     this.stopPracticeRun();this.onPracticeInput=null;this.onPracticeInterrupt=null;
     window.dispatchEvent(new Event('farmjam-input-reset'));
-    this.practiceSession=null;this.active=saved.active;this.root=saved.root;this.metronomeSound=saved.metronomeSound;this.setTempo(saved.tempo);
-    this.setManualInstrument(saved.manual);this.barIndex=0;this.beatIndex=0;
-    this.equippedPhrase=saved.equippedPhrase;this.phraseIdentity=saved.phraseIdentity;this.phrasePinned=saved.phrasePinned;
+    this.practiceSession=null;this.active=restored.active;this.root=restored.root;this.metronomeSound=restored.metronomeSound;this.setTempo(restored.tempo);
+    this.setManualInstrument(restored.manualInstrument);this.barIndex=0;this.beatIndex=0;
+    this.equippedPhrase=restored.equippedPhrase;this.phraseIdentity=restored.phraseIdentity;this.phrasePinned=restored.phrasePinned;
     for(const [name,node] of Object.entries(this.nodes))node.gain.volume.value=!this.backgrounded&&!this.tempoHeld&&(this.active[name]||name===this.manualInstrument)?this.volumes[name]:MIN_GAIN;
     this.ensureTransport();
   }
@@ -569,7 +593,8 @@ export class AudioEngine {
     const identity=`${name}:${this.root}:${this.performanceSettings[name]?.complexity??1}`;
     const pool=equippedProfile(name,this.root,this.performanceSettings[name]).phrases;
     if(this.phraseIdentity!==identity){this.equippedPhrase=null;this.phraseIdentity=identity;this.phrasePinned=false;}
-    this.equippedPhrase=this.phrasePinned?pool.find(phrase=>JSON.stringify(phrase.events)===JSON.stringify(this.equippedPhrase?.events))??nearestBar(pool,energy,complexity):nearestBar(pool,energy,complexity);
+    const pinnedIndex=this.phrasePinned?findPhraseIndex(pool,this.equippedPhrase):-1;
+    this.equippedPhrase=pinnedIndex>=0?pool[pinnedIndex]:nearestBar(pool,energy,complexity);
     return this.equippedPhrase;
   }
 
@@ -578,7 +603,7 @@ export class AudioEngine {
     if(!name||!this.ready)return false;
     const pool=equippedProfile(name,this.root,this.performanceSettings[name]).phrases;
     const current=this.selectPhrase(name,Math.max(0,this.barIndex-1));
-    const index=pool.findIndex(phrase=>JSON.stringify(phrase.events)===JSON.stringify(current.events));
+    const index=findPhraseIndex(pool,current);
     this.equippedPhrase=pool[(index+1)%pool.length];
     this.phrasePinned=true;
     this.clearPendingEvents(name);
@@ -691,6 +716,14 @@ export class AudioEngine {
   }
 
   dispose() {
+    this.audioGeneration++;
+    this.ready = false;
+    this.initPromise = null;
+    const attempt = this.initializationAttempt;
+    this.initializationAttempt = null;
+    attempt?.resources.dispose();
+    this.resumePromise = null;
+    this.backgrounded = false;
     this.playingNotes.clear();
     this.stopPracticeRun();this.practiceSession=null;this.onPracticeInput=null;this.onPracticeInterrupt=null;
     this.lifecycleCleanup?.();
@@ -701,32 +734,16 @@ export class AudioEngine {
     this.manualAutoplayVersion++;
     this.onManualAutoplayEvent = null;
     this.stopManualVoices();
+    for(const voice of this.retiringVoices)disconnectManualVoice(voice);
     this.clearPendingEvents();
     if (this.transportEvent !== null) Tone.Transport.clear(this.transportEvent);
     this.transportEvent = null;
     if(this.metronomeEvent!==null)Tone.Transport.clear(this.metronomeEvent);
     this.metronomeEvent=null;
     Tone.Transport.stop();
-    Tone.Transport.cancel();
-
-    const disposed = new WeakSet();
-    const disposeNode = node => {
-      if (!node || typeof node !== 'object' || disposed.has(node)) return;
-      disposed.add(node);
-      if (typeof node.dispose === 'function') {
-        node.dispose();
-        return;
-      }
-      Object.values(node).forEach(disposeNode);
-    };
-    disposeNode(this.nodes);
-    disposeNode(this.metronomeSynth);
-    disposeNode(this.scenePlayers);
-    disposeNode(this.sceneBuffers);
-    disposeNode(this.sceneGain);
-    disposeNode(this.reverb);
-    disposeNode(this.master);
-    disposeNode(this.limiter);
-    this.ready = false;
+    this.resources?.dispose();
+    this.resources = null;
+    this.nodes = {};
+    for(const key of ['metronomeSynth','scenePlayers','sceneBuffers','sceneVoices','sceneGain','reverb','master','limiter'])this[key]=null;
   }
 }
