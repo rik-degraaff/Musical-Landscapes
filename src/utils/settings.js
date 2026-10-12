@@ -1,8 +1,15 @@
 import {INSTRUMENTS,DEFAULT_INSTRUMENTS} from './music.js';
 
 export const SETTINGS_KEY='farmjam-settings-v1';
+export function defaultSoundMix() {
+  return {volumes:Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,instrument])=>[name,instrument.volume])),sceneVolume:-4};
+}
+export function resetSoundMix(instruments) {
+  const defaults=defaultSoundMix();
+  return {instruments:Object.fromEntries(Object.entries(instruments).map(([name,instrument])=>[name,{...instrument,volume:defaults.volumes[name]??instrument.volume}])),...defaults};
+}
 export function defaultSettings() {
-  return {selected:[...DEFAULT_INSTRUMENTS],instruments:Object.fromEntries(Object.keys(INSTRUMENTS).map(name=>[name,{complexity:1.5,noteLabels:false,playbackNotes:false,fingeringCharts:false,fretDots:false,seventhChords:true}]))};
+  return {selected:[...DEFAULT_INSTRUMENTS],instruments:Object.fromEntries(Object.keys(INSTRUMENTS).map(name=>[name,{complexity:1.5,noteLabels:false,playbackNotes:false,fingeringCharts:false,fretDots:false,seventhChords:true,harmonyHints:'notes'}]))};
 }
 export function normalizeSettings(value) {
   const result=defaultSettings();
@@ -12,6 +19,7 @@ export function normalizeSettings(value) {
     if(!saved)continue;
     for(const key of ['noteLabels','playbackNotes','fingeringCharts','fretDots','seventhChords'])if(typeof saved[key]==='boolean')options[key]=saved[key];
     if(Number.isFinite(saved.complexity))options.complexity=saved.complexity<=.5?.35:saved.complexity<=1?1:1.5;
+    if(['off','notes','name'].includes(saved.harmonyHints))options.harmonyHints=saved.harmonyHints;
   }
   return result;
 }

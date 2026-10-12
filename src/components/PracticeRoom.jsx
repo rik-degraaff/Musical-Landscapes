@@ -1,7 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {Music,Headphones,Footprints,Timer,Users,Play,Pause,RotateCcw,Check,CircleAlert,DoorOpen,ArrowRight} from 'lucide-react';
 import {INSTRUMENTS} from '../utils/music';
-import {equippedProfile} from '../utils/difficulty';
+import {practiceProfile} from '../utils/practiceComposition';
 import {noteMidi} from '../utils/autoplay';
 import {PRACTICE_STAGES,PRACTICE_TIMING_TOLERANCE,learningSteps,createTimingAttempt,scoreTimedInput,expireSteps,attemptSummary} from '../utils/practice';
 import {InstrumentSurface} from './PerformancePanel';
@@ -43,7 +43,7 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
   const cueTimer=useRef(null);
   const room=useRef(null);
   const options={...settings.instruments[name],noteLabels:true,playbackNotes:true,fingeringCharts:true};
-  const profile=equippedProfile(name,root,options);
+  const profile=practiceProfile(name,root,options);
   const phrase=profile.phrases[Math.min(phraseIndex,profile.phrases.length-1)];
   const steps=learningSteps(phrase);
   state.current={name,stage,step,steps,phrase,running,complete};
@@ -210,7 +210,7 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
         <div className="practice-neighbors" aria-label="Other landscape instruments">{settings.selected.filter(instrument=>instrument!==name).map(instrument=><button key={instrument} className={companions[instrument]!==undefined?'is-accompanying':''} aria-label={`Switch to ${INSTRUMENTS[instrument].label}`} title={companions[instrument]!==undefined?`${INSTRUMENTS[instrument].label}, phrase ${companions[instrument]+1}`:`Practice ${INSTRUMENTS[instrument].label}`} onClick={()=>{cancel();setPhraseIndex(0);setName(instrument);}}><InstrumentArt type={instrument}/></button>)}</div>
       </div>
       <label className="practice-select"><span className="practice-instrument-tools" aria-hidden="true"><InstrumentArt type={name}/></span><select aria-label="Practice instrument" value={name} onChange={event=>{cancel();setPhraseIndex(0);setName(event.target.value);}}>{Object.entries(INSTRUMENTS).map(([id,instrument])=><option key={id} value={id}>{instrument.label}</option>)}</select></label>
-      <label className="practice-select"><select aria-label="Practice phrase" value={Math.min(phraseIndex,profile.phrases.length-1)} onChange={event=>{cancel();setPhraseIndex(Number(event.target.value));}}>{profile.phrases.map((value,index)=><option key={index} value={index}>Phrase {index+1} · {value.events.length} actions</option>)}</select></label>
+      <label className="practice-select"><select aria-label="Practice phrase" value={Math.min(phraseIndex,profile.phrases.length-1)} onChange={event=>{cancel();setPhraseIndex(Number(event.target.value));}}>{profile.phrases.map((value,index)=><option key={index} value={index}>{value.role?`${value.name[0].toUpperCase()}${value.name.slice(1)} · ${value.role} · ${value.chord}`:`Phrase ${index+1}`} · {value.events.length} actions</option>)}</select></label>
       <Metronome audio={audio} open={metronomeOpen} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>
       <button className="practice-exit" aria-label="Leave practice through the open door" title="Leave practice" onClick={onClose}><DoorOpen size={26}/><span>Leave</span></button>
     </header>

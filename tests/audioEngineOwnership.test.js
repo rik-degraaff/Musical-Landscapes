@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as music from '../src/utils/music.js';
-import { createNoisePair } from '../src/utils/noise.js';
+import * as composition from '../src/utils/composition.js';
 import { SCENE_SOUNDS } from '../src/audio/sceneSounds.js';
 import * as samples from '../src/audio/sampleLibrary.js';
 import * as envelopes from '../src/audio/envelopes.js';
@@ -32,7 +32,7 @@ function setup() {
   globalThis.document = Object.assign(new EventTarget(), { hidden: false });
   globalThis.window = new EventTarget();
   const runtime = { nodes: [], starts: 0, startGate: null, onLoad: null, loads: 0, cancellations: 0, schedules: new Map(), cleared: [], ticks: 0, draws: [] };
-  const parameter = () => ({ value: 0, rampTo() {}, setValueAtTime() {}, linearRampToValueAtTime() {}, setTargetAtTime() {}, cancelAndHoldAtTime() {} });
+  const parameter = () => ({ value: 0, rampTo(value) { this.value=value; }, setValueAtTime() {}, linearRampToValueAtTime() {}, setTargetAtTime() {}, cancelAndHoldAtTime() {} });
   const context = Object.assign(new EventTarget(), {
     state: 'running', currentTime: 1,
     createBuffer(channels, length, sampleRate) {
@@ -82,18 +82,19 @@ function setup() {
       scheduleRepeat: schedule, scheduleOnce: schedule,
       clear(id) { runtime.cleared.push(id); runtime.schedules.delete(id); },
       cancel() { runtime.cancellations++; runtime.schedules.clear(); },
-      start() { this.state = 'started'; }, stop() { this.state = 'stopped'; },
+      start() { this.state = 'started'; }, stop() { this.state = 'stopped'; }, pause() { this.state = 'paused'; },
     },
   };
-  const dependencies = { Tone, ...music, createNoisePair, SCENE_SOUNDS, audioLevels, ...samples, ...envelopes, STRING_INSTRUMENTS, equippedProfile, beatOffset, releaseManualVoice, AudioResources, ...selection, ...voices, ...session, attachOwnedSamplerVoices };
+  const dependencies = { Tone, ...music, ...composition, SCENE_SOUNDS, audioLevels, ...samples, ...envelopes, STRING_INSTRUMENTS, equippedProfile, beatOffset, releaseManualVoice, AudioResources, ...selection, ...voices, ...session, attachOwnedSamplerVoices };
   const AudioEngine = new Function(...Object.keys(dependencies), `${source}\nreturn AudioEngine;`)(...Object.values(dependencies));
-  return { engine: new AudioEngine(), runtime, Tone };
+  const engine = new AudioEngine();
+  engine.composition = new composition.Composition({random:()=>.9});
+  return { engine, runtime, Tone };
 }
 
 test('scene changes finish captured old-key events and next bar uses the latest key on the same transport', async () => {
   const { engine, runtime, Tone } = setup();
   await engine.init();engine.setSceneKey('A');engine.active.piano=true;engine.active.drums=true;
-  engine.noise.piano.energyAt=()=>.9;engine.noise.piano.complexityAt=()=>.9;
   const played=[];
   engine.playEvent=(name,event,time,root)=>played.push({name,event,time,root});
   engine.scheduleBar(1);
@@ -171,16 +172,21 @@ test('pickups during a key transition stay in the current bar key', async () => 
   await engine.init();engine.setSceneKey('A');engine.active.piano=true;
   const played=[];engine.playEvent=(name,event,time,root)=>played.push({name,event,root});
   engine.scheduleBar(1);runtime.ticks=192;engine.setSceneKey('E');
+  const plan=engine.scheduledBars.get(0).plan;
+  const state=structuredClone(engine.composition.state);
+  engine.composition.planBar=()=>{throw new Error('Pickup must not replan the audible bar');};
+  engine.active.ukulele=true;
   engine.playPickup('ukulele');
   const actual=played.at(-1);
   assert.equal(actual.root,'A');
-  assert.ok(STRING_INSTRUMENTS.ukulele.library.A.phrases.some(phrase=>phrase.events.some(event=>JSON.stringify(event)===JSON.stringify(actual.event))));
+  assert.equal(actual.event.chord,plan.currentChord.name);
+  assert.deepEqual(engine.composition.state,state);
+  assert.equal(engine.scheduledBars.get(0).plan,plan);
 });
 
 test('even a first-quarter-beat key change leaves the current bar uninterrupted', async () => {
   const { engine, runtime, Tone } = setup();
   await engine.init();engine.setSceneKey('A');engine.active.piano=true;
-  engine.noise.piano.energyAt=()=>.9;engine.noise.piano.complexityAt=()=>.9;
   const played=[];engine.playEvent=(name,event,time,root)=>played.push({name,event,root});
   engine.scheduleBar(1);engine.beatIndex=9;
   const previous=[...engine.pendingEvents.keys()];assert.ok(previous.length>0);
@@ -204,6 +210,57 @@ test('quarter-beat boundary defers replacement and inactive or suspended scene c
   engine.suspendPlayback();engine.setSceneKey('G');
   assert.equal(engine.barRoot,'G');assert.equal(engine.pendingEvents.size,0);
   const barIndex=engine.barIndex;engine.scheduleBar(2);assert.equal(engine.barIndex,barIndex);
+});
+
+test('harmony publishes the scheduled plan only at its audible draw and ignores invalidated draws', async () => {
+  const {engine,runtime}=setup();
+  await engine.init();engine.setSceneKey('A');engine.active.piano=true;
+  engine.playEvent=()=>{};
+  const publications=[];
+  engine.onHarmonyChange=plan=>publications.push({plan,root:engine.playbackRoot});
+  engine.scheduleBar(1);
+  const first=engine.scheduledBars.get(0);
+  assert.equal(publications.length,0);
+  assert.ok(runtime.draws[0].time>=first.time);
+  runtime.draws[0].callback();
+  assert.equal(publications.length,1);
+  assert.equal(publications[0].plan,first.plan);
+  assert.equal(publications[0].root,first.plan.root);
+  runtime.ticks=192;engine.setSceneKey('E');engine.scheduleBar(3);
+  const next=engine.scheduledBars.get(1);
+  assert.equal(publications.length,2);assert.equal(publications.at(-1).plan,null);assert.equal(engine.playbackRoot,'A');
+  runtime.draws.at(-1).callback();
+  assert.equal(publications.at(-1).plan,next.plan);
+  assert.equal(publications.at(-1).root,'E');
+  engine.scheduleBar(5);
+  const stale=runtime.draws.at(-1);
+  engine.suspendPlayback();
+  assert.equal(publications.at(-1).plan,null);
+  stale.callback();assert.equal(publications.length,4);
+});
+
+for(const boundary of ['background','practice','dispose'])test(`${boundary} restart resets composer history before planning bar zero`,async()=>{
+  const {engine,runtime}=setup();
+  await engine.init();engine.setSceneKey('A');engine.active.piano=true;
+  engine.playEvent=()=>{};
+  for(let bar=0;bar<10;bar++)engine.scheduleBar(1+bar*2);
+  assert.ok(engine.composition.plans.size>0);
+  const stale=runtime.draws.slice();
+  if(boundary==='background'){engine.suspendPlayback();await engine.resumePlayback();}
+  if(boundary==='practice'){engine.beginPractice('piano');engine.endPractice();}
+  if(boundary==='dispose'){engine.dispose();await engine.init();engine.setSceneKey('A');engine.active.piano=true;}
+  assert.equal(engine.barIndex,0);
+  assert.equal(engine.composition.plans.size,0);
+  assert.equal(engine.composition.nextBar,0);
+  const publications=[];engine.onHarmonyChange=plan=>publications.push(plan);
+  for(const draw of stale)draw.callback();
+  assert.equal(publications.length,0);
+  engine.scheduleBar(30);
+  const plan=engine.scheduledBars.get(0).plan;
+  const expected=new composition.Composition({random:()=>.9}).planBar(0,'A',engine.compositionOptions());
+  assert.deepEqual(plan,expected);
+  runtime.draws.at(-1).callback();
+  assert.equal(publications.at(-1),plan);
 });
 
 test('init unlocks synchronously, coalesces calls, and supports no-argument wrappers', async () => {
@@ -359,4 +416,230 @@ test('dispose clears only owned schedules and voices, preserving retirement unti
   assert.equal(engine.manualVoices.get('key'), replacement);
   assert.equal(engine.retiringVoices.has(oldVoice), false);
   assert.equal(oldVoice.source.disconnections, 1);
+});
+
+test('adding a pickup preserves the published bar and its promised next chord', async () => {
+  const {engine,runtime}=setup();
+  await engine.init();engine.active.piano=true;
+  const played=[];engine.playEvent=(name,event)=>played.push({name,event});
+  engine.scheduleBar(1);runtime.draws.at(-1).callback();runtime.ticks=192;
+  const published=engine.harmonyPlan;
+  const state=structuredClone(engine.composition.state);
+  const cursor=engine.composition.cursor;
+  engine.setInstrumentActive('ukulele',true);
+  assert.equal(engine.harmonyPlan,published);
+  assert.equal(engine.scheduledBars.get(0).plan,published);
+  assert.deepEqual(engine.composition.state,state);
+  assert.equal(engine.composition.cursor,cursor);
+  assert.equal(played.at(-1).event.chord,published.currentChord.name);
+  engine.scheduleBar(3);
+  const next=engine.scheduledBars.get(1).plan;
+  assert.deepEqual(next.currentChord,published.nextChord);
+  assert.equal(next.progression,published.progression);
+});
+
+test('a pin clears when chord membership changes the globally assigned role', async () => {
+  const {engine,runtime}=setup();
+  await engine.init();engine.playEvent=()=>{};engine.setManualInstrument('ukulele');
+  engine.active.piano=true;engine.active.guitar=true;engine.active.ukulele=true;
+  engine.scheduleBar(1);runtime.ticks=192;
+  assert.equal(engine.skipEquippedPhrase(),true);
+  assert.equal(engine.equippedPhrase.role,'melody');assert.equal(engine.phrasePinned,true);
+  engine.setInstrumentActive('piano',false);
+  assert.equal(engine.phrasePinned,false);
+  assert.deepEqual(engine.compositionOptions().phraseOverrides,{});
+  assert.doesNotThrow(()=>engine.scheduleBar(3));
+  assert.equal(engine.scheduledBars.get(1).plan.roles.ukulele,'accompaniment');
+});
+
+test('next phrase activates stopped autoplay in its active role without pickup overwriting the pin', async () => {
+  const {engine,runtime}=setup();
+  await engine.init();engine.playEvent=()=>{};engine.setManualInstrument('piano');
+  engine.scheduleBar(1);runtime.ticks=192;
+  const audible=engine.scheduledBars.get(0).plan;
+  assert.equal(audible.roles.piano,'melody');
+  const state=structuredClone(engine.composition.state);
+  const pool=composition.compositionProfile('piano',audible.root,{role:'accompaniment',degree:audible.currentChord.degree});
+  assert.ok(pool.length>=2);
+  assert.equal(engine.skipEquippedPhrase(),true);
+  assert.equal(engine.active.piano,true);assert.equal(engine.phrasePinned,true);
+  assert.equal(engine.equippedPhrase.role,'accompaniment');assert.equal(engine.equippedPhrase.name,pool[1].name);
+  assert.deepEqual(engine.composition.state,state);
+  engine.scheduleBar(3);
+  assert.equal(engine.scheduledBars.get(1).plan.phrases.piano.name,pool[1].name);
+});
+
+for(const change of ['skip','difficulty','equipment'])test(`${change} replaces obsolete lookahead attacks and cues without replacing the audible bar`,async()=>{
+  const {engine,runtime}=setup();
+  await engine.init();engine.setManualInstrument('piano');engine.active.piano=true;engine.active.drums=true;
+  engine.nodes.piano.synth.triggerAttackRelease=()=>{};
+  engine.nodes.drums.synth.triggerAttackRelease=()=>{};
+  const cancellations=[];
+  for(const node of Object.values(engine.nodes))node.samplerVoices.cancelFrom=time=>cancellations.push(time);
+  const cues=[];engine.onManualAutoplayEvent=event=>{if(event)cues.push(event);};
+  engine.scheduleBar(1);runtime.ticks=192;
+  const current=engine.scheduledBars.get(0);
+  const pendingCurrent=[...engine.pendingEventBars].filter(([,bar])=>bar===0).map(([id])=>({id,name:engine.pendingEvents.get(id)}));
+  engine.scheduleBar(3);
+  const obsolete=engine.scheduledBars.get(1);
+  const obsoleteDraws=runtime.draws.filter(draw=>draw.time>=3);
+  const obsoletePending=[...engine.pendingEventBars].filter(([,bar])=>bar===1).map(([id])=>id);
+  if(change==='skip')engine.skipEquippedPhrase();
+  if(change==='difficulty')engine.updatePerformanceSettings({piano:{complexity:.5}});
+  if(change==='equipment')engine.setManualInstrument('ukulele');
+  assert.equal(engine.scheduledBars.get(0),current);
+  for(const {id,name} of pendingCurrent){
+    if(change==='difficulty'&&name==='piano')assert.ok(runtime.cleared.includes(id)&&!engine.pendingEvents.has(id));
+    else assert.ok(engine.pendingEvents.has(id)&&!runtime.cleared.includes(id));
+  }
+  assert.notEqual(engine.scheduledBars.get(1),obsolete);
+  if(change!=='difficulty')assert.deepEqual(engine.scheduledBars.get(1).plan.currentChord,current.plan.nextChord);
+  else assert.ok([0,3,4].includes(engine.scheduledBars.get(1).plan.currentChord.degree));
+  assert.ok(cancellations.length>0&&cancellations.every(time=>time===obsolete.time));
+  assert.ok(obsoletePending.every(id=>runtime.cleared.includes(id)&&!engine.pendingEvents.has(id)));
+  for(const draw of obsoleteDraws)draw.callback();
+  assert.equal(cues.length,0);assert.notEqual(engine.harmonyPlan,obsolete.plan);
+});
+
+test('practice partners stay on exercise harmony and the saved motif pin survives restoration', async () => {
+  const {engine,runtime}=setup();
+  await engine.init();engine.setManualInstrument('piano');engine.playEvent=()=>{};
+  engine.skipEquippedPhrase();
+  const saved=engine.equippedPhrase;
+  engine.beginPractice('piano');
+  const exercise=composition.compositionProfile('piano','C',{role:'accompaniment',degree:4})[0];
+  const played=[];engine.playEvent=(name,event)=>played.push({name,event});
+  engine.metronomeSynth.triggerAttackRelease=()=>{};
+  engine.startPracticeRun(exercise,true);
+  const callbacks=engine.practiceRun.ids.map(id=>runtime.schedules.get(id));
+  for(let cycle=0;cycle<4;cycle++)for(const callback of callbacks)callback(3+cycle*3);
+  const partner=played.filter(value=>value.name==='ukulele');
+  assert.ok(partner.length>0);assert.ok(partner.every(value=>value.event.chord===exercise.chord));
+  engine.endPractice();
+  assert.equal(engine.phrasePinned,true);assert.equal(engine.equippedPhrase,saved);
+  engine.scheduleBar(20);
+  assert.equal(engine.scheduledBars.get(0).plan.phrases.piano.name,saved.name);
+});
+
+test('selection and pickups rebuild stale rendered pitches from the current profile and key', async () => {
+  const {engine}=setup();
+  await engine.init();engine.playEvent=()=>{};
+  engine.active.flute=true;engine.scheduleBar(1);
+  const plan=engine.scheduledBars.get(0).plan;
+  const advanced=plan.phrases.flute;
+  engine.performanceSettings={flute:{complexity:.5}};
+  engine.setManualInstrument('flute');
+  const pool=composition.compositionProfile('flute',plan.root,{complexity:.5,role:'melody',degree:plan.currentChord.degree});
+  const expected=pool.find(phrase=>phrase.name===advanced.name)??pool[0];
+  assert.notDeepEqual(advanced.events,expected.events);
+  assert.deepEqual(engine.selectPhrase('flute',0).events,expected.events);
+  const played=[];engine.playEvent=(name,event,time,root)=>played.push({name,event,root});
+  engine.playPickup('flute');
+  assert.deepEqual(played.at(-1).event,expected.events[0]);
+  engine.equippedPhrase={...expected,events:advanced.events};engine.phrasePinned=true;
+  engine.playPickup('flute');
+  assert.deepEqual(played.at(-1).event,expected.events[0]);
+  assert.deepEqual(engine.selectPhrase('flute',0).events,expected.events);
+  engine.scheduledBars.clear();engine.harmonyPlan=null;engine.root='E';
+  const transposed=composition.compositionProfile('flute','E',{complexity:.5,role:'melody',degree:0}).find(phrase=>phrase.name===expected.name);
+  assert.deepEqual(engine.selectPhrase('flute',4).events,transposed.events);
+});
+
+for(const name of ['guitar','ukulele'])test(`${name} stale pins rebuild canonical current-key string voicings`, async () => {
+  const {engine}=setup();
+  await engine.init();engine.setManualInstrument(name);engine.active[name]=true;
+  engine.performanceSettings={[name]:{complexity:.5}};
+  const previous=composition.compositionProfile(name,'C',{complexity:1.5,role:'accompaniment',degree:0})[0];
+  engine.equippedPhrase=previous;engine.phrasePinned=true;engine.root='Fm';
+  const pool=composition.compositionProfile(name,'Fm',{complexity:.5,role:'accompaniment',degree:0});
+  const expected=pool.find(phrase=>phrase.name===previous.name)??pool[0];
+  const played=[];engine.playEvent=(instrument,event)=>played.push(event);
+  engine.playPickup(name);assert.deepEqual(played.at(-1),expected.events[0]);
+  assert.deepEqual(engine.selectPhrase(name,0),expected);
+  assert.notDeepEqual(expected.events,previous.events);
+});
+
+test('first-tap autoplay toggles retain a pin through inactive planning and practice restoration', async () => {
+  const {engine}=setup();
+  await engine.init();engine.playEvent=()=>{};engine.setManualInstrument('piano');
+  engine.skipEquippedPhrase();
+  const pinned=engine.equippedPhrase;
+  const identity=engine.phraseIdentity;
+  engine.setInstrumentActive('piano',false);
+  assert.equal(engine.phrasePinned,true);assert.equal(engine.equippedPhrase,pinned);
+  assert.deepEqual(engine.compositionOptions().phraseOverrides,{});
+  assert.doesNotThrow(()=>engine.scheduleBar(1));
+  assert.equal(engine.equippedPhrase,pinned);
+  engine.setInstrumentActive('piano',true);
+  assert.equal(engine.phrasePinned,true);assert.equal(engine.equippedPhrase,pinned);
+  engine.setInstrumentActive('piano',false);
+  engine.beginPractice('piano');
+  assert.equal(engine.practiceSession.equippedPhrase,pinned);
+  assert.equal(engine.practiceSession.phrasePinned,true);
+  engine.endPractice();
+  assert.equal(engine.phrasePinned,true);assert.equal(engine.equippedPhrase,pinned);
+  assert.equal(engine.phraseIdentity,identity);assert.equal(engine.active.piano,false);
+  assert.doesNotThrow(()=>engine.scheduleBar(3));
+  engine.setInstrumentActive('piano',true);engine.scheduleBar(5);
+  assert.equal(engine.scheduledBars.get(1).plan.phrases.piano.name,pinned.name);
+});
+
+test('positive mixer gain remains raw unequipped and only equipped boost is capped through holds', async () => {
+  const {engine}=setup();
+  await engine.init();engine.playEvent=()=>{};engine.active.piano=true;
+  engine.setVolumes({piano:6});
+  assert.equal(engine.effectiveVolume('piano'),6);assert.equal(engine.nodes.piano.gain.volume.value,6);
+  engine.setManualInstrument('piano');
+  assert.equal(engine.effectiveVolume('piano'),0);assert.equal(engine.nodes.piano.gain.volume.value,0);
+  engine.holdTempo(true);assert.equal(engine.nodes.piano.gain.volume.value,-60);
+  engine.holdTempo(false);assert.equal(engine.nodes.piano.gain.volume.value,0);
+  engine.setManualInstrument(null);assert.equal(engine.nodes.piano.gain.volume.value,6);
+  engine.holdTempo(true);engine.holdTempo(false);
+  assert.equal(engine.nodes.piano.gain.volume.value,6);assert.equal(engine.volumes.piano,6);
+  engine.setVolumes({piano:-60});engine.setManualInstrument('piano');
+  engine.holdTempo(true);engine.holdTempo(false);engine.setManualInstrument(null);
+  assert.equal(engine.effectiveVolume('piano'),-60);assert.equal(engine.nodes.piano.gain.volume.value,-60);
+});
+
+test('requested key clears guidance without discarding the audible pickup plan', async () => {
+  const {engine,runtime}=setup();
+  await engine.init();engine.active.piano=true;engine.playEvent=()=>{};
+  const publications=[];engine.onHarmonyChange=plan=>publications.push(plan);
+  engine.scheduleBar(1);runtime.draws.at(-1).callback();runtime.ticks=192;
+  const audible=engine.harmonyPlan;
+  engine.setSceneKey('E');
+  assert.equal(publications.at(-1),null);assert.equal(engine.harmonyPlan,audible);
+  engine.composition.planBar=()=>{throw new Error('Pickup must use captured harmony');};
+  const played=[];engine.playEvent=(name,event,time,root)=>played.push({event,root});
+  engine.playPickup('ukulele');assert.equal(played.at(-1).root,audible.root);
+});
+
+test('an old-key downbeat draw cannot republish guidance after a new key is requested', async () => {
+  const {engine,runtime}=setup();
+  await engine.init();engine.active.piano=true;engine.playEvent=()=>{};
+  const publications=[];engine.onHarmonyChange=plan=>publications.push(plan);
+  engine.scheduleBar(1);
+  const captured=engine.scheduledBars.get(0).plan;
+  runtime.ticks=24;engine.setSceneKey('E');runtime.draws.at(-1).callback();
+  assert.ok(publications.length>0&&publications.every(plan=>plan===null));
+  assert.equal(engine.harmonyPlan,captured);
+  engine.scheduleBar(3);runtime.draws.at(-1).callback();
+  assert.equal(publications.at(-1).root,'E');
+});
+
+for(const lookahead of [false,true])test(`incompatible future harmony clears guidance with lookahead ${lookahead}`, async () => {
+  const {engine,runtime}=setup();
+  await engine.init();engine.active.piano=true;engine.playEvent=()=>{};
+  engine.scheduleBar(1);runtime.draws.at(-1).callback();runtime.ticks=192;
+  const audible=engine.harmonyPlan;
+  assert.ok(![0,3,4].includes(audible.nextChord.degree));
+  if(lookahead)engine.scheduleBar(3);
+  const publications=[];engine.onHarmonyChange=plan=>publications.push(plan);
+  engine.performanceSettings={piano:{complexity:.5}};engine.setManualInstrument('piano');
+  assert.equal(publications.at(-1),null);assert.equal(engine.harmonyPlan,audible);
+  assert.equal(engine.scheduledBars.get(0).plan,audible);
+  if(!lookahead)engine.scheduleBar(3);
+  runtime.draws.at(-1).callback();
+  assert.equal(publications.at(-1),engine.scheduledBars.get(1).plan);
+  assert.ok([0,3,4].includes(publications.at(-1).currentChord.degree));
 });

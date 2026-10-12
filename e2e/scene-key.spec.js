@@ -28,8 +28,11 @@ for(const phase of ['middle','early','lookahead'])test(`scene key ${phase} trans
     engine.nodes.piano.gain.volume.value=engine.volumes.piano;
     engine.nodes.drums.gain.volume.value=engine.volumes.drums;
     const phrase=patterns.piano.find(value=>value.events.some(event=>beatOffset(event.time)>=2));
-    const select=engine.selectPhrase;
-    engine.selectPhrase=function(name,...args){return name==='piano'?phrase:select.call(this,name,...args);};
+    const planBar=engine.composition.planBar;
+    engine.composition.planBar=function(bar,root,options){
+      const plan=planBar.call(this,bar,root,options);
+      return {...plan,phrases:{...plan.phrases,piano:{...phrase,events:transposeEvents(phrase.events,root)}}};
+    };
     const attacks=[];const bars=[];
     let obsolete=[];
     const attack=engine.nodes.piano.synth.triggerAttackRelease;
@@ -56,7 +59,7 @@ for(const phase of ['middle','early','lookahead'])test(`scene key ${phase} trans
       };
     });
     engine.ensureTransport();await finished;
-    engine.selectPhrase=select;engine.scheduleBar=schedule;
+    engine.composition.planBar=planBar;engine.scheduleBar=schedule;
     engine.nodes.piano.synth.triggerAttackRelease=attack;
     const expected=root=>transposeEvents(phrase.events,root).flatMap(event=>(event.notes??[event.note]).map(note=>({note,offset:beatOffset(event.time)*.5})));
     return {change,bars,attacks,old:expected('A'),next:expected('Fm'),drums:engine.active.drums,transport:Tone.Transport.state,obsolete:obsolete.map(entry=>({disposed:entry.source.disposed,tracked:engine.nodes.piano.samplerVoices.voices.has(entry),stopTime:entry.stopTime}))};

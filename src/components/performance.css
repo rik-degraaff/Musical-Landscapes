@@ -16,6 +16,13 @@
 .performance-panel { position:absolute;bottom:0;left:0;right:0;height:var(--performance-height);z-index:65;background:#eef4ed;border-top:2px solid #b4c8ba;box-shadow:0 -7px 24px #264b4520;display:flex;flex-direction:column; }
 .performance-panel header { height:calc(42px + env(safe-area-inset-bottom,0px));flex:none;display:flex;align-items:center;justify-content:space-between;padding:6px 22px calc(6px + env(safe-area-inset-bottom,0px));border-top:1px solid #cbd9ce; }
 .performance-panel h2 { margin:0;font-size:17px; }
+.harmony-next-name { margin-left:12px;font-size:11px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#46635b; }
+.performance-panel [data-harmony-hint="true"] { outline:2px solid #5a9ca080;outline-offset:-3px; }
+.performance-panel .playable-string[data-harmony-hint="true"] { outline:0; }
+.performance-panel .playable-string[data-harmony-hint="true"] i { box-shadow:0 0 0 2px #5a9ca080; }
+.performance-panel .valve-control[data-harmony-hint="true"] { outline:0; }
+.performance-panel .valve-control[data-harmony-hint="true"] span { outline:2px solid #5a9ca080;outline-offset:-3px; }
+.performance-panel [data-harmony-hint="true"]:focus-visible { outline:3px solid #db765e;outline-offset:2px; }
 .autoplay-notes { font-size:11px;margin-left:auto;margin-right:8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0; }
 .manual-guitar .guitar-stringboard { border-radius:8px; }
 .return-instrument,.next-phrase { width:32px;height:30px;flex:none;display:grid;place-items:center;background:transparent;border:0;color:#46635b;cursor:pointer;border-radius:4px; }

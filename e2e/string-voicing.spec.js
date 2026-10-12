@@ -101,11 +101,12 @@ for(const name of ['guitar','ukulele'])for(const [level,complexity] of [['Simple
     const event=await page.evaluate(()=>{
       window.freezeStringCue=true;
       const event=window.stringCues.at(-1);
+      window.frozenStringCue=event;
       window.showStringCue({...event,duration:60});
       return event;
     });
     await expect.poll(()=>page.evaluate(()=>{
-      const event=window.stringCues.at(-1);
+      const event=window.frozenStringCue;
       const shown=document.querySelector('.neck-chord-name')?.textContent;
       const dots=[...document.querySelectorAll('.phrase-note-dot:not(.manual-note-dot)')];
       return shown===event?.chord&&dots.length===event.fingering.length&&dots.every((dot,index)=>Number(dot.dataset.fret)===event.fingering[index].fret);

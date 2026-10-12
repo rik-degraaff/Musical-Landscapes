@@ -59,6 +59,27 @@ Earlier exploratory runs exposed the fixed hit-target and dispatch-timing issues
 
 The follow-up build contains `assets/index-BKGJUAZs.js` at **760.04 kB / 219.69 kB gzip**, unchanged CSS at **110.10 kB / 23.69 kB gzip**, and **204 precache entries / 17,593.38 KiB**. Vite transformed 2,908 modules and retained the large-chunk warning. Passing only the four needed Tone APIs into the owned-source helper avoids retaining the entire namespace in the bundle. The earlier measured baseline below is preserved as historical evidence, not the current artifact.
 
+## Composition, Hints And Mixer Follow-Up
+
+Status: **focused checks passed; full development release gate not green**. The historical results above do not validate this follow-up. Repeat the following checks against the committed revision before release:
+
+```sh
+node --test tests/composition.test.js tests/audioEngineOwnership.test.js tests/settings.test.js tests/practiceComposition.test.js
+npm run test:e2e -- e2e/composition.spec.js e2e/harmony.spec.js e2e/difficulty.spec.js e2e/practice-composition.spec.js e2e/string-voicing.spec.js e2e/startup.spec.js e2e/audio-ownership.spec.js --project=desktop --project=phone-landscape
+```
+
+- Composition unit coverage includes whole four/eight-bar progression transitions, independent role-specific motif chains, at most two active piano/guitar/ukulele accompaniment parts, melody/percussion roles, deterministic voicing, canonical strings, playable ranges, all scene roots including minor keys, and flat chord labels for D-flat/F minor. Equipped-only tiers leave unequipped parts at Advanced; shared harmony remains compatible with equipped controls.
+- Ownership tests cover audible-downbeat publication, replacement of future plans without replacing the current bar, named motif pins revoiced under harmony, dormant pin preservation, Next phrase activation, scoped difficulty/equipment cancellation, stale-pitch rebuilding, and practice restoration with fixed compatible partner harmony. Practice preserves legacy exercise indices and appends playable composition motifs; browser checks complete new piano accompaniment and ukulele melody exercises through real controls.
+- Composition browser coverage checks live plan/event ownership, accompaniment caps, next-harmony continuity across bars and keys, Simple piano/ukulele playability and motif pinning, plus the transient +3 dB equipped boost capped at 0 dB, preserved -60 dB mute and unchanged base/stored values through equipment switching, tempo holds, background recovery and Restore defaults.
+- Harmony browser coverage checks subtle default highlights, per-instrument persistence, optional Advanced `Next:` text, Simple suppression, actual available controls without pressing them, and removal at audible-key mismatch, practice and menu boundaries. These are control highlights, not directional arrows. Some cases inject plans to isolate UI behavior; the composition suite separately checks live plans.
+- Restore defaults coverage checks immediate live reset of all instrument/scenery gains without writing settings/family storage or changing difficulty/display preferences. Current sound levels are session-only: closing Settings does not save them. Instrument/display preferences save immediately, independently of the sound mix.
+
+Local follow-up results on Windows / Chromium: all 315 final unit tests and all 10 fresh-build production worker checks passed. The focused browser batch passed 52 checks across desktop and compact touch; its four new practice text-containment checks were corrected to measure the allocated guide row rather than a tight font line box, then all four practice cases passed. A confirmation batch passed 54 checks and exposed two Simple-skip observation races: the test now waits for the equipped phrase and captures the real handler's before/after values atomically. All eight repeated skip executions passed, twice per instrument on each viewport. The revised day-cycle and equipped-autoplay performance slice passed 3/3 desktop checks. The production build retains Vite's large-chunk warning. These are affected-suite results, not a clean full-release result.
+
+The earlier complete development release gate reported 328 passed, 5 skipped and 55 failed before obsolete music/gain expectations and test instrumentation were repaired. Scene layout failures remain outside this follow-up. An isolated `git archive` of original HEAD `be192e0eb8287e39e789f6b698b10efe299e7ccc`, served on port 5181, reproduced the phone-regular habitat failures (floating tractor/windmill and a settled celestial overlap) and the compact-touch tractor blocking the native scene-control click. No scene placement overrides were changed here. The broad gate has not been rerun after the final repairs and must not be described as passing.
+
+These checks cover structural and playback contracts, not perceived musical quality, speaker latency or real-device performance. Follow focused checks with the full development and fresh-build production gates; do not infer a CI pass from local focused checks or historical results.
+
 ## Real Safari And iPad Checklist
 
 Status: **not verified on real devices by these automated checks**. Chromium touch emulation is not Safari, hardware multi-touch, actual speakers, or iPad memory pressure. Record tester, date, release SHA, device model, OS/Safari version, browser versus Home Screen mode and result for every item.

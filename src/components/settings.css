@@ -18,6 +18,7 @@
 .settings-volume { display:flex;flex-direction:column;gap:3px;font-size:12px;min-width:0; }
 .settings-volume span { display:flex;align-items:center;gap:6px; }
 .settings-volume output { margin-left:auto;white-space:nowrap;color:#647b6a;font-size:11px; }
+.restore-sound { justify-self:start;align-self:center;display:flex;align-items:center;gap:6px;min-height:32px;padding:5px 8px;border:1px solid #aec5b5;border-radius:4px;background:#edf7e9;font-size:12px; }
 .settings-dialog input[type=range] { width:100%;accent-color:#627f51; }
 .settings-dialog input[type=checkbox],.settings-dialog input[type=radio] { width:auto;accent-color:#627f51; }
 .settings-instrument { display:flex;align-items:center;gap:12px;margin:12px 0;font-size:13px; }

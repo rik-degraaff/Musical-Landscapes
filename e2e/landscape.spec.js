@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures.js';
+import { INSTRUMENTS } from '../src/utils/music.js';
 
 test.beforeEach(async({page})=>{
   await page.addInitScript(()=>{
@@ -222,7 +223,17 @@ test('double activation protects the mixer and scenery mute leaves instruments a
   expect(await measureAudio(page, 'scene', 0.5)).toBeLessThan(0.001);
   await tap(page.locator('#instrument-piano'), testInfo);
   expect(await measureAudio(page, 'piano')).toBeGreaterThan(0.0003);
-  expect(await page.evaluate(() => window.audioEngine.volumes.piano)).toBe(-7);
+  const configured = INSTRUMENTS.piano.volume;
+  expect(await page.evaluate(() => ({ configured: window.audioEngine.volumes.piano, effective: window.audioEngine.effectiveVolume('piano') }))).toEqual({ configured, effective: configured });
+  await expect.poll(() => page.evaluate(() => window.audioEngine.nodes.piano.gain.volume.value)).toBeCloseTo(configured, 2);
+  await page.locator('#instrument-piano').focus();await page.keyboard.press('e');
+  await expect(page.locator('.performance-piano')).toBeVisible();
+  const equipped = Math.min(0, configured + 3);
+  expect(await page.evaluate(() => ({ configured: window.audioEngine.volumes.piano, effective: window.audioEngine.effectiveVolume('piano'), scenery: window.audioEngine.sceneVolume }))).toEqual({ configured, effective: equipped, scenery: -60 });
+  await expect.poll(() => page.evaluate(() => window.audioEngine.nodes.piano.gain.volume.value)).toBeCloseTo(equipped, 2);
+  await page.getByRole('button', { name: 'Put instrument down' }).click();
+  expect(await page.evaluate(() => ({ configured: window.audioEngine.volumes.piano, effective: window.audioEngine.effectiveVolume('piano'), active: window.audioEngine.active.piano }))).toEqual({ configured, effective: configured, active: true });
+  await expect.poll(() => page.evaluate(() => window.audioEngine.nodes.piano.gain.volume.value)).toBeCloseTo(configured, 2);
   await tap(page.locator('#instrument-piano'), testInfo);
   await page.getByRole('button', { name: 'Change landscape' }).click({force:true});
   await tap(button, testInfo);

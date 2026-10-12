@@ -19,7 +19,7 @@ import {CaregiverHelp,HelpButton} from './components/CaregiverHelp';
 import {editChild,normalizeChild,removeChild} from './utils/children';
 import {useAppUpdates} from './components/useAppUpdates.js';
 import {createFamilyStorage,recoverFamilySnapshot} from './utils/familyStorage.js';
-import {defaultSettings} from './utils/settings.js';
+import {defaultSettings,resetSoundMix} from './utils/settings.js';
 import {createCaregiverStorage,normalizeFamiliarity} from './utils/caregiverSettings.js';
 import savedVisuals from './data/visual-overrides.json';
 import {instrumentHome} from './utils/responsiveVisuals.js';
@@ -39,6 +39,8 @@ export default function App({developmentPreview}={}) {
   const [error,setError] = useState(null);
   const [sceneIndex,setSceneIndex] = useState(developmentPreview?.sceneIndex ?? 0);
   const [performanceRoot,setPerformanceRoot] = useState(SCENES[0].root);
+  const [harmonyPlan,setHarmonyPlan] = useState(null);
+  const practiceActive=useRef(false);
   const [mixer,setMixer] = useState(false);
   const [metronomeOpen,setMetronomeOpen] = useState(false);
   const [practice,setPractice]=useState(null);
@@ -103,6 +105,7 @@ export default function App({developmentPreview}={}) {
       if(!audioRef.current)audioRef.current = new AudioEngine();
       const engine=audioRef.current;
       engine.onSceneKeyChange=root=>{if(mounted.current&&audioRef.current===engine)setPerformanceRoot(root);};
+      engine.onHarmonyChange=plan=>{if(mounted.current&&audioRef.current===engine&&!practiceActive.current)setHarmonyPlan(plan);};
       engine.onActiveChange=(name,active)=>{
           if(!mounted.current||audioRef.current!==engine)return;
           const next={...stateRef.current,[name]:{...stateRef.current[name],active}};
@@ -113,6 +116,7 @@ export default function App({developmentPreview}={}) {
       engine.updatePerformanceSettings(startupState.current.settings.instruments);
       engine.setSceneKey(SCENES[startupState.current.sceneIndex].root);
       setPerformanceRoot(engine.playbackRoot);
+      setHarmonyPlan(engine.harmonyPlan??null);
       setStarted(true);
     }
     catch(e) { if(mounted.current){console.error(e);setError('The sound engine could not start. Try tapping play again.');} }
@@ -131,6 +135,13 @@ export default function App({developmentPreview}={}) {
     const next={...stateRef.current,[name]:{...stateRef.current[name],volume:Number(value)}};
     stateRef.current=next; setInstruments(next);
     audioRef.current.setVolumes({[name]:Number(value)});
+  }
+
+  function restoreSound() {
+    const reset=resetSoundMix(stateRef.current);
+    stateRef.current=reset.instruments;setInstruments(reset.instruments);
+    audioRef.current?.setVolumes(reset.volumes);
+    changeSceneVolume(reset.sceneVolume);
   }
 
   function arrangeSelection(next) {
@@ -340,9 +351,10 @@ export default function App({developmentPreview}={}) {
     setSceneIndex(i=>{ const next=(i+1)%SCENES.length; audioRef.current?.setSceneKey(SCENES[next].root); return next; });
   }
 
-  function enterPractice(playback){if(playback)audioRef.current.setInstrumentActive(playback.name,playback.active);drag.current=null;setDragging(null);setNearChild(false);setMixer(false);setMetronomeOpen(false);setHasPracticed(true);setPractice(equippedRef.current??settings.selected[0]);}
+  function enterPractice(playback){if(playback)audioRef.current.setInstrumentActive(playback.name,playback.active);practiceActive.current=true;setHarmonyPlan(null);drag.current=null;setDragging(null);setNearChild(false);setMixer(false);setMetronomeOpen(false);setHasPracticed(true);setPractice(equippedRef.current??settings.selected[0]);}
 
   function returnToMenu() {
+    practiceActive.current=false;setHarmonyPlan(null);
     window.dispatchEvent(new Event('farmjam-input-reset'));
     audioRef.current?.dispose();audioRef.current=null;
     drag.current=null;equippedRef.current=null;mixerTap.current=null;
@@ -366,11 +378,11 @@ export default function App({developmentPreview}={}) {
       {started && <button className="mixer-button" onClick={activateMixer} aria-expanded={mixer} aria-controls="landscape-mixer" aria-label={mixer?'Close settings':'Open settings'} title={mixer?'Close settings':'Double-click or double-tap to open settings'}>{mixer?<X size={22}/>:<Menu size={22}/>}</button>}
     </div>
 
-    {started && mixer && <Mixer familiarity={familiarity} onFamiliarity={updateFamiliarity} onHelp={()=>setHelp({topic:'settings',instrument:equipped})} saveError={saveWarning} onRetrySave={retrySave} instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} settings={settings} onSettings={updateSettings} onMenu={returnToMenu} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
+    {started && mixer && <Mixer familiarity={familiarity} onFamiliarity={updateFamiliarity} onHelp={()=>setHelp({topic:'settings',instrument:equipped})} saveError={saveWarning} onRetrySave={retrySave} instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} onRestoreSound={restoreSound} settings={settings} onSettings={updateSettings} onMenu={returnToMenu} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
     {started&&<Metronome audio={audioRef.current} open={metronomeOpen} disabled={mixer||Boolean(practice)} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}
 
-    {equipped&&!practice&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={performanceRoot} options={settings.instruments[equipped]} settingsOpen={mixer} onClose={()=>equip(null)}/>}
-    {practice&&<PracticeRoom child={selectedChild} audio={audioRef.current} initialInstrument={practice} settings={settings} root={SCENES[sceneIndex].root} onHelp={instrument=>setHelp({topic:'practice',instrument})} onClose={()=>setPractice(null)}/>}
+    {equipped&&!practice&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={performanceRoot} options={settings.instruments[equipped]} settingsOpen={mixer} harmonyPlan={harmonyPlan} onClose={()=>equip(null)}/>}
+    {practice&&<PracticeRoom child={selectedChild} audio={audioRef.current} initialInstrument={practice} settings={settings} root={SCENES[sceneIndex].root} onHelp={instrument=>setHelp({topic:'practice',instrument})} onClose={()=>{practiceActive.current=false;setHarmonyPlan(null);setPractice(null);}}/>}
 
     {!started && <StartScreen saveError={saveWarning} onRetrySave={retrySave} children={family.children} selectedId={family.selectedId} loading={loading} error={error} onStart={start} onSelect={selectChild} onEdit={setEditingId} onAdd={()=>setParentGuide(true)}/>}
     {!started&&parentGuide&&<ParentGuide familiarity={familiarity} familiarityEstablished={familiarityEstablished} settings={settings} onComplete={addChild} onClose={()=>setParentGuide(false)}/>}

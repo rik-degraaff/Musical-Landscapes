@@ -70,8 +70,10 @@ test('tick sound toggles independently and notes stay beat-aligned after changin
     window.ticks=[];const synth=window.audioEngine.metronomeSynth;const original=synth.triggerAttackRelease;
     synth.triggerAttackRelease=function(...args){window.ticks.push(args[2]);return original.apply(this,args);};
     window.notes=[];const engine=window.audioEngine;const play=engine.playEvent;
-    engine.noise.piano.energyAt=()=>.31;engine.noise.piano.complexityAt=()=>.18;
-    engine.playEvent=function(name,event,time){if(name==='piano')window.notes.push({time,event});return play.call(this,name,event,time);};
+    engine.playEvent=function(name,event,time,root,scheduled){
+      if(name==='piano'&&scheduled?.plan.phrases.piano?.events.includes(event))window.notes.push({time,event,bar:scheduled.bar,start:scheduled.time,tempo:this.tempo,owned:scheduled.plan.phrases.piano.events.includes(event)});
+      return play.call(this,name,event,time,root,scheduled);
+    };
   });
   await page.getByRole('button',{name:'Open metronome'}).click();const sound=page.getByRole('switch',{name:'Metronome sound'});
   await expect(sound).toHaveAttribute('aria-checked','false');await sound.click();await expect(sound).toHaveAttribute('aria-checked','true');
@@ -80,8 +82,14 @@ test('tick sound toggles independently and notes stay beat-aligned after changin
   const count=await page.evaluate(()=>window.ticks.length);await page.waitForTimeout(750);expect(await page.evaluate(()=>window.ticks.length)).toBe(count);
   await page.getByRole('slider',{name:'Metronome tempo weight'}).focus();await page.keyboard.press('End');await page.keyboard.press('Escape');
   await page.locator('#instrument-piano').click();await expect.poll(()=>page.evaluate(()=>window.notes.length)).toBeGreaterThan(2);
-  await expect.poll(()=>page.evaluate(()=>window.notes.filter(value=>value.event.time==='0:0:0').length)).toBeGreaterThan(2);
-  const starts=await page.evaluate(()=>window.notes.filter(value=>value.event.time==='0:0:0').map(value=>value.time));
+  await expect.poll(()=>page.evaluate(()=>new Set(window.notes.filter(value=>value.tempo===208&&value.event.time==='0:0:0').map(value=>value.bar)).size)).toBeGreaterThan(2);
+  const notes=await page.evaluate(()=>window.notes.filter(value=>value.tempo===208));
+  for(const note of notes){
+    expect(note.owned).toBe(true);
+    const [bar,beat,subdivision]=note.event.time.split(':').map(Number);
+    expect(note.time-note.start).toBeCloseTo((bar*4+beat+subdivision/4)*60/208,5);
+  }
+  const starts=[...new Map(notes.filter(value=>value.event.time==='0:0:0').map(value=>[value.bar,value.time])).values()];
   expect(starts.at(-1)-starts.at(-2)).toBeCloseTo(4*60/208,2);
 });
 

@@ -1,5 +1,5 @@
 import React, {useEffect,useRef,useState} from 'react';
-import {X,Trees,Volume2,Music,Settings2,Sprout,Layers,Sparkles,Eye,Tag,AudioLines,Hand,Home} from 'lucide-react';
+import {X,Trees,Volume2,Music,Settings2,Sprout,Layers,Sparkles,Eye,Tag,AudioLines,Hand,Home,RotateCcw} from 'lucide-react';
 import {InstrumentArt} from './InstrumentArt';
 import './settings.css';
 import {useDismissible} from './useDismissible';
@@ -7,7 +7,7 @@ import {SaveStatus} from './SaveStatus';
 import {HelpButton} from './CaregiverHelp';
 import {CAREGIVER_FAMILIARITY,caregiverHelp} from '../utils/caregiverHelp';
 
-export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onClose,onMenu,settings,onSettings,saveError,onRetrySave,familiarity,onFamiliarity,onHelp}) {
+export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onRestoreSound,onClose,onMenu,settings,onSettings,saveError,onRetrySave,familiarity,onFamiliarity,onHelp}) {
   const [tab,setTab]=useState('Sound');
   const [selected,setSelected]=useState(settings.selected[2]);
   const modal=useRef(null);
@@ -50,6 +50,7 @@ export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onClose,on
         {tab==='Sound'?<div className="sound-settings">
           {Object.entries(instruments).map(([name,instrument])=><label className={`settings-volume volume-${name}`} key={name}><span><i className="settings-art" aria-hidden="true"><InstrumentArt type={name}/></i>{instrument.label}<output>{instrument.volume} dB</output></span><input aria-label={`${instrument.label} volume`} type="range" min="-24" max="6" step="1" value={instrument.volume} onChange={event=>onVolume(name,event.target.value)}/></label>)}
           <label className="settings-volume scenery-mixer-row"><span><Trees size={16}/>Scenery sounds<output>{sceneVolume<=-60?'Muted':`${sceneVolume} dB`}</output></span><input aria-label="Scenery sounds volume" type="range" min="-60" max="0" step="1" value={sceneVolume} onChange={event=>onSceneVolume(event.target.value)}/></label>
+          <button className="restore-sound" onClick={onRestoreSound} title="Restore sound defaults"><RotateCcw size={16}/>Restore defaults</button>
           <p className="settings-explanation">{familiarity==='confident'?'These dB controls change relative gain, not pitch or tempo. Mix levels last for this play session.':familiarity==='new'?'Move a slider left for quieter sound or right for louder sound. This changes loudness, not the notes or beat. Sound levels last for this play session.':'Balance the band and scenery here. Volume changes loudness, not tempo; the mix lasts for this play session.'}</p>
         </div>:<>
           <div className="instrument-slots">{settings.selected.map((name,index)=><label key={index} className="settings-instrument"><i className="settings-art slot-art" aria-hidden="true"><InstrumentArt type={name}/></i><span className="slot-number">{index+1}</span><select aria-label={`Instrument slot ${index+1}`} value={name} onChange={event=>selectSlot(index,event.target.value)}>{Object.entries(instruments).map(([id,instrument])=><option value={id} key={id}>{instrument.label}</option>)}</select></label>)}</div>
@@ -61,6 +62,8 @@ export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onClose,on
             <p className="settings-explanation">{caregiverHelp('settings',familiarity).items[1][1]}</p>
             <label className="settings-check"><input type="checkbox" checked={options.noteLabels} onChange={event=>change('noteLabels',event.target.checked)}/><Tag size={16}/>Show note and control labels</label>
             <label className="settings-check"><input type="checkbox" checked={options.playbackNotes} onChange={event=>change('playbackNotes',event.target.checked)}/><AudioLines size={16}/>Show playback note names</label>
+            {options.complexity>.5&&<label className="settings-check"><input type="checkbox" checked={options.harmonyHints!=='off'} onChange={event=>change('harmonyHints',event.target.checked?'notes':'off')}/><Sparkles size={16}/>Highlight upcoming harmony</label>}
+            {options.complexity>1&&options.harmonyHints!=='off'&&<label className="settings-check"><input type="checkbox" checked={options.harmonyHints==='name'} onChange={event=>change('harmonyHints',event.target.checked?'name':'notes')}/><Tag size={16}/>Show next chord name</label>}
             {['guitar','ukulele'].includes(selected)&&<label className="settings-check"><input type="checkbox" checked={options.fingeringCharts} onChange={event=>change('fingeringCharts',event.target.checked)}/><Hand size={16}/>Show chord fingering charts</label>}
           </details>
           </div>

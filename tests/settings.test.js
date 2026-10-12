@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {SETTINGS_KEY,defaultSettings,normalizeSettings,loadSettings} from '../src/utils/settings.js';
+import {SETTINGS_KEY,defaultSettings,normalizeSettings,loadSettings,defaultSoundMix,resetSoundMix} from '../src/utils/settings.js';
 import {INSTRUMENTS,DEFAULT_INSTRUMENTS} from '../src/utils/music.js';
 
 test('defaults include the full catalog, six unique slots, advanced complexity and hidden display details',()=>{
@@ -13,6 +13,7 @@ test('defaults include the full catalog, six unique slots, advanced complexity a
     assert.equal(options.complexity,1.5);
     for(const key of ['fingeringCharts','noteLabels','playbackNotes','fretDots'])assert.equal(options[key],false);
     assert.equal(options.seventhChords,true);
+    assert.equal(options.harmonyHints,'notes');
   }
 });
 
@@ -59,7 +60,7 @@ test('per-instrument complexity and display settings remain independent without 
 
 test('invalid display values and unknown instruments do not change safe defaults',()=>{
   const result=normalizeSettings({instruments:{guitar:{noteLabels:'true',playbackNotes:1,fingeringCharts:true,fretDots:true,seventhChords:false},unknown:{complexity:.35}}});
-  assert.deepEqual(result.instruments.guitar,{complexity:1.5,noteLabels:false,playbackNotes:false,fingeringCharts:true,fretDots:true,seventhChords:false});
+  assert.deepEqual(result.instruments.guitar,{complexity:1.5,noteLabels:false,playbackNotes:false,fingeringCharts:true,fretDots:true,seventhChords:false,harmonyHints:'notes'});
   assert.deepEqual(Object.keys(result.instruments),Object.keys(INSTRUMENTS));
 });
 
@@ -69,4 +70,25 @@ test('storage loads migrate legacy settings and safely recover from missing or m
   for(const saved of [null,'','{broken','null','[]','42'])assert.deepEqual(loadSettings({getItem(){return saved;}}),defaultSettings());
   assert.deepEqual(loadSettings({getItem(){throw Error('unavailable');}}),defaultSettings());
   assert.deepEqual(loadSettings(undefined),defaultSettings());
+});
+
+test('harmony hints migrate to subtle notes and preserve only supported per-instrument choices',()=>{
+  for(const mode of ['off','notes','name']){
+    const result=normalizeSettings({instruments:{guitar:{complexity:.35,harmonyHints:mode}}});
+    assert.equal(result.instruments.guitar.harmonyHints,mode);
+    assert.equal(result.instruments.piano.harmonyHints,'notes');
+    assert.deepEqual(normalizeSettings(result),result);
+  }
+  for(const invalid of [undefined,null,true,1,'chord','NAME'])assert.equal(normalizeSettings({instruments:{piano:{harmonyHints:invalid}}}).instruments.piano.harmonyHints,'notes');
+});
+
+test('sound reset restores current catalog gains without changing instrument state or settings',()=>{
+  const settings=defaultSettings();settings.instruments.piano.harmonyHints='name';settings.instruments.guitar.complexity=.35;
+  const instruments=Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,value])=>[name,{...value,volume:-18,active:name==='piano'}]));
+  const snapshot=structuredClone({settings,instruments});
+  const reset=resetSoundMix(instruments);
+  assert.equal(reset.sceneVolume,-4);
+  assert.deepEqual(reset.volumes,defaultSoundMix().volumes);
+  for(const [name,instrument] of Object.entries(reset.instruments))assert.deepEqual(instrument,{...instruments[name],volume:INSTRUMENTS[name].volume});
+  assert.deepEqual({settings,instruments},snapshot);
 });

@@ -37,20 +37,42 @@ test('manual input after a failed-load retry keeps the drawing synchronized',asy
   await page.keyboard.up('Space');
 });
 
-test('child selection during loading supplies the final performance settings',async({page})=>{
+test('selected child settings lock while loading and supply the final performance settings',async({page})=>{
   await page.goto('/');
   await page.evaluate(()=>{
     const family=JSON.parse(localStorage.getItem('farmjam-children-v1'));
     const child=structuredClone(family.children[0]);child.id='advanced';child.name='Advanced';
     child.settings={instruments:{piano:{complexity:1.5}}};
+    const initial=family.children[0];
+    initial.settings={...initial.settings,instruments:{...initial.settings?.instruments,piano:{...initial.settings?.instruments?.piano,complexity:.35}}};
     family.children.push(child);localStorage.setItem('farmjam-children-v1',JSON.stringify(family));
   });
   await page.reload();await instrumentEngine(page,true);
+  const advanced=page.getByRole('radio',{name:'Select Advanced'});
+  await advanced.click();await expect(advanced).toBeChecked();
   await page.getByRole('button',{name:'Tap to play'}).click();
   await expect.poll(()=>page.evaluate(()=>typeof window.finishStartup)).toBe('function');
-  await page.getByRole('radio',{name:'Select Advanced'}).click();
+  await expect(advanced).toBeDisabled();await expect(advanced).toBeChecked();
   await page.evaluate(()=>window.finishStartup());
   await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});
   expect(await page.evaluate(()=>window.audioEngine.performanceSettings.piano.complexity)).toBe(1.5);
   await expect(page.locator('#young-musician')).toHaveAttribute('data-child-name','Advanced');
+  await page.locator('#instrument-piano').focus();await page.keyboard.press('e');
+  await expect(page.locator('.performance-piano')).toBeVisible();
+  const supported=await page.evaluate(async()=>(await import('/src/utils/performance.js')).PIANO_NOTES);
+  const controls=await page.getByRole('button',{name:/^Piano key /}).evaluateAll(keys=>keys.map(key=>key.getAttribute('aria-label').replace('Piano key ','')));
+  expect(controls).toEqual(supported);
+  await page.locator('#instrument-piano').click();
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.harmonyPlan?.roles.piano)).toBe('accompaniment');
+  const selected=await page.evaluate(async()=>{
+    const {compositionProfile}=await import('/src/utils/composition.js');
+    const {noteMidi}=await import('/src/utils/autoplay.js');
+    const engine=window.audioEngine;const plan=engine.harmonyPlan;const phrase=plan.phrases.piano;
+    const pool=compositionProfile('piano',plan.root,{...engine.performanceSettings.piano,role:plan.roles.piano,degree:plan.currentChord.degree});
+    return {phrase,supported:pool.some(candidate=>candidate.name===phrase.name&&candidate.role===phrase.role&&candidate.tier===phrase.tier),degree:plan.currentChord.degree,harmonic:phrase.events.every(event=>(event.notes??[event.note]).every(note=>plan.currentChord.tones.includes(noteMidi(note)%12)))};
+  });
+  expect(selected.supported).toBe(true);expect(selected.harmonic).toBe(true);
+  expect(selected.phrase.degree).toBe(selected.degree);
+  expect(selected.phrase.events.length).toBeGreaterThan(0);
+  for(const event of selected.phrase.events)for(const note of event.notes??[event.note])expect(controls).toContain(note);
 });

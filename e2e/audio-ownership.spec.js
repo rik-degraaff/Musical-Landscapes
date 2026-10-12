@@ -168,6 +168,7 @@ test('practice restores every saved field and keeps its pinned phrase after prof
   await play(page);
   const result = await page.evaluate(async () => {
     const { equippedProfile } = await import('/src/utils/difficulty.js');
+    const { Composition, compositionProfile } = await import('/src/utils/composition.js');
     const { INSTRUMENTS } = await import('/src/utils/music.js');
     const { capturePracticeSnapshot } = await import('/src/audio/session.js');
     const engine = window.audioEngine;
@@ -178,6 +179,7 @@ test('practice restores every saved field and keeps its pinned phrase after prof
     engine.skipEquippedPhrase();
     const before = capturePracticeSnapshot(engine);
     const selected = engine.equippedPhrase;
+    const cachedProfile = equippedProfile('ukulele', engine.root, engine.performanceSettings.ukulele);
     engine.beginPractice('piano');
     engine.setTempo(82);
     engine.setMetronomeSound(false);
@@ -186,12 +188,32 @@ test('practice restores every saved field and keeps its pinned phrase after prof
     for (const name of Object.keys(INSTRUMENTS)) for (const root of roots) for (const complexity of [.35, 1, 1.5]) equippedProfile(name, root, { complexity });
     engine.endPractice();
     const restored = capturePracticeSnapshot(engine);
+    const plan = new Composition({random:()=>.5}).planBar(42, engine.root, engine.compositionOptions('ukulele'));
+    engine.scheduledBars.set(42, { plan });
     const rebuilt = engine.selectPhrase('ukulele', 42, 0);
-    return { before, restored, rebuiltEvents: rebuilt.events, differentReference: rebuilt !== selected };
+    engine.scheduledBars.delete(42);
+    const expected = compositionProfile('ukulele', plan.root, { ...engine.performanceSettings.ukulele, role: plan.roles.ukulele, degree: plan.currentChord.degree }).find(phrase => phrase.name === selected.name);
+    const rebuiltProfile = equippedProfile('ukulele', plan.root, engine.performanceSettings.ukulele);
+    const canonical = rebuiltProfile.chords.find(chord => chord.degree === plan.currentChord.degree && chord.size === 3);
+    return { before, restored, rebuilt, expected, canonical, chord: plan.currentChord.name, differentReference: rebuilt !== selected, evicted: rebuiltProfile !== cachedProfile };
   });
+  expect(result.evicted).toBe(true);
   expect(result.differentReference).toBe(true);
   expect(result.restored).toEqual(result.before);
-  expect(result.rebuiltEvents).toEqual(result.before.equippedPhrase.events);
+  expect(result.rebuilt.name).toBe(result.before.equippedPhrase.name);
+  expect(result.rebuilt.role).toBe(result.before.equippedPhrase.role);
+  expect(result.expected).toBeDefined();
+  expect(result.rebuilt).toEqual(result.expected);
+  expect(result.canonical).toBeDefined();
+  for (const event of result.rebuilt.events) {
+    expect(event.chord).toBe(result.chord);
+    expect(event.fingering.map(finger => finger.note)).toEqual(event.notes ?? [event.note]);
+    expect(new Set(event.fingering.map(finger => finger.string)).size).toBe(event.fingering.length);
+    for (const finger of event.fingering) {
+      expect(finger.fret).toBe(result.canonical.frets[finger.string]);
+      expect(finger.note).toBe(result.canonical.notes[finger.string]);
+    }
+  }
   const snapshot = await page.evaluate(async () => {
     const { capturePracticeSnapshot } = await import('/src/audio/session.js');
     const engine = window.audioEngine;

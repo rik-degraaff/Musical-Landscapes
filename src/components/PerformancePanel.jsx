@@ -11,6 +11,7 @@ import {Guitar as FretboardGuitar} from './Guitar';
 import {PanFlute} from './PanFlute';
 import {useInputReset} from './useInputReset';
 import {equippedProfile} from '../utils/difficulty';
+import {HarmonyHints} from './HarmonyHints';
 
 export function PressControl({ label, className='', onPress, onRelease=()=>{}, children, style, swipeNote, demoPressed=false }) {
   const owners=useRef(new Set());
@@ -72,7 +73,7 @@ export function InstrumentSurface({ name, audio, root, options={complexity:1.5},
   </div>;
 }
 
-export function PerformancePanel({ name, audio, root, onClose, options={complexity:1.5}, settingsOpen }) {
+export function PerformancePanel({ name, audio, root, onClose, options={complexity:1.5}, settingsOpen, harmonyPlan }) {
   const profile=equippedProfile(name,root,options);
   const playableKey=`${name}:${root}:${profile.level}`;
   const [autoplay,setAutoplay]=useState(()=>audio.manualAutoplay);
@@ -114,6 +115,6 @@ export function PerformancePanel({ name, audio, root, onClose, options={complexi
   },[audio]);
   return <section ref={panelRef} inert={settingsOpen} className={`performance-panel performance-${name}`} aria-label={`${INSTRUMENTS[name].label} play surface`}>
     <InstrumentSurface name={name} audio={audio} root={root} options={options} profile={profile} cue={cue}/>
-    <header><h2>{INSTRUMENTS[name].label}</h2><output className="autoplay-notes" hidden={!options.playbackNotes}>{autoplay?(cue?.notes??(cue?.note?[cue.note]:[])).join(' + '):''}</output><button className="next-phrase" aria-label="Next phrase" title="Next phrase" disabled={profile.phrases.length<2} onClick={nextPhrase}><SkipForward size={20}/></button><button className="return-instrument" aria-label="Put instrument down" title="Put instrument down" onClick={onClose}><ArrowUpFromLine size={20}/></button></header>
+    <header><h2>{INSTRUMENTS[name].label}</h2><HarmonyHints hostRef={panelRef} plan={harmonyPlan} root={root} name={name} profile={profile} options={options}/><output className="autoplay-notes" hidden={!options.playbackNotes}>{autoplay?(cue?.notes??(cue?.note?[cue.note]:[])).join(' + '):''}</output><button className="next-phrase" aria-label="Next phrase" title="Next phrase" disabled={profile.phrases.length<2} onClick={nextPhrase}><SkipForward size={20}/></button><button className="return-instrument" aria-label="Put instrument down" title="Put instrument down" onClick={onClose}><ArrowUpFromLine size={20}/></button></header>
   </section>;
 }

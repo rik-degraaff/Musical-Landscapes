@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures.js';
+import { noteMidi } from '../src/utils/autoplay.js';
 
 test.beforeEach(async({page})=>{
   await page.addInitScript(()=>{
@@ -470,15 +471,29 @@ test('sun and moon advance the day, remain circular, and keep controls aligned t
   expect(errors).toEqual([]);
 });
 
-test('day cycle plays exact major and minor piano triads and tonic guitar chords before wrapping',async({page})=>{
+test('day cycle plays canonical current-chord piano voicings and guitar shapes in every key before wrapping',async({page})=>{
   const errors=await start(page);
   await page.emulateMedia({reducedMotion:'reduce'});
-  await page.evaluate(()=>{
+  await page.evaluate(async()=>{
+    const {GUITAR_LIBRARY}=await import('/src/utils/guitar.js');
     const engine=window.audioEngine;engine.setTempo(208);
-    engine.noise.piano.energyAt=()=>.08;engine.noise.piano.complexityAt=()=>.08;
     window.cycleSamples={piano:[],guitar:[]};
+    let sampled=null;
     const sampler=engine.nodes.piano.synth;const original=sampler.triggerAttackRelease;
-    sampler.triggerAttackRelease=function(note,...args){window.cycleSamples.piano.push(note);return original.call(this,note,...args);};
+    sampler.triggerAttackRelease=function(note,dur,time,velocity){
+      sampled?.push({note,dur,time,velocity});return original.call(this,note,dur,time,velocity);
+    };
+    const play=engine.playEvent;
+    engine.playEvent=function(name,event,time,root=this.root,scheduled){
+      if(name!=='piano'||!scheduled)return play.call(this,name,event,time,root,scheduled);
+      const samples=[];sampled=samples;
+      try{return play.call(this,name,event,time,root,scheduled);}
+      finally{
+        sampled=null;
+        const plan=scheduled.plan;
+        window.cycleSamples.piano.push({event,time,root,plan,samples,owned:plan.phrases.piano.events.includes(event),canonical:GUITAR_LIBRARY[root].chords.find(chord=>chord.degree===plan.currentChord.degree&&chord.size===3)});
+      }
+    };
     const strike=engine.manualStrike;
     engine.manualStrike=function(note,token,...args){
       const result=strike.call(this,note,token,...args);const voice=this.manualVoices.get(token);
@@ -489,27 +504,58 @@ test('day cycle plays exact major and minor piano triads and tonic guitar chords
   await page.locator('#instrument-piano').click();
   await equip(page,'guitar');
   const cycle=[
-    {scene:'farm',root:'A',triad:['A4','C#5','E5'],pitches:[1,4,9]},
-    {scene:'garden',root:'E',triad:['E4','G#4','B4'],pitches:[4,8,11]},
-    {scene:'pond',root:'A',triad:['A4','C#5','E5'],pitches:[1,4,9]},
-    {scene:'dusk',root:'C#m',triad:['C#4','E4','G#4'],pitches:[1,4,8]},
-    {scene:'night',root:'Am',triad:['A4','C5','E5'],pitches:[0,4,9]},
-    {scene:'late-night',root:'Fm',triad:['F4','G#4','C5'],pitches:[0,5,8]},
-    {scene:'dawn',root:'Db',triad:['C#4','F4','G#4'],pitches:[1,5,8]},
+    {scene:'farm',root:'A'},
+    {scene:'garden',root:'E'},
+    {scene:'pond',root:'A'},
+    {scene:'dusk',root:'C#m'},
+    {scene:'night',root:'Am'},
+    {scene:'late-night',root:'Fm'},
+    {scene:'dawn',root:'Db'},
   ];
-  for(const {scene,root,triad,pitches} of cycle){
+  async function expectPiano(root) {
+    await expect.poll(()=>page.evaluate(root=>new Set(window.cycleSamples.piano.filter(record=>record.root===root).map(record=>record.plan.bar)).size,root)).toBeGreaterThan(1);
+    const records=await page.evaluate(root=>window.cycleSamples.piano.filter(record=>record.root===root),root);
+    const keyboard=await page.evaluate(async()=>(await import('/src/utils/performance.js')).PIANO_NOTES);
+    for(const record of records){
+      const notes=record.event.notes??[record.event.note];
+      expect(record.owned).toBe(true);
+      expect(record.plan.root).toBe(root);
+      expect(record.canonical).toBeDefined();
+      expect(record.plan.currentChord.name).toBe(record.canonical.name);
+      expect(record.plan.currentChord.tones).toEqual(record.canonical.tones);
+      expect(record.plan.phrases.piano.degree).toBe(record.plan.currentChord.degree);
+      expect(notes.length).toBeGreaterThan(0);expect(notes.length).toBeLessThanOrEqual(3);
+      expect(record.samples.map(sample=>sample.note)).toEqual(notes);
+      for(const [index,sample] of record.samples.entries()){
+        expect(keyboard).toContain(sample.note);
+        expect(record.canonical.tones).toContain(noteMidi(sample.note)%12);
+        expect(sample.time).toBe(record.time);expect(sample.dur).toBe(record.event.dur);
+        expect(sample.velocity).toBeCloseTo((record.event.velocity??.55)*(1-index*.04),8);
+      }
+    }
+    const plans=[...new Map(records.map(record=>[record.plan.bar,record.plan])).values()];
+    for(let index=1;index<plans.length;index++){
+      expect(plans[index].bar).toBe(plans[index-1].bar+1);
+      expect(plans[index].currentChord).toEqual(plans[index-1].nextChord);
+    }
+  }
+  for(const {scene,root} of cycle){
     await expect(page.locator(`.scene-${scene}`)).toBeVisible();
     await expect.poll(()=>page.evaluate(()=>window.audioEngine.root)).toBe(root);
     await page.evaluate(()=>{window.cycleSamples.piano=[];window.cycleSamples.guitar=[];});
-    await expect.poll(()=>page.evaluate(()=>window.cycleSamples.piano.slice(0,3))).toEqual(triad);
-    expect(await soundLevel(page,'piano'),`${scene} piano triad sounds`).toBeGreaterThan(.0001);
-    const notes=await page.evaluate(async root=>{
+    await expectPiano(root);
+    await expect.poll(()=>page.evaluate(()=>window.audioEngine.playbackRoot)).toBe(root);
+    expect(await soundLevel(page,'piano',1.4),`${scene} piano voicing sounds`).toBeGreaterThan(.0001);
+    const current=await page.evaluate(async()=>{
       const {GUITAR_LIBRARY}=await import('/src/utils/guitar.js');
-      return GUITAR_LIBRARY[root].chords.find(chord=>chord.name===root).notes;
-    },root);
-    const chord=page.getByRole('button',{name:`Hold guitar chord ${root}`,exact:true});
+      const plan=window.audioEngine.harmonyPlan;
+      return {root:plan.root,chord:plan.currentChord,shape:GUITAR_LIBRARY[plan.root].chords.find(chord=>chord.degree===plan.currentChord.degree&&chord.size===3)};
+    });
+    expect(current.root).toBe(root);expect(current.shape.name).toBe(current.chord.name);
+    const notes=current.shape.notes;
+    const chord=page.getByRole('button',{name:`Hold guitar chord ${current.chord.name}`,exact:true});
     await chord.focus();await page.keyboard.down('Space');
-    await expect(page.locator('.neck-chord-name')).toHaveText(root);
+    await expect(page.locator('.neck-chord-name')).toHaveText(current.chord.name);
     for(const [index,note] of notes.entries()){
       const string=page.locator('.playable-string').nth(index);
       await expect(string).toHaveAttribute('aria-label',`Guitar string ${index+1} ${note}`);
@@ -519,7 +565,7 @@ test('day cycle plays exact major and minor piano triads and tonic guitar chords
     expect(await page.evaluate(async()=>{
       const {noteMidi}=await import('/src/utils/autoplay.js');
       return [...new Set(window.cycleSamples.guitar.map(note=>noteMidi(note)%12))].sort((first,second)=>first-second);
-    }),`${scene} tonic chord quality`).toEqual(pitches);
+    }),`${scene} current chord quality`).toEqual([...current.chord.tones].sort((first,second)=>first-second));
     expect(await soundLevel(page,'guitar'),`${scene} guitar chord sounds`).toBeGreaterThan(.0001);
     await page.keyboard.up('Space');
     await expect(page.locator('.neck-chord-name')).toHaveCount(0);
@@ -528,29 +574,60 @@ test('day cycle plays exact major and minor piano triads and tonic guitar chords
   await expect(page.locator('.scene-farm')).toBeVisible();
   await expect.poll(()=>page.evaluate(()=>window.audioEngine.root)).toBe('A');
   await page.evaluate(()=>{window.cycleSamples.piano=[];});
-  await expect.poll(()=>page.evaluate(()=>window.cycleSamples.piano.slice(0,3))).toEqual(cycle[0].triad);
+  await expectPiano('A');
   expect(await page.evaluate(()=>window.audioEngine.active.piano)).toBe(true);
   expect(errors).toEqual([]);
 });
 
-test('equipped autoplay uses compatible selected phrases and manual input takes over for every instrument', async ({page},testInfo) => {
-  const errors=await start(page);
-  await page.evaluate(async()=>{
-    const {nearestBar}=await import('/src/utils/music.js');
+async function recordAutoplay(page,key) {
+  await page.evaluate(async key=>{
+    const {compositionProfile}=await import('/src/utils/composition.js');
     const {equippedProfile}=await import('/src/utils/difficulty.js');
     const engine=window.audioEngine;
-    window.autoEvents=[];
+    window[key]=[];
     const original=engine.playEvent;
-    engine.playEvent=function(name,event,time){
-      if(this.manualAutoplay&&name===this.manualInstrument){
-        const bar=Math.max(0,this.barIndex-1);
-        const pool=equippedProfile(name,this.root,this.performanceSettings[name]).phrases;
-        const expected=nearestBar(pool,this.noise[name].energyAt(bar),this.noise[name].complexityAt(bar)).events;
-        window.autoEvents.push({name,event,expected});
+    engine.playEvent=function(name,event,time,root=this.root,scheduled){
+      if(this.manualAutoplay&&name===this.manualInstrument&&scheduled){
+        const plan=scheduled.plan;
+        const phrase=plan.phrases[name];
+        const options={...this.performanceSettings[name],role:plan.roles[name],degree:name==='drums'?0:plan.currentChord.degree};
+        const pool=compositionProfile(name,root,options);
+        const motif=pool.find(candidate=>candidate.name===phrase.name&&candidate.role===phrase.role&&candidate.tier===phrase.tier);
+        const profile=equippedProfile(name,root,options);
+        window[key].push({name,event,root,chord:plan.currentChord,degree:phrase.degree,role:phrase.role,expectedRole:plan.roles[name],supportedMotif:Boolean(motif),expectedRhythm:motif?.events.map(value=>({time:value.time,dur:value.dur,velocity:value.velocity,count:(value.notes??[value.note]).length})),owned:phrase.events.includes(event),canonical:profile.chords.find(chord=>chord.degree===plan.currentChord.degree&&chord.size===3),hits:profile.hits});
       }
-      return original.call(this,name,event,time);
+      return original.call(this,name,event,time,root,scheduled);
     };
-  });
+  },key);
+}
+
+function expectAutoplay(records) {
+  expect(records.length).toBeGreaterThan(0);
+  for(const record of records){
+    const {name,event,chord}=record;
+    expect(record.owned,`${name} belongs to its scheduled plan`).toBe(true);
+    expect(record.supportedMotif,`${name} motif supports the current chord and tier`).toBe(true);
+    expect(record.role).toBe(record.expectedRole);
+    expect(record.expectedRhythm).toContainEqual({time:event.time,dur:event.dur,velocity:event.velocity,count:(event.notes??[event.note]).length});
+    if(name==='drums'){expect(record.hits).toContain(event.note);continue;}
+    expect(record.degree).toBe(chord.degree);
+    for(const note of event.notes??[event.note])expect(chord.tones).toContain(noteMidi(note)%12);
+    if(['guitar','ukulele'].includes(name)){
+      expect(record.canonical).toBeDefined();
+      expect(event.chord).toBe(chord.name);
+      expect(event.fingering.map(finger=>finger.note)).toEqual(event.notes??[event.note]);
+      expect(new Set(event.fingering.map(finger=>finger.string)).size).toBe(event.fingering.length);
+      for(const finger of event.fingering){
+        expect(finger.fret).toBe(record.canonical.frets[finger.string]);
+        expect(finger.note).toBe(record.canonical.notes[finger.string]);
+      }
+    }
+  }
+}
+
+test('equipped autoplay uses compatible selected phrases and manual input takes over for every instrument', async ({page},testInfo) => {
+  const errors=await start(page);
+  await recordAutoplay(page,'autoEvents');
   const targets={piano:'Piano key C4',flute:'Flute key D-sharp pinky',marimba:'Marimba bar C5',melody:'Trumpet embouchure',guitar:null,drums:'Snare'};
   for(const name of Object.keys(targets)){
     await equip(page,name);
@@ -562,7 +639,7 @@ test('equipped autoplay uses compatible selected phrases and manual input takes 
     await expect.poll(()=>page.evaluate(()=>window.autoEvents.length)).toBeGreaterThan(0);
     await expect(page.locator('.autoplay-notes')).not.toBeEmpty();
     const events=await page.evaluate(()=>window.autoEvents);
-    for(const played of events)expect(played.expected).toContainEqual(played.event);
+    expectAutoplay(events);
     expect(await page.evaluate(()=>window.audioEngine.manualAutoplay)).toBe(true);
     if(name==='melody'){
       const positions=new Set();
@@ -632,26 +709,7 @@ test('equipped autoplay shares the transport with other instruments and follows 
   await start(page);
   await page.locator('#instrument-drums').click();
   await equip(page,'piano');
-  await page.evaluate(async()=>{
-    const {nearestBar}=await import('/src/utils/music.js');
-    const {equippedProfile}=await import('/src/utils/difficulty.js');
-    const engine=window.audioEngine;
-    window.phraseChecks=[];
-    const roots=new Map();
-    const schedule=engine.scheduleBar;
-    engine.scheduleBar=function(time){roots.set(this.barIndex,this.root);return schedule.call(this,time);};
-    const original=engine.playEvent;
-    engine.playEvent=function(name,event,time){
-      if(name==='piano'&&this.manualAutoplay){
-        const bar=Math.max(0,this.barIndex-1);
-        const root=roots.get(bar)??this.root;
-        const pool=equippedProfile(name,root,this.performanceSettings[name]).phrases;
-        const expected=nearestBar(pool,this.noise[name].energyAt(bar),this.noise[name].complexityAt(bar)).events;
-        window.phraseChecks.push({event,expected,root});
-      }
-      return original.call(this,name,event,time);
-    };
-  });
+  await recordAutoplay(page,'phraseChecks');
   const toggle=page.locator('#instrument-piano');
   await toggle.click();
   await expect.poll(()=>page.evaluate(()=>window.phraseChecks.length)).toBeGreaterThan(0);
@@ -661,7 +719,7 @@ test('equipped autoplay shares the transport with other instruments and follows 
   await expect(page.locator('.scene-garden')).toBeVisible();
   await expect.poll(()=>page.evaluate(()=>window.phraseChecks.some(check=>check.root==='E'))).toBe(true);
   const checks=await page.evaluate(()=>window.phraseChecks);
-  for(const check of checks)expect(check.expected).toContainEqual(check.event);
+  expectAutoplay(checks);
   await page.getByRole('button',{name:'Piano key C4',exact:true}).click();
   await expect(toggle).toHaveAttribute('aria-pressed','false');
   expect(await page.evaluate(()=>window.audioEngine.active.drums)).toBe(true);
