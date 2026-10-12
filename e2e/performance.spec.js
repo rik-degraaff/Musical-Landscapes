@@ -72,6 +72,7 @@ test('piano chords release and wind notes sustain while the world continues',asy
   await page.getByRole('button',{name:'Cow',exact:true}).click();
   await page.getByRole('button',{name:'Change landscape'}).click({force:true});
   await expect(page.locator('.scene-garden')).toHaveCount(1);
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.playbackRoot)).toBe('E');
   await page.getByRole('button',{name:'Put instrument down'}).click();
   await equip(page,'flute');
   const note=page.getByRole('button',{name:'Flute key D-sharp pinky',exact:true});
@@ -224,6 +225,13 @@ test('multitouch guitar chords and crossing all strings play their correct notes
   await page.evaluate(()=>{
     window.playedNotes=[];const engine=window.audioEngine;const original=engine.manualNoteOn;
     engine.manualNoteOn=function(note,...args){window.playedNotes.push(note);return original.call(this,note,...args);};
+    let output=engine.nodes.guitar.gain;
+    while(output.output)output=output.output;
+    const analyser=output.context.createAnalyser();analyser.fftSize=2048;output.connect(analyser);
+    const values=new Float32Array(2048);
+    const capture={peak:0,frame:null,finish:()=>{cancelAnimationFrame(capture.frame);output.disconnect(analyser);return capture.peak;}};
+    const sample=()=>{analyser.getFloatTimeDomainData(values);capture.peak=Math.max(capture.peak,Math.sqrt(values.reduce((sum,value)=>sum+value*value,0)/values.length));capture.frame=requestAnimationFrame(sample);};
+    window.guitarCapture=capture;sample();
   });
   const session=await page.context().newCDPSession(page);
   const chord=await page.getByRole('button',{name:'Hold guitar chord A',exact:true}).boundingBox();
@@ -239,7 +247,8 @@ test('multitouch guitar chords and crossing all strings play their correct notes
   const notes=await page.evaluate(()=>window.playedNotes);
   expect(notes).toEqual(expected.filter(note=>note!==null));
   if(!expected.includes('E2'))expect(notes).not.toContain('E2');
-  expect(await soundLevel(page,'guitar')).toBeGreaterThan(.001);
+  await expect.poll(()=>page.evaluate(()=>window.guitarCapture.peak)).toBeGreaterThan(.001);
+  expect(await page.evaluate(()=>window.guitarCapture.finish())).toBeGreaterThan(.001);
   await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   await expectStrings(shapes.open);
   await expect(page.locator('.neck-chord-name')).toHaveCount(0);

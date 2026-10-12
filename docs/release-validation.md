@@ -40,6 +40,25 @@ The final full development release gate completed with **313 passed, 1 intention
 
 Integration checks passed: 30 storage/update unit tests; four startup browser regressions; 24 existing family/settings compatibility checks; 29 storage/update/accessibility browser checks, with the desktop native-touch pinch case intentionally skipped. Transient-read recovery during active playback preserves accompaniment and known unsaved settings while recovering saved sibling profiles. A first full development release run passed 304 checks, skipped that touch-only case and exposed one forced-click race with a moving celestial control in the existing visitor test. Its trace showed the click landing at the control's old position. The test now waits for a settled control and asserts every scene transition, without sleeps or relaxing expectations; four focused repetitions across desktop/compact touch passed. Two subsequent broad attempts were interrupted, not passed; the final complete result is recorded above. CI has a 60-minute budget because the full browser gate takes approximately 30 minutes before build/production checks and browser installation.
 
+## Scene-Transition And CI Follow-Up
+
+The subsequent scene-transition fix keeps every remaining event in the current bar's captured key and starts the latest requested key at the next downbeat. It never performs an early-bar restart. Already queued next-bar sources are owned and replaced without canceling the current bar; per-bar identities also invalidate obsolete visual cues, including rapid A/E/A changes. The audible key is published after, not before, the downbeat; equipped controls and held manual input survive the visual scene change until that boundary. Ringing manual drum sources also defer key changes. The shared transport is not restarted.
+
+The reported GitHub guitar assertion sampled audio only after the short strum and several browser round trips. Capture now begins before the gesture and retains its observed peak; the original `0.001` threshold and exact played-note assertions remain. Practice entry waits for a reachable native pointer target while startup layout settles, uses touch gestures on the touch project, and includes the equipped-instrument target accepted by the real handler. It does not force-click an obstructed character or call the practice action directly. The long-sustain test waits for the committed new key before starting its sustained note. Chord-cleanup timing starts inside the actual cleanup handler rather than before the input-dispatch round trip; its original 130 ms native-source deadline remains.
+
+Final local checks on Windows / Node 24.18.0 / Chromium:
+
+- All **172 unit tests** passed.
+- All **48 lifecycle, native-cleanup and scene-transition browser checks** passed across desktop and compact touch (4.4 minutes).
+- All **38 performance checks** passed (6.1 minutes).
+- The full practice suite passed **32 executions**, two repetitions on both viewports (3.9 minutes).
+- All **12 string-voicing checks** passed in the practice/voicing batch; that batch's separate practice hit-target failure was investigated and fixed before the successful full practice repeats.
+- All **10 fresh-build production worker checks** passed (3.4 minutes), including decoding all 192 recordings offline.
+
+Earlier exploratory runs exposed the fixed hit-target and dispatch-timing issues; one boundary run timed out waiting for its audio clock, followed by six unchanged focused passes and the successful complete boundary batch. Interrupted broad runs are not counted as passes. These final results are completed affected-suite batches, not a new full development release run. The GitHub-hosted Linux rerun and real-device checks remain unverified locally; no retries or weaker loudness/release assertions were added to CI.
+
+The follow-up build contains `assets/index-BKGJUAZs.js` at **760.04 kB / 219.69 kB gzip**, unchanged CSS at **110.10 kB / 23.69 kB gzip**, and **204 precache entries / 17,593.38 KiB**. Vite transformed 2,908 modules and retained the large-chunk warning. Passing only the four needed Tone APIs into the owned-source helper avoids retaining the entire namespace in the bundle. The earlier measured baseline below is preserved as historical evidence, not the current artifact.
+
 ## Real Safari And iPad Checklist
 
 Status: **not verified on real devices by these automated checks**. Chromium touch emulation is not Safari, hardware multi-touch, actual speakers, or iPad memory pressure. Record tester, date, release SHA, device model, OS/Safari version, browser versus Home Screen mode and result for every item.

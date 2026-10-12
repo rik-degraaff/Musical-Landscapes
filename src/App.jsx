@@ -28,6 +28,7 @@ export default function App() {
   const [loading,setLoading] = useState(false);
   const [error,setError] = useState(null);
   const [sceneIndex,setSceneIndex] = useState(0);
+  const [performanceRoot,setPerformanceRoot] = useState(SCENES[0].root);
   const [mixer,setMixer] = useState(false);
   const [metronomeOpen,setMetronomeOpen] = useState(false);
   const [practice,setPractice]=useState(null);
@@ -73,6 +74,7 @@ export default function App() {
     try {
       if(!audioRef.current)audioRef.current = new AudioEngine();
       const engine=audioRef.current;
+      engine.onSceneKeyChange=root=>{if(mounted.current&&audioRef.current===engine)setPerformanceRoot(root);};
       engine.onActiveChange=(name,active)=>{
           if(!mounted.current||audioRef.current!==engine)return;
           const next={...stateRef.current,[name]:{...stateRef.current[name],active}};
@@ -82,6 +84,7 @@ export default function App() {
       if(!mounted.current||audioRef.current!==engine)return;
       engine.updatePerformanceSettings(startupState.current.settings.instruments);
       engine.setSceneKey(SCENES[startupState.current.sceneIndex].root);
+      setPerformanceRoot(engine.playbackRoot);
       setStarted(true);
     }
     catch(e) { if(mounted.current){console.error(e);setError('The sound engine could not start. Try tapping play again.');} }
@@ -297,7 +300,7 @@ export default function App() {
     {started && mixer && <Mixer saveError={saveError} onRetrySave={retrySave} instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} settings={settings} onSettings={updateSettings} onMenu={returnToMenu} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
     {started&&<Metronome audio={audioRef.current} open={metronomeOpen} disabled={mixer||Boolean(practice)} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}
 
-    {equipped&&!practice&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={SCENES[sceneIndex].root} options={settings.instruments[equipped]} settingsOpen={mixer} onClose={()=>equip(null)}/>}
+    {equipped&&!practice&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={performanceRoot} options={settings.instruments[equipped]} settingsOpen={mixer} onClose={()=>equip(null)}/>}
     {practice&&<PracticeRoom child={selectedChild} audio={audioRef.current} initialInstrument={practice} settings={settings} root={SCENES[sceneIndex].root} onClose={()=>setPractice(null)}/>}
 
     {!started && <StartScreen saveError={saveError} onRetrySave={retrySave} children={family.children} selectedId={family.selectedId} loading={loading} error={error} onStart={start} onSelect={selectChild} onAdd={()=>setParentGuide(true)}/>}

@@ -1,7 +1,37 @@
 import {test,expect} from './fixtures.js';
 
 async function start(page){const size=page.viewportSize();if(size.height>size.width)await page.setViewportSize({width:size.height,height:size.width});const errors=[];page.on('pageerror',error=>errors.push(error.message));await page.goto('/');await page.evaluate(async()=>{const text=await(await fetch('/src/App.jsx')).text();const url=/from\s+["']([^"']*\/audio\/AudioEngine[^"']*)["']/.exec(text)[1];const {AudioEngine}=await import(url);const init=AudioEngine.prototype.initialize;AudioEngine.prototype.initialize=async function(){await init.call(this);window.audioEngine=this;};});await page.getByRole('button',{name:'Tap to play'}).click();await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});return errors;}
-async function enter(page){const point=await page.locator('#young-musician').evaluate(element=>{const box=element.getBoundingClientRect();for(let row=1;row<8;row++)for(let column=1;column<8;column++){const x=box.left+box.width*column/8,y=box.top+box.height*row/8;if(document.elementFromPoint(x,y)?.closest('#young-musician'))return{x,y};}return{x:box.left+box.width/2,y:box.top+box.height/2};});await page.mouse.dblclick(point.x,point.y);await expect(page.getByRole('dialog',{name:'Farm practice room'})).toBeVisible();}
+async function enter(page){
+  const musician=page.locator('#young-musician');
+  let position;
+  await expect.poll(async()=>{
+    position=await musician.evaluate(element=>{
+      const box=element.getBoundingClientRect();
+      const steps=[16,...Array.from({length:31},(_,index)=>index+1).filter(value=>value!==16)];
+      for(const row of steps)for(const column of steps){
+        const x=box.width*column/32,y=box.height*row/32;
+        if(document.elementFromPoint(box.left+x,box.top+y)?.closest('#young-musician,.equipped-instrument'))return{x,y};
+      }
+      return null;
+    });
+    return Boolean(position);
+  },{message:'Practice entry must have a reachable native pointer target'}).toBe(true);
+  const equipped=await musician.evaluate(element=>element.classList.contains('equipped'));
+  if(!equipped)await musician.click({position,trial:true});
+  const bounds=await musician.boundingBox();
+  const point={x:bounds.x+position.x,y:bounds.y+position.y};
+  if(await page.evaluate(()=>matchMedia('(pointer: coarse)').matches)){
+    const touch={id:1,...point};
+    const session=await page.context().newCDPSession(page);
+    for(let tap=0;tap<2;tap++){
+      await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[touch]});
+      await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    }
+    await session.detach();
+  }else if(equipped)await page.mouse.dblclick(point.x,point.y);
+  else await musician.dblclick({position});
+  await expect(page.getByRole('dialog',{name:'Farm practice room'})).toBeVisible();
+}
 async function key(page,note){const button=page.getByRole('button',{name:`Piano key ${note}`,exact:true});await button.focus();await page.keyboard.press('Space');}
 
 test('double-tapping the girl opens the farm room with equipped instrument and restores farm on exit',async({page},testInfo)=>{

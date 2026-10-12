@@ -14,6 +14,7 @@ import { AudioResources } from '../src/audio/resources.js';
 import * as selection from '../src/audio/sampleSelection.js';
 import * as voices from '../src/audio/manualVoice.js';
 import * as session from '../src/audio/session.js';
+import { attachOwnedSamplerVoices } from '../src/audio/samplerVoices.js';
 
 const source = readFileSync(new URL('../src/audio/AudioEngine.js', import.meta.url), 'utf8')
   .replace(/^import .+;\r?$/gm, '')
@@ -30,7 +31,7 @@ function deferred() {
 function setup() {
   globalThis.document = Object.assign(new EventTarget(), { hidden: false });
   globalThis.window = new EventTarget();
-  const runtime = { nodes: [], starts: 0, startGate: null, onLoad: null, loads: 0, cancellations: 0, schedules: new Map(), cleared: [] };
+  const runtime = { nodes: [], starts: 0, startGate: null, onLoad: null, loads: 0, cancellations: 0, schedules: new Map(), cleared: [], ticks: 0, draws: [] };
   const parameter = () => ({ value: 0, rampTo() {}, setValueAtTime() {}, linearRampToValueAtTime() {}, setTargetAtTime() {}, cancelAndHoldAtTime() {} });
   const context = Object.assign(new EventTarget(), {
     state: 'running', currentTime: 1,
@@ -72,19 +73,138 @@ function setup() {
     getContext: () => ({ rawContext: context }), immediate: () => 1, now: () => 1,
     connect() {}, dbToGain: value => 10 ** (value / 20),
     Limiter: Node, Gain: Node, Volume: Node, Synth: Node, Player: Node,
-    Reverb, Sampler, ToneAudioBuffer: Buffer, Draw: { schedule() {} },
+    Time: value => ({ toTicks: () => beatOffset(value) * 192, toSeconds: () => typeof value==='number'?value:1 }),
+    Frequency: note => ({ toMidi: () => selection.parseMidi(note) }),
+    Reverb, Sampler, ToneAudioBuffer: Buffer, Draw: { schedule(callback,time) { runtime.draws.push({callback,time}); } },
     Transport: {
       bpm: { value: 92 }, state: 'stopped', PPQ: 192,
+      getTicksAtTime: time => runtime.ticks + (time - 1) * 192 * 92 / 60,
       scheduleRepeat: schedule, scheduleOnce: schedule,
       clear(id) { runtime.cleared.push(id); runtime.schedules.delete(id); },
       cancel() { runtime.cancellations++; runtime.schedules.clear(); },
       start() { this.state = 'started'; }, stop() { this.state = 'stopped'; },
     },
   };
-  const dependencies = { Tone, ...music, createNoisePair, SCENE_SOUNDS, audioLevels, ...samples, ...envelopes, STRING_INSTRUMENTS, equippedProfile, beatOffset, releaseManualVoice, AudioResources, ...selection, ...voices, ...session };
+  const dependencies = { Tone, ...music, createNoisePair, SCENE_SOUNDS, audioLevels, ...samples, ...envelopes, STRING_INSTRUMENTS, equippedProfile, beatOffset, releaseManualVoice, AudioResources, ...selection, ...voices, ...session, attachOwnedSamplerVoices };
   const AudioEngine = new Function(...Object.keys(dependencies), `${source}\nreturn AudioEngine;`)(...Object.values(dependencies));
   return { engine: new AudioEngine(), runtime, Tone };
 }
+
+test('scene changes finish captured old-key events and next bar uses the latest key on the same transport', async () => {
+  const { engine, runtime, Tone } = setup();
+  await engine.init();engine.setSceneKey('A');engine.active.piano=true;engine.active.drums=true;
+  engine.noise.piano.energyAt=()=>.9;engine.noise.piano.complexityAt=()=>.9;
+  const played=[];
+  engine.playEvent=(name,event,time,root)=>played.push({name,event,time,root});
+  engine.scheduleBar(1);
+  const pending=new Map(engine.pendingEvents);
+  assert.ok(pending.size>0);
+  const releases=[];
+  for(const [name,node] of Object.entries(engine.nodes))node.synth.releaseAll=()=>releases.push(name);
+  runtime.ticks=192;
+  const schedules=runtime.schedules.size;
+  engine.setSceneKey('E');engine.setSceneKey('Fm');
+  assert.deepEqual(engine.pendingEvents,pending);
+  assert.deepEqual(releases,[]);
+  assert.equal(engine.root,'Fm');assert.equal(engine.barRoot,'A');
+  assert.equal(engine.barIndex,1);assert.equal(runtime.schedules.size,schedules);
+  for(const id of pending.keys())runtime.schedules.get(id)(1.5);
+  assert.ok(played.length>2);
+  assert.ok(played.every(value=>value.root==='A'));
+  assert.equal(engine.pendingEvents.size,0);
+  played.length=0;
+  engine.scheduleBar(3);
+  assert.equal(engine.barRoot,'Fm');assert.equal(engine.barIndex,2);
+  assert.ok(played.every(value=>value.root==='Fm'));
+  assert.equal(Tone.Transport.state,'started');
+});
+
+test('held manual voices and their controls keep the audible key until the next downbeat', async () => {
+  const { engine, runtime } = setup();
+  await engine.init();engine.setSceneKey('A');engine.setManualInstrument('piano');
+  engine.scheduleBar(1);runtime.ticks=192;
+  engine.manualNoteOn('C4','held');
+  const voice=engine.manualVoices.get('held');assert.ok(voice);
+  const changes=[];engine.onSceneKeyChange=root=>changes.push(root);
+  engine.setSceneKey('E');engine.setSceneKey('Fm');
+  assert.equal(engine.playbackRoot,'A');assert.equal(engine.manualVoices.get('held'),voice);
+  assert.deepEqual(voice.source.stops,[]);assert.deepEqual(changes,[]);
+  engine.scheduleBar(3);
+  assert.equal(engine.playbackRoot,'A');assert.equal(engine.manualVoices.get('held'),voice);
+  for(const draw of runtime.draws)draw.callback();
+  assert.equal(engine.playbackRoot,'Fm');assert.deepEqual(changes,['Fm']);
+  assert.equal(engine.manualVoices.size,0);assert.ok(engine.retiringVoices.has(voice));
+});
+
+test('a ringing manual drum source also defers a scene change without releasing it midbar', async () => {
+  const { engine, runtime } = setup();
+  await engine.init();engine.setSceneKey('A');engine.scheduleBar(1);runtime.ticks=192;
+  engine.nodes.drums.samplerVoices.voices.add({startTime:1});
+  let released=false;engine.nodes.drums.synth.releaseAll=()=>{released=true;};
+  engine.setSceneKey('E');
+  assert.equal(engine.playbackRoot,'A');assert.equal(engine.barRoot,'A');assert.equal(released,false);
+  engine.scheduleBar(3);runtime.draws.at(-1).callback();
+  assert.equal(engine.playbackRoot,'E');assert.equal(released,false);
+});
+
+test('replacing an already queued A bar with E and A invalidates its obsolete cues only', async () => {
+  const { engine, runtime } = setup();
+  await engine.init();engine.setSceneKey('A');engine.setManualInstrument('piano');engine.active.piano=true;
+  engine.nodes.piano.synth.triggerAttackRelease=()=>{};
+  const cues=[];engine.onManualAutoplayEvent=event=>{if(event)cues.push(event);};
+  engine.scheduleBar(1);
+  const current=runtime.draws.slice();runtime.draws.length=0;
+  engine.scheduleBar(3);
+  const obsolete=runtime.draws.slice();runtime.draws.length=0;
+  runtime.ticks=740;engine.setSceneKey('E');engine.setSceneKey('A');
+  for(const draw of obsolete)draw.callback();
+  assert.equal(cues.length,0);
+  for(const draw of current)draw.callback();
+  assert.ok(cues.length>0);cues.length=0;
+  for(const draw of runtime.draws)draw.callback();
+  assert.ok(cues.length>0);
+  assert.ok(runtime.draws.every(draw=>draw.time>3));
+});
+
+test('pickups during a key transition stay in the current bar key', async () => {
+  const { engine, runtime } = setup();
+  await engine.init();engine.setSceneKey('A');engine.active.piano=true;
+  const played=[];engine.playEvent=(name,event,time,root)=>played.push({name,event,root});
+  engine.scheduleBar(1);runtime.ticks=192;engine.setSceneKey('E');
+  engine.playPickup('ukulele');
+  const actual=played.at(-1);
+  assert.equal(actual.root,'A');
+  assert.ok(STRING_INSTRUMENTS.ukulele.library.A.phrases.some(phrase=>phrase.events.some(event=>JSON.stringify(event)===JSON.stringify(actual.event))));
+});
+
+test('even a first-quarter-beat key change leaves the current bar uninterrupted', async () => {
+  const { engine, runtime, Tone } = setup();
+  await engine.init();engine.setSceneKey('A');engine.active.piano=true;
+  engine.noise.piano.energyAt=()=>.9;engine.noise.piano.complexityAt=()=>.9;
+  const played=[];engine.playEvent=(name,event,time,root)=>played.push({name,event,root});
+  engine.scheduleBar(1);engine.beatIndex=9;
+  const previous=[...engine.pendingEvents.keys()];assert.ok(previous.length>0);
+  runtime.ticks=24;played.length=0;engine.setSceneKey('E');
+  assert.equal(engine.barRoot,'A');assert.equal(engine.barIndex,1);assert.equal(engine.beatIndex,9);
+  assert.equal(Tone.Transport.state,'started');
+  assert.ok(previous.every(id=>engine.pendingEvents.has(id)&&!runtime.cleared.includes(id)));
+  assert.equal(played.length,0);
+  for(const id of engine.pendingEvents.keys())runtime.schedules.get(id)(1.5);
+  assert.ok(played.every(value=>value.root==='A'));
+  played.length=0;engine.scheduleBar(3);
+  assert.ok(played.every(value=>value.root==='E'));
+});
+
+test('quarter-beat boundary defers replacement and inactive or suspended scene changes still clean stale work', async () => {
+  const { engine, runtime } = setup();
+  await engine.init();engine.setSceneKey('A');engine.active.piano=true;engine.playEvent=()=>{};
+  engine.scheduleBar(1);runtime.ticks=48;
+  const pending=new Map(engine.pendingEvents);
+  engine.setSceneKey('E');assert.deepEqual(engine.pendingEvents,pending);assert.equal(engine.barRoot,'A');
+  engine.suspendPlayback();engine.setSceneKey('G');
+  assert.equal(engine.barRoot,'G');assert.equal(engine.pendingEvents.size,0);
+  const barIndex=engine.barIndex;engine.scheduleBar(2);assert.equal(engine.barIndex,barIndex);
+});
 
 test('init unlocks synchronously, coalesces calls, and supports no-argument wrappers', async () => {
   const { engine, runtime } = setup();

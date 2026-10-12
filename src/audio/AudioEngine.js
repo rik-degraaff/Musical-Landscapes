@@ -13,6 +13,7 @@ import { AudioResources } from './resources';
 import { parseMidi, prepareSampleCandidates, selectNearestSample } from './sampleSelection';
 import { disconnectManualVoice, finishManualVoice } from './manualVoice';
 import { capturePracticeSnapshot, restorePracticeSnapshot, findPhraseIndex } from './session';
+import { attachOwnedSamplerVoices } from './samplerVoices';
 
 const MIN_GAIN = -60;
 const FADE_SECONDS = 0.045;
@@ -34,8 +35,13 @@ export class AudioEngine {
     this.volumes = Object.fromEntries(instrumentNames.map(name => [name, INSTRUMENTS[name].volume]));
     this.noise = Object.fromEntries(instrumentNames.map(name => [name, createNoisePair(INSTRUMENTS[name].seed)]));
     this.pendingEvents = new Map();
+    this.pendingEventBars = new Map();
+    this.scheduledBars = new Map();
     this.nodes = {};
     this.root = 'C';
+    this.barRoot = this.root;
+    this.playbackRoot = this.root;
+    this.onSceneKeyChange = null;
     this.performanceSettings = {};
     this.sceneVolume = -4;
     this.manualInstrument = null;
@@ -239,6 +245,7 @@ export class AudioEngine {
         onerror: error => reject(new Error(`Could not load ${INSTRUMENTS[name].label} recordings`, { cause: error })),
       })).connect(nodes[name].gain);
       nodes[name].synth = sampler;
+      nodes[name].samplerVoices=attachOwnedSamplerVoices({Frequency:Tone.Frequency,Time:Tone.Time,ToneBufferSource:Tone.ToneBufferSource,immediate:Tone.immediate},sampler,buffers);
     });
   }
 
@@ -261,17 +268,37 @@ export class AudioEngine {
   setSceneKey(root) {
     if(root===this.root)return;
     this.root = root;
+    const playing=this.ready&&Tone.Transport.state==='started'&&this.barIndex>0&&!this.backgrounded&&!this.tempoHeld&&!this.practiceSession&&(Object.values(this.active).some(Boolean)||this.manualVoices.size>0||this.retiringVoices.size>0||Object.values(this.nodes).some(node=>node.samplerVoices?.voices.size>0));
+    const ticks=playing?Tone.Transport.getTicksAtTime(Tone.immediate()):0;
+    const bar=Math.max(0,Math.floor(ticks/(Tone.Transport.PPQ*4)));
+    const future=playing?this.scheduledBars.get(bar+1):null;
+    if(!playing)this.barRoot=root;
     if(this.ready){
-      window.dispatchEvent(new Event('farmjam-input-reset'));
-      this.clearPendingEvents();this.stopManualVoices();
-      for(const node of Object.values(this.nodes))node.synth.releaseAll(Tone.immediate());
-      this.playingNotes.clear();
+      if(!playing){
+        this.applySceneKey(root);
+        this.clearPendingEvents();
+        for(const node of Object.values(this.nodes))node.synth.releaseAll(Tone.immediate());
+        this.playingNotes.clear();
+        this.barRoot=root;
+      }
     }
     if(this.ready&&this.manualInstrument){
-      this.clearPendingEvents(this.manualInstrument);this.nodes[this.manualInstrument].synth.releaseAll();this.stopManualVoices();
       this.equippedPhrase=null;this.phraseIdentity=null;this.phrasePinned=false;
-      this.manualAutoplayVersion++;this.onManualAutoplayEvent?.(null);
     }
+    if(future){
+      for(const [id,eventBar] of this.pendingEventBars)if(eventBar===bar+1){Tone.Transport.clear(id);this.pendingEvents.delete(id);this.pendingEventBars.delete(id);}
+      for(const node of Object.values(this.nodes))node.samplerVoices?.cancelFrom(future.time);
+      this.scheduleBarEvents(future.time,bar+1);
+    }
+  }
+
+  applySceneKey(root) {
+    if(root===this.playbackRoot)return;
+    this.playbackRoot=root;
+    window.dispatchEvent(new Event('farmjam-input-reset'));
+    this.stopManualVoices();
+    this.onManualAutoplayEvent?.(null);
+    this.onSceneKeyChange?.(root);
   }
 
   setInstrumentActive(name, active) {
@@ -411,11 +438,14 @@ export class AudioEngine {
   }
 
   playPickup(name) {
-    const currentBar = Math.max(0, this.barIndex - 1);
+    const time=Tone.now()+FADE_SECONDS+.01;
+    const currentBar=Math.max(0,Math.floor(Tone.Transport.getTicksAtTime(time)/(Tone.Transport.PPQ*4)));
+    const scheduled=this.scheduledBars.get(currentBar);
+    const root=scheduled?.root??this.root;
     const energy = this.noise[name].energyAt(currentBar);
-    const phrase=this.selectPhrase(name,currentBar,energy);
-    const [firstEvent] = name===this.manualInstrument||STRING_INSTRUMENTS[name]?phrase.events:transposeEvents(phrase.events.slice(0, 1), this.root);
-    if (firstEvent) this.playEvent(name, firstEvent, Tone.now() + FADE_SECONDS + 0.01);
+    const phrase=this.selectPhrase(name,currentBar,energy,root);
+    const [firstEvent] = name===this.manualInstrument||STRING_INSTRUMENTS[name]?phrase.events:transposeEvents(phrase.events.slice(0, 1), root);
+    if (firstEvent) this.playEvent(name, firstEvent, time,root);
   }
 
   ensureTransport() {
@@ -434,7 +464,9 @@ export class AudioEngine {
       if (instrumentName && name !== instrumentName) continue;
       Tone.Transport.clear(id);
       this.pendingEvents.delete(id);
+      this.pendingEventBars.delete(id);
     }
+    if(!instrumentName)this.scheduledBars.clear();
   }
 
   setTempo(value) {
@@ -486,6 +518,7 @@ export class AudioEngine {
     if(this.practiceSession)return;
     this.practiceSession=capturePracticeSnapshot(this);
     this.stopPracticeRun();this.clearPendingEvents();this.stopManualVoices();
+    this.applySceneKey(this.root);
     window.dispatchEvent(new Event('farmjam-input-reset'));
     for(const node of Object.values(this.nodes)){node.synth.releaseAll();node.gain.volume.value=MIN_GAIN;}
     Tone.Transport.stop();Tone.Transport.position=0;this.barIndex=0;this.beatIndex=0;
@@ -587,11 +620,11 @@ export class AudioEngine {
     this.ensureTransport();
   }
 
-  selectPhrase(name,bar,energy=this.noise[name].energyAt(bar)) {
+  selectPhrase(name,bar,energy=this.noise[name].energyAt(bar),root=this.root) {
     const complexity=this.noise[name].complexityAt(bar);
-    if(name!==this.manualInstrument)return nearestBar(STRING_INSTRUMENTS[name]?.library[this.root].phrases??patterns[name],energy,complexity);
-    const identity=`${name}:${this.root}:${this.performanceSettings[name]?.complexity??1}`;
-    const pool=equippedProfile(name,this.root,this.performanceSettings[name]).phrases;
+    if(name!==this.manualInstrument)return nearestBar(STRING_INSTRUMENTS[name]?.library[root].phrases??patterns[name],energy,complexity);
+    const identity=`${name}:${root}:${this.performanceSettings[name]?.complexity??1}`;
+    const pool=equippedProfile(name,root,this.performanceSettings[name]).phrases;
     if(this.phraseIdentity!==identity){this.equippedPhrase=null;this.phraseIdentity=identity;this.phrasePinned=false;}
     const pinnedIndex=this.phrasePinned?findPhraseIndex(pool,this.equippedPhrase):-1;
     this.equippedPhrase=pinnedIndex>=0?pool[pinnedIndex]:nearestBar(pool,energy,complexity);
@@ -626,36 +659,50 @@ export class AudioEngine {
 
   scheduleBar(time) {
     if(this.backgrounded||this.tempoHeld)return;
-    const bar = this.barIndex++;
+    this.scheduleBarEvents(time,this.barIndex++);
+  }
+
+  scheduleBarEvents(time,bar) {
+    const root=this.root;
+    this.barRoot=root;
+    const scheduled={time,root,bar};
+    this.scheduledBars.set(bar,scheduled);
+    for(const index of this.scheduledBars.keys())if(index<bar-1)this.scheduledBars.delete(index);
+    const version=this.playbackVersion;
+    Tone.Draw.schedule(()=>{
+      if(this.ready&&!this.backgrounded&&!this.tempoHeld&&version===this.playbackVersion&&this.scheduledBars.get(bar)===scheduled)this.applySceneKey(root);
+    },time+(Tone.Draw.anticipation??.008)+.001);
     const barPosition = bar * Tone.Transport.PPQ * 4;
     for (const name of instrumentNames) {
       if (!this.shouldSchedule(name)) continue;
       const selected = this.selectPhrase(name,bar);
-      const events = name===this.manualInstrument||STRING_INSTRUMENTS[name]?selected.events:transposeEvents(selected.events, this.root);
+      const events = name===this.manualInstrument||STRING_INSTRUMENTS[name]?selected.events:transposeEvents(selected.events, root);
       for (const event of events) {
         const offset = Tone.Time(event.time).toTicks();
         if (offset === 0) {
-          this.playEvent(name, event, time);
+          this.playEvent(name, event, time,root,scheduled);
           continue;
         }
         let id;
         id = Tone.Transport.scheduleOnce(at => {
           this.pendingEvents.delete(id);
+          this.pendingEventBars.delete(id);
           if (!this.shouldSchedule(name)) return;
-          this.playEvent(name, event, at);
+          this.playEvent(name, event, at,root,scheduled);
         }, `${barPosition + offset}i`);
         this.pendingEvents.set(id, name);
+        this.pendingEventBars.set(id,bar);
       }
     }
   }
 
-  playEvent(name, event, time) {
+  playEvent(name, event, time,root=this.root,scheduled) {
     if(this.backgrounded||this.tempoHeld)return;
     if (name === this.manualInstrument && this.manualAutoplay) {
       const version = this.manualAutoplayVersion;
       Tone.Draw.schedule(() => {
-        if (this.manualAutoplay && version === this.manualAutoplayVersion && name === this.manualInstrument) this.onManualAutoplayEvent?.({...event, duration:Tone.Time(event.dur??'16n').toSeconds()});
-      }, time);
+        if ((!scheduled||this.scheduledBars.get(scheduled.bar)===scheduled)&&root===this.playbackRoot && this.manualAutoplay && version === this.manualAutoplayVersion && name === this.manualInstrument) this.onManualAutoplayEvent?.({...event, duration:Tone.Time(event.dur??'16n').toSeconds()});
+      }, time+(Tone.Draw.anticipation??.008)+.001);
     }
     const velocity = event.velocity ?? 0.55;
     const sampler = this.nodes[name].synth;
@@ -731,6 +778,7 @@ export class AudioEngine {
     this.playbackVersion++;
     this.onMetronomeBeat = null;
     this.onActiveChange = null;
+    this.onSceneKeyChange = null;
     this.manualAutoplayVersion++;
     this.onManualAutoplayEvent = null;
     this.stopManualVoices();

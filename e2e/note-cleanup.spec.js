@@ -197,26 +197,19 @@ test('sampler note-set changes release the previous notes before replacement att
   expect(result.unchanged.map(call=>call.type)).toEqual(['attack','attack']);
 });
 
-test('scene-key change cancels pending events for every instrument and all old manual pitches',async({page})=>{
+test('scene-key change preserves held manual pitches until the next downbeat, then cleans them',async({page})=>{
   await start(page);
   const result=await page.evaluate(async()=>{
     const engine=window.audioEngine;
     engine.setManualInstrument('panflute');engine.manualNoteOn('C5','old-key',.8);
     await window.waitAudio(.06);
-    const releases=[];window.staleEvents=[];
-    for(const [name,node] of Object.entries(engine.nodes)){
-      const release=node.synth.releaseAll;
-      node.synth.releaseAll=function(...args){releases.push(name);return release.apply(this,args);};
-      const id=window.testTone.Transport.scheduleOnce(()=>window.staleEvents.push(name),'+0.2');
-      engine.pendingEvents.set(id,name);
-    }
-    window.cleanupAt=window.testTone.getContext().rawContext.currentTime;
+    engine.onSceneKeyChange=()=>{window.cleanupAt=window.testTone.getContext().rawContext.currentTime;};
     engine.setSceneKey('G');
-    return {pending:engine.pendingEvents.size,releases:[...new Set(releases)].sort(),names:Object.keys(engine.nodes).sort(),root:engine.root};
+    return {held:engine.manualVoices.size,audible:engine.playbackRoot,root:engine.root};
   });
-  expect(result.pending).toBe(0);expect(result.releases).toEqual(result.names);expect(result.root).toBe('G');
+  expect(result).toEqual({held:1,audible:'A',root:'G'});
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.playbackRoot)).toBe('G');
   await expectCleanup(page);await expectSilence(page);
-  expect(await page.evaluate(()=>window.staleEvents)).toEqual([]);
 });
 
 for(const cleanup of ['stop','scene-key'])test(`${cleanup} discards a queued manual wake note before deferred resume completes`,async({page})=>{
@@ -257,7 +250,14 @@ for(const name of ['guitar','ukulele']) {
     await strings.nth(0).focus();await page.keyboard.press('Enter');
     await strings.nth(1).focus();await page.keyboard.press('Enter');
     expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBe(2);
-    await page.evaluate(()=>{window.cleanupAt=window.testTone.getContext().rawContext.currentTime;});
+    await page.evaluate(()=>{
+      const engine=window.audioEngine;const stop=engine.stopManualVoices;
+      engine.stopManualVoices=function(...args){
+        window.cleanupAt=window.testTone.getContext().rawContext.currentTime;
+        this.stopManualVoices=stop;
+        return stop.apply(this,args);
+      };
+    });
     await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[firstTouch,secondTouch]});
     await expectCleanup(page);await expectSilence(page);
     await strings.nth(0).focus();await page.keyboard.press('Enter');
