@@ -31,7 +31,11 @@ for(const root of roots)for(const complexity of [.35,1,1.5])test(`practice motif
     assert.deepEqual(profile.keyboardNotes,complexity>1&&['piano','marimba'].includes(name)?fixedBanks[name]:legacy.keyboardNotes);
     const roles=name==='drums'?['rhythm']:chordInstruments.includes(name)?['accompaniment','melody']:['melody'];
     assert.deepEqual([...new Set(appended.map(phrase=>phrase.role))].sort(),roles.sort());
-    for(const role of roles)assert.equal(new Set(appended.filter(phrase=>phrase.role===role).map(phrase=>phrase.name)).size,complexity<=.5?2:complexity<=1?4:6);
+    for(const role of roles){
+      const expectedNames=[...new Set(expected.filter(phrase=>phrase.role===role).map(phrase=>phrase.name))].sort();
+      const actualNames=[...new Set(appended.filter(phrase=>phrase.role===role).map(phrase=>phrase.name))].sort();
+      assert.deepEqual(actualNames,expectedNames);
+    }
     for(const phrase of appended){
       assert.ok(phrase.tier<=(complexity<=.5?0:complexity<=1?1:2));
       assert.ok((complexity<=.5?[0,3,4]:complexity<=1?[0,1,2,3,4,5]:[0,1,2,3,4,5,6]).includes(phrase.degree));

@@ -328,6 +328,11 @@ export class AudioEngine {
     const transportWasPlaying = Tone.Transport.state === 'started' && this.barIndex > 0;
     if (this.active[name] === active) return;
     this.active[name] = active;
+    if(this.phrasePinned&&this.manualInstrument&&name!==this.manualInstrument){
+      const previousRole=this.equippedPhrase?.role;
+      const nextRole=this.compositionRole(this.manualInstrument,this.active);
+      if(previousRole&&previousRole!==nextRole){this.phrasePinned=false;this.equippedPhrase=null;this.phraseIdentity=null;}
+    }
     this.onActiveChange?.(name, active);
     if (name === this.manualInstrument) {
       this.manualAutoplayVersion++;
@@ -470,7 +475,7 @@ export class AudioEngine {
     const audible=this.harmonyPlan;
     const plan=scheduled?.plan??(audible?.bar===currentBar?audible:this.composition.planBar(currentBar,this.root,this.compositionOptions(name)));
     const root=plan?.root??this.root;
-    const role=this.compositionRole(name,{...this.active,[name]:true});
+    const role=this.plannedRole(name,plan,{...this.active,[name]:true});
     const pool=compositionProfile(name,root,{...(name===this.manualInstrument?this.performanceSettings[name]:{}),role,degree:name==='drums'?0:plan?.currentChord.degree??0,genre:this.genre});
     const preferred=name===this.manualInstrument&&this.phrasePinned?this.equippedPhrase:plan?.phrases[name];
     const phrase=pool.find(candidate=>candidate.name===preferred?.name)??pool[0];
@@ -514,7 +519,7 @@ export class AudioEngine {
     if(audible){
       const next=this.scheduledBars.get(audible.bar+1)?.plan;
       const name=this.manualInstrument;
-      const incompatible=name&&!compositionProfile(name,this.root,{...this.performanceSettings[name],role:this.compositionRole(name),degree:name==='drums'?0:audible.nextChord.degree}).length;
+      const incompatible=name&&!compositionProfile(name,this.root,{...this.performanceSettings[name],role:this.plannedRole(name,audible),degree:name==='drums'?0:audible.nextChord.degree,genre:this.genre}).length;
       if(audible.root!==this.root||incompatible||(next&&JSON.stringify(next.currentChord)!==JSON.stringify(audible.nextChord)))this.onHarmonyChange?.(null);
     }
   }
@@ -677,12 +682,16 @@ export class AudioEngine {
     return name==='drums'?'rhythm':accompaniment.includes(name)?'accompaniment':'melody';
   }
 
+  plannedRole(name,plan,active=this.active) {
+    return plan?.activeNames?.includes(name)?plan.roles[name]:this.compositionRole(name,active);
+  }
+
   compositionOptions(extraName) {
     const active={...this.active,...(extraName?{[extraName]:true}:{})};
     const name=this.manualInstrument;
     if(this.phrasePinned&&name&&active[name]){
-      const role=this.compositionRole(name,active);
-      const pool=compositionProfile(name,this.root,{...this.performanceSettings[name],role});
+      const role=this.phrasePinned&&this.equippedPhrase?.role?this.equippedPhrase.role:this.plannedRole(name,this.harmonyPlan,active);
+      const pool=compositionProfile(name,this.root,{...this.performanceSettings[name],role,genre:this.genre});
       if(this.equippedPhrase?.role!==role||!pool.some(phrase=>phrase.name===this.equippedPhrase?.name))this.phrasePinned=false;
     }
     return {active,manualInstrument:name,performanceSettings:name?{[name]:this.performanceSettings[name]}:{},phraseOverrides:this.phrasePinned&&name&&active[name]&&this.equippedPhrase?{[name]:{name:this.equippedPhrase.name,role:this.equippedPhrase.role}}:{},genre:this.genre,genreTransition:this.genreTransition};
@@ -692,7 +701,7 @@ export class AudioEngine {
     const options=this.compositionOptions(name);
     const plan=this.scheduledBars.get(bar)?.plan??(this.harmonyPlan?.bar===bar?this.harmonyPlan:null);
     const phraseRoot=plan?.root??root;
-    const role=this.compositionRole(name,options.active);
+    const role=name===this.manualInstrument&&this.phrasePinned&&this.equippedPhrase?.role?this.equippedPhrase.role:this.plannedRole(name,plan,options.active);
     const settings=name===this.manualInstrument?this.performanceSettings[name]:{};
     let pool=compositionProfile(name,phraseRoot,{...settings,role,degree:name==='drums'?0:plan?.currentChord.degree??0,genre:this.genre});
     if(!pool.length)pool=compositionProfile(name,phraseRoot,{...settings,role,degree:0,genre:this.genre});

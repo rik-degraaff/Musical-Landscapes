@@ -6,7 +6,7 @@ import {fluteInput} from './wind.js';
 import {midiNote,PIANO_NOTES,MARIMBA_NOTES,PANFLUTE_NOTES} from './performance.js';
 import {COMPOSITION_PHRASES,PHRASE_TRANSITIONS,COMPOSITION_PROGRESSIONS} from '../data/compositionPhrases.js';
 import {blendCompositionStyles,compositionStyle} from '../data/compositionStyles.js';
-import {distributeTension,movementFrame,smoothNoise} from './movementPlanner.js';
+import {blendMovementFrames,distributeTension,ideaScheduleWeights,movementFrame,planIdeaSchedule,smoothNoise,varyMovementShape} from './movementPlanner.js';
 
 const chordInstruments=['piano','guitar','ukulele'];
 const levels=['Simple','Standard','Advanced'];
@@ -43,6 +43,11 @@ function playable(name,profile,chord) {
   if(name==='drums')return true;
   const available=bank(name,profile,chord);
   return available.some(note=>chord.tones.includes(noteMidi(note)%12));
+}
+
+function defaultRole(name,activeNames) {
+  if(name==='drums')return 'rhythm';
+  return chordInstruments.filter(instrument=>activeNames.includes(instrument)).slice(0,2).includes(name)?'accompaniment':'melody';
 }
 
 function motifs(role,profile,style) {
@@ -130,7 +135,7 @@ export class Composition {
     this.nextBar=0;
     this.plans=new Map();
     this.checkpoints=new Map();
-    this.state={root:null,genre:null,tiers:{},progression:null,offset:0,queued:null,phrases:{},roles:{},membership:'',movement:null};
+    this.state={root:null,genre:null,tiers:{},progression:null,offset:0,queued:null,phrases:{},roles:{},membership:'',movement:null,queuedMovement:null,previousMovement:null};
   }
 
   invalidateFrom(bar) {
@@ -165,18 +170,19 @@ export class Composition {
     const activeNames=Object.keys(INSTRUMENTS).filter(name=>Array.isArray(active)?active.includes(name):active instanceof Set?active.has(name):active[name]);
     const names=Object.keys(INSTRUMENTS).filter(name=>activeNames.includes(name)||name===manualInstrument);
     const profiles=Object.fromEntries(names.map(name=>[name,equippedProfile(name,root,{complexity:name===manualInstrument?(performanceSettings[name]?.complexity??1.5):1.5})]));
-    const accompaniment=chordInstruments.filter(name=>activeNames.includes(name)).slice(0,2);
-    const roles=Object.fromEntries(names.map(name=>[name,name==='drums'?'rhythm':accompaniment.includes(name)?'accompaniment':'melody']));
     const overrides={};
     for(const [name,value] of Object.entries(phraseOverrides)){
       if(!names.includes(name))throw new Error(`Override instrument is not planned: ${name}`);
       const motifName=typeof value==='string'?value:value?.name;
-      if(value?.role&&value.role!==roles[name])throw new Error(`Invalid override role for ${name}: ${value.role}`);
-      const motif=motifs(roles[name],profiles[name],style).find(candidate=>candidate.name===motifName);
-      if(!motif)throw new Error(`Invalid override motif for ${name} ${roles[name]} ${profiles[name].level}: ${motifName}`);
-      overrides[name]=motif;
+      const fallbackRole=defaultRole(name,activeNames);
+      const candidateRoles=value?.role?[value.role]:name==='drums'?['rhythm']:chordInstruments.includes(name)?[fallbackRole,fallbackRole==='accompaniment'?'melody':'accompaniment']:[fallbackRole];
+      if(candidateRoles.some(role=>!['accompaniment','melody','rhythm'].includes(role)))throw new Error(`Invalid override role for ${name}: ${value.role}`);
+      const selectedRole=candidateRoles.find(role=>motifs(role,profiles[name],style).some(candidate=>candidate.name===motifName));
+      const motif=selectedRole&&motifs(selectedRole,profiles[name],style).find(candidate=>candidate.name===motifName);
+      if(!motif)throw new Error(`Invalid override motif for ${name} ${candidateRoles.join('/')} ${profiles[name].level}: ${motifName}`);
+      overrides[name]={motif,role:selectedRole};
     }
-    const signature=JSON.stringify([root,genre,mix,activeNames,manualInstrument,names.map(name=>[name,profiles[name].level,overrides[name]?.name,roles[name]])]);
+    const signature=JSON.stringify([root,genre,mix,activeNames,manualInstrument,names.map(name=>[name,profiles[name].level,overrides[name]?.motif.name,overrides[name]?.role])]);
     const cached=this.plans.get(bar);
     if(cached?.signature===signature)return cached.plan;
     if(cached)this.invalidateFrom(bar);
@@ -185,39 +191,104 @@ export class Composition {
     return this.plans.get(bar).plan;
   }
 
+  createMovement(bar,style,names,activeNames,profiles,previousRoles={},previousMovement,overrides) {
+    const controls=style.movementControls;
+    const sourceShape=this.choose(style.movementShapes,style.movementShapeWeights);
+    const seedChoice=this.choose(Array.from({length:32},(_,index)=>({name:`seed${index}`,value:(index+1)*7919})));
+    const lengthChoices=[-controls.lengthVariation,0,controls.lengthVariation].map((value,index)=>({name:`length${index}`,value}));
+    const ideaChoices=[-controls.ideaCountVariation,0,controls.ideaCountVariation].map((value,index)=>({name:`ideas${index}`,value}));
+    const lengthOffset=this.choose(lengthChoices,{length0:1,length1:4,length2:1}).value;
+    const ideaCountOffset=this.choose(ideaChoices,{ideas0:1,ideas1:4,ideas2:1}).value;
+    const shape=varyMovementShape(sourceShape,seedChoice.value,{shapeVariation:controls.shapeVariation,lengthOffset,ideaCountOffset});
+    const activeChordal=chordInstruments.filter(name=>activeNames.includes(name));
+    const pairs=[];
+    if(activeChordal.length<=1)pairs.push(activeChordal);
+    else for(let first=0;first<activeChordal.length;first++)for(let second=first+1;second<activeChordal.length;second++)pairs.push([activeChordal[first],activeChordal[second]]);
+    const pinnedAccompaniment=Object.entries(overrides).filter(([name,value])=>activeChordal.includes(name)&&value.role==='accompaniment').map(([name])=>name);
+    const pinnedMelody=Object.entries(overrides).filter(([name,value])=>activeChordal.includes(name)&&value.role==='melody').map(([name])=>name);
+    const validPairs=pairs.filter(pair=>pinnedAccompaniment.every(name=>pair.includes(name))&&pinnedMelody.every(name=>!pair.includes(name)));
+    if(!validPairs.length)throw new Error('No accompaniment assignment satisfies the pinned phrase roles');
+    let accompanimentPair=validPairs[0];
+    if(previousMovement||Object.keys(previousRoles).length){
+      const previousPair=chordInstruments.filter(name=>previousRoles[name]==='accompaniment');
+      const candidates=validPairs.map(pair=>({name:pair.join('+')||'none',members:pair}));
+      const weights=Object.fromEntries(candidates.map(({name,members})=>{
+        const shared=members.filter(instrument=>previousPair.includes(instrument)).length;
+        return [name,previousPair.length?shared===members.length?style.accompanimentStickiness:shared?1.4:.35:1];
+      }));
+      accompanimentPair=this.choose(candidates,weights).members;
+    }
+    const accompanimentSet=new Set(accompanimentPair);
+    const roles=Object.fromEntries(names.map(name=>[name,name==='drums'?'rhythm':activeChordal.includes(name)&&accompanimentSet.has(name)?'accompaniment':'melody']));
+    const available=Object.entries(style.ideas).filter(([,idea])=>names.every(name=>motifs(roles[name],profiles[name],style).some(motif=>idea[roles[name]]?.includes(motif.name))));
+    const families=available.length?available:Object.entries(style.ideas);
+    const forced=[...new Set(Object.entries(overrides).map(([name,value])=>families.find(([,idea])=>idea[roles[name]]?.includes(value.motif.name))?.[0]).filter(Boolean))];
+    const requested=Math.min(families.length,Math.max(shape.ideaCount,forced.length));
+    const ideas=[...forced];
+    while(ideas.length<requested){
+      const remaining=families.filter(([name])=>!ideas.includes(name));
+      const weights=Object.fromEntries(remaining.map(([name])=>[name,(style.familyWeights[name]??1)*(previousMovement?.ideas.includes(name)?(controls.ideaStickiness??3):1)]));
+      ideas.push(this.choose(remaining.map(([name])=>({name})),weights).name);
+    }
+    const melodyMotifs=[...new Set(ideas.flatMap(family=>style.ideas[family]?.melody??[]))].filter(name=>names.some(instrument=>roles[instrument]==='melody'&&motifs('melody',profiles[instrument],style).some(motif=>motif.name===name)));
+    const anchorChoices=melodyMotifs.map(name=>({name}));
+    const anchorWeights=Object.fromEntries(anchorChoices.map(({name})=>[name,previousMovement?.melodicAnchor===name?controls.anchorStickiness:1]));
+    const melodicAnchor=anchorChoices.length?this.choose(anchorChoices,anchorWeights).name:null;
+    const similarities=controls.melodicSimilarity.map((value,index)=>({name:`similarity${index}`,value}));
+    const melodicSimilarity=similarities.length?this.choose(similarities).value:.4;
+    const ideaSchedule=planIdeaSchedule(ideas,shape.length,{
+      overlap:controls.ideaOverlap,
+      phaseVariation:controls.ideaPhaseVariation,
+      seed:seedChoice.value,
+    });
+    return {shape,startBar:bar,seed:seedChoice.value,ideas,ideaSchedule,roles,melodicAnchor,melodicSimilarity};
+  }
+
   buildBar(bar,root,genre,mix,style,names,activeNames,profiles,signature,overrides) {
     this.checkpoints.set(bar,{cursor:this.cursor,state:structuredClone(this.state)});
     const state=this.state;
     if(state.root!==root||state.genre!==genre){
-      state.root=root;state.genre=genre;state.progression=null;state.offset=0;state.queued=null;state.phrases={};state.movement=null;
+      state.root=root;state.genre=genre;state.progression=null;state.offset=0;state.queued=null;state.phrases={};state.movement=null;state.queuedMovement=null;state.previousMovement=null;
     }
     const membership=activeNames.join(',');
     if(state.membership!==membership){
-      const accompaniment=chordInstruments.filter(name=>activeNames.includes(name)).slice(0,2);
-      state.roles=Object.fromEntries(activeNames.map(name=>[name,name==='drums'?'rhythm':accompaniment.includes(name)?'accompaniment':'melody']));
       state.membership=membership;
-      state.movement=null;
+      state.movement=null;state.queuedMovement=null;state.previousMovement=null;
     }
-    const roles=Object.fromEntries(names.map(name=>[name,state.roles[name]??(name==='drums'?'rhythm':'melody')]));
-    const eligibleIdeas=Object.entries(style.ideas).filter(([,idea])=>names.every(name=>motifs(roles[name],profiles[name],style).some(motif=>idea[roles[name]]?.includes(motif.name))));
-    if(!state.movement||bar-state.movement.startBar>=state.movement.shape.length){
-      const shape=this.choose(style.movementShapes,style.movementShapeWeights);
-      const seedChoice=this.choose(Array.from({length:32},(_,index)=>({name:`seed${index}`,value:(index+1)*7919})));
-      const available=eligibleIdeas.length?eligibleIdeas:Object.entries(style.ideas);
-      const requested=Math.min(shape.ideaCount,available.length);
-      const ideas=[];
-      while(ideas.length<requested){
-        const remaining=available.filter(([name])=>!ideas.includes(name));
-        const weights=Object.fromEntries(remaining.map(([name])=>[name,style.familyWeights[name]??1]));
-        ideas.push(this.choose(remaining.map(([name])=>({name})),weights).name);
-      }
-      for(const [name,override] of Object.entries(overrides)){
-        const family=available.find(([,idea])=>idea[roles[name]]?.includes(override.name))?.[0];
-        if(family&&!ideas.includes(family))ideas[0]=family;
-      }
-      state.movement={shape,startBar:bar,seed:seedChoice.value,ideas};
+    if(state.movement&&bar>=state.movement.startBar+state.movement.shape.length){
+      state.previousMovement=state.movement;
+      state.movement=state.queuedMovement;
+      state.queuedMovement=null;
     }
-    const movement=movementFrame(state.movement,bar,style);
+    if(!state.movement)state.movement=this.createMovement(bar,style,names,activeNames,profiles,state.roles,state.previousMovement,overrides);
+    state.roles=state.movement.roles;
+    const movementEnd=state.movement.startBar+state.movement.shape.length;
+    const transitionBars=Math.min(style.movementControls.transitionBars,state.movement.shape.length-2);
+    if(!state.queuedMovement&&bar>=movementEnd-transitionBars)state.queuedMovement=this.createMovement(movementEnd,style,names,activeNames,profiles,state.movement.roles,state.movement,overrides);
+    if(state.previousMovement&&bar>=state.movement.startBar+transitionBars)state.previousMovement=null;
+    const roles=Object.fromEntries(names.map(name=>[name,state.movement.roles[name]??(name==='drums'?'rhythm':'melody')]));
+    const transitionFrom=state.previousMovement??state.movement;
+    const transitionTo=state.queuedMovement??state.movement;
+    let transitionProgress=0;
+    if(transitionFrom!==transitionTo){
+      const boundary=state.queuedMovement?movementEnd:state.movement.startBar;
+      transitionProgress=Math.max(0,Math.min(1,(bar-(boundary-transitionBars)+1)/(2*transitionBars)));
+    }
+    const currentFrame=movementFrame(transitionFrom,transitionFrom===state.movement?bar:transitionFrom.startBar+transitionFrom.shape.length-1,style);
+    const nextFrame=movementFrame(transitionTo,transitionTo===state.movement?bar:transitionTo.startBar,style);
+    const movement=transitionFrom===transitionTo?currentFrame:blendMovementFrames(currentFrame,nextFrame,transitionProgress);
+    const melodicSimilarity=transitionFrom.melodicSimilarity+(transitionTo.melodicSimilarity-transitionFrom.melodicSimilarity)*transitionProgress;
+    const familyEntries=new Map();
+    const fromSchedule=ideaScheduleWeights(transitionFrom.ideaSchedule,currentFrame.position);
+    const toSchedule=ideaScheduleWeights(transitionTo.ideaSchedule,nextFrame.position);
+    for(const [family,weight] of Object.entries(fromSchedule))familyEntries.set(family,(familyEntries.get(family)??0)+weight*(transitionFrom===transitionTo?1:1-transitionProgress));
+    for(const [family,weight] of Object.entries(toSchedule))familyEntries.set(family,(familyEntries.get(family)??0)+weight*(transitionFrom===transitionTo?0:transitionProgress));
+    for(const [name,override] of Object.entries(overrides)){
+      const family=[...transitionFrom.ideas,...transitionTo.ideas].find(value=>style.ideas[value]?.[roles[name]]?.includes(override.motif.name));
+      if(family)familyEntries.set(family,Math.max(1,familyEntries.get(family)??0));
+    }
+    const movementIdeas=[...new Set([...transitionFrom.ideas,...transitionTo.ideas])];
+    const movementIdeaWeight=family=>familyEntries.get(family)??0;
     const tensions=distributeTension(movement.tension,roles,style);
     const mode=musicalKey(root).minor?'minor':'major';
     const progressions=[...COMPOSITION_PROGRESSIONS,...style.progressions.filter(value=>!COMPOSITION_PROGRESSIONS.some(base=>base.name===value.name))];
@@ -240,23 +311,41 @@ export class Composition {
     for(const name of names){
       const role=roles[name];
       const previous=state.tiers[name]===profiles[name].level&&state.phrases[name]?.role===role?state.phrases[name]:undefined;
-      const availableMotifs=motifs(role,profiles[name],style).filter(motif=>state.movement.ideas.some(family=>style.ideas[family]?.[role]?.includes(motif.name)));
-      const candidates=availableMotifs.length?availableMotifs:motifs(role,profiles[name],style);
+      const availableMotifs=motifs(role,profiles[name],style).filter(motif=>movementIdeas.some(family=>movementIdeaWeight(family)>0&&style.ideas[family]?.[role]?.includes(motif.name)));
+      const heldMotifs=previous?.idea&&movementIdeaWeight(previous.idea)>=style.movementControls.ideaHoldWeight?availableMotifs.filter(motif=>style.ideas[previous.idea]?.[role]?.includes(motif.name)):[];
+      const candidates=heldMotifs.length?heldMotifs:availableMotifs.length?availableMotifs:motifs(role,profiles[name],style);
       const transitionWeights={...(PHRASE_TRANSITIONS[previous?.name]??{}),...(style.motifTransitions[previous?.name]??{})};
       const planned=[...Object.values(phrases)];
       const weights=Object.fromEntries(candidates.map(motif=>{
-        const motifFamilies=state.movement.ideas.filter(family=>style.ideas[family]?.[role]?.includes(motif.name));
+        const motifFamilies=movementIdeas.filter(family=>movementIdeaWeight(family)>0&&style.ideas[family]?.[role]?.includes(motif.name));
         const sharesIdea=planned.some(phrase=>motifFamilies.includes(phrase.idea));
         const answersAccompaniment=role==='melody'&&planned.some(phrase=>phrase.role==='accompaniment')&&style.coordination.responseMotifs.includes(motif.name);
-        const coordination=(sharesIdea?1+style.coordination.sharedIdeaBias:1)*(answersAccompaniment?1+style.coordination.callResponseBias:1);
-        return [motif.name,(transitionWeights[motif.name]??1)*(style.motifWeights?.[motif.name]??1)*Math.exp(-Math.abs(motif.energy-tensions[name])*2.2)*coordination];
+        const sameMelodicThread=role==='melody'&&planned.some(phrase=>phrase.role==='melody'&&phrase.name===motif.name);
+        const continuesIdea=previous?.idea&&motifFamilies.includes(previous.idea);
+        const fromAnchor=motif.name===transitionFrom.melodicAnchor?1-transitionProgress:0;
+        const toAnchor=motif.name===transitionTo.melodicAnchor?transitionProgress:0;
+        const anchorAffinity=Math.max(fromAnchor,toAnchor);
+        const coordination=(sharesIdea?1+style.coordination.sharedIdeaBias:1)*(answersAccompaniment?1+style.coordination.callResponseBias:1)*(sameMelodicThread?1+melodicSimilarity:1)*(continuesIdea?1+style.movementControls.ideaContinuity:1)*(role==='melody'?1+anchorAffinity*melodicSimilarity*2:1);
+        const familyAffinity=motifFamilies.reduce((maximum,family)=>Math.max(maximum,movementIdeaWeight(family)),0);
+        return [motif.name,(transitionWeights[motif.name]??1)*(style.motifWeights?.[motif.name]??1)*Math.max(.001,familyAffinity)*Math.exp(-Math.abs(motif.energy-tensions[name])*2.2)*coordination];
       }));
-      const motif=overrides[name]??this.choose(candidates,weights);
-      const idea=state.movement.ideas.find(family=>style.ideas[family]?.[role]?.includes(motif.name))??null;
+      const motif=overrides[name]?.motif??this.choose(candidates,weights);
+      const motifFamilies=movementIdeas.filter(family=>style.ideas[family]?.[role]?.includes(motif.name));
+      const idea=previous?.idea&&motifFamilies.includes(previous.idea)&&movementIdeaWeight(previous.idea)>0?previous.idea:motifFamilies.sort((first,second)=>movementIdeaWeight(second)-movementIdeaWeight(first))[0]??null;
       phrases[name]=render(name,root,role,{...motif,idea},currentChord,nextChord,profiles[name],previous,{tension:tensions[name]??movement.tension,style,bar,seed:state.movement.seed});
     }
-    const movementPlan={name:state.movement.shape.name,index:bar-state.movement.startBar,length:state.movement.shape.length,position:movement.position,targetTension:movement.targetTension,tension:movement.tension,noise:movement.noise,ideas:[...state.movement.ideas]};
-    const plan=freeze({bar,root,genre,genreBlend:mix,movement:movementPlan,tensions,currentChord,nextChord,roles,phrases,progression:state.progression.name,progressionOffset:state.offset});
+    const movementPlan={
+      name:state.movement.shape.name,startBar:state.movement.startBar,index:bar-state.movement.startBar,length:state.movement.shape.length,
+      section:movement.section,position:movement.position,targetTension:movement.targetTension,tension:movement.tension,noise:movement.noise,
+      ideas:movementIdeas,currentIdeas:[...state.movement.ideas],nextIdeas:state.queuedMovement?[...state.queuedMovement.ideas]:[],
+      ideaSchedule:[...state.movement.ideaSchedule],handoffFromIdeaSchedule:state.previousMovement?[...state.previousMovement.ideaSchedule]:[],nextIdeaSchedule:state.queuedMovement?[...state.queuedMovement.ideaSchedule]:[],
+      activeIdeas:movementIdeas.filter(family=>movementIdeaWeight(family)>.05),ideaWeights:Object.fromEntries(familyEntries),
+      nextName:state.queuedMovement?.shape.name??null,transitionFrom:transitionFrom===transitionTo?null:transitionFrom.shape.name,
+      transitionTo:transitionFrom===transitionTo?null:transitionTo.shape.name,transitionProgress,melodicSimilarity,
+      melodicAnchor:transitionProgress<.5?transitionFrom.melodicAnchor:transitionTo.melodicAnchor,
+      melodicAnchors:[transitionFrom.melodicAnchor,transitionTo.melodicAnchor],
+    };
+    const plan=freeze({bar,root,genre,genreBlend:mix,movement:movementPlan,activeNames:[...activeNames],tensions,currentChord,nextChord,roles,phrases,progression:state.progression.name,progressionOffset:state.offset});
     this.plans.set(bar,{signature,plan});
     state.phrases=phrases;
     state.tiers=Object.fromEntries(names.map(name=>[name,profiles[name].level]));

@@ -49,7 +49,9 @@ for(const root of roots)for(const complexity of [.35,1,1.5])test(`composition po
       const pool=compositionProfile(name,root,{complexity,role});
       assert.ok(pool.length>=2);
       const states=new Set(pool.map(phrase=>phrase.name));
-      assert.equal(states.size,complexity<=.5?2:complexity<=1?4:6);
+      const maxTier=complexity<=.5?0:complexity<=1?1:2;
+      const authored=[...COMPOSITION_PHRASES[role],...COMPOSITION_STYLES.folk.phrases[role]].filter(phrase=>phrase.tier<=maxTier);
+      assert.equal(states.size,new Set(authored.map(phrase=>phrase.name)).size);
       for(let tier=0;tier<=(complexity<=.5?0:complexity<=1?1:2);tier++){
         for(const degree of new Set(pool.map(phrase=>phrase.degree))){
           const signatures=new Set(pool.filter(phrase=>phrase.degree===degree&&phrase.tier===tier).map(phrase=>JSON.stringify(phrase.events.map(event=>[event.time,event.dur,event.notes??event.note]))));
@@ -106,12 +108,47 @@ test('whole progression states and independent named phrase transitions are expl
     assert.equal(plan.currentChord.degree,progression.degrees[plan.progressionOffset]);
     if(previous){
       assert.deepEqual(previous.nextChord,plan.currentChord);
-      for(const name of names)assert.ok(PHRASE_TRANSITIONS[previous.phrases[name].name][plan.phrases[name].name]>0);
+      for(const name of names){
+        const from=previous.phrases[name].name,to=plan.phrases[name].name;
+        const weights={...(PHRASE_TRANSITIONS[from]??{}),...(COMPOSITION_STYLES[plan.genre].motifTransitions[from]??{})};
+        assert.ok((weights[to]??1)>0);
+      }
       if(previous.progressionOffset<COMPOSITION_PROGRESSIONS.find(value=>value.name===previous.progression).degrees.length-1){
         assert.equal(plan.progression,previous.progression);assert.equal(plan.progressionOffset,previous.progressionOffset+1);
       }else assert.ok(COMPOSITION_PROGRESSIONS.find(value=>value.name===previous.progression).transitions[plan.progression]>0);
     }
     previous=plan;
+  }
+});
+
+test('both genres reuse the original phrase vocabulary and add distinct varied motifs per role',()=>{
+  const folk=COMPOSITION_STYLES.folk,jazz=COMPOSITION_STYLES.jazz;
+  for(const role of Object.keys(COMPOSITION_PHRASES)){
+    const legacyNames=COMPOSITION_PHRASES[role].map(motif=>motif.name);
+    for(const style of [folk,jazz]){
+      const referenced=new Set(Object.values(style.ideas).flatMap(idea=>idea[role]??[]));
+      legacyNames.forEach(name=>assert.ok(referenced.has(name),`${style.id} ${role} retains ${name}`));
+      const names=style.phrases[role].map(motif=>motif.name);
+      assert.ok(names.length>=3);
+      assert.equal(new Set(names).size,names.length);
+      assert.ok(new Set(style.phrases[role].map(motif=>motif.tier)).size>=2);
+      assert.ok(new Set(style.phrases[role].map(motif=>motif.energy)).size>=3);
+    }
+    const folkNames=new Set(folk.phrases[role].map(motif=>motif.name));
+    assert.ok(jazz.phrases[role].some(motif=>!folkNames.has(motif.name)),`${role} has Jazz-exclusive material`);
+  }
+});
+
+test('all genre-specific phrase variants remain playable at each instrument tier',()=>{
+  for(const genre of ['folk','jazz'])for(const root of ['C','Am'])for(const complexity of [.35,1,1.5]){
+    for(const name of names){
+      const roles=name==='drums'?['rhythm']:['melody',...( ['piano','guitar','ukulele'].includes(name)?['accompaniment']:[])];
+      for(const role of roles){
+        const pool=compositionProfile(name,root,{genre,complexity,role});
+        assert.ok(pool.length>=2,`${genre} ${name} ${role} ${complexity}`);
+        pool.forEach(phrase=>assertPlayable(name,root,complexity,phrase));
+      }
+    }
   }
 });
 
@@ -155,8 +192,8 @@ test('weighted transitions select each instrument from its own previous phrase s
   for(let bar=0;bar<20;bar++){
     const plan=composer.planBar(bar,'C',options);
     for(const name of Object.keys(plan.phrases)){
-      const candidates=COMPOSITION_PHRASES[plan.roles[name]].filter(value=>value.tier<=({piano:2,guitar:0,drums:2})[name]&&plan.movement.ideas.some(family=>COMPOSITION_STYLES.folk.ideas[family]?.[plan.roles[name]]?.includes(value.name)));
-      const weights=PHRASE_TRANSITIONS[previous?.phrases[name].name]??{};
+      const candidates=[...COMPOSITION_PHRASES[plan.roles[name]],...COMPOSITION_STYLES.folk.phrases[plan.roles[name]]].filter(value=>value.tier<=({piano:2,guitar:0,drums:2})[name]&&plan.movement.ideas.some(family=>COMPOSITION_STYLES.folk.ideas[family]?.[plan.roles[name]]?.includes(value.name)));
+      const weights={...(PHRASE_TRANSITIONS[previous?.phrases[name].name]??{}),...(COMPOSITION_STYLES.folk.motifTransitions[previous?.phrases[name].name]??{})};
       assert.ok(candidates.some(value=>value.name===plan.phrases[name].name));
       assert.ok((weights[plan.phrases[name].name]??1)>0);
       assertPlayable(name,'C',name==='guitar'?.35:1.5,plan.phrases[name],plan.currentChord);
@@ -213,6 +250,50 @@ test('an explicit Jazz motif pin remains valid at the start of a Folk-to-Jazz bl
   assert.equal(plan.phrases.ukulele.name,'shellComp');
   assert.ok(plan.movement.ideas.includes(plan.phrases.ukulele.idea));
   assertPlayable('ukulele','C',.35,plan.phrases.ukulele,plan.currentChord);
+});
+
+test('movement idea windows persist, handoffs are queued early, and roles rotate only at movement boundaries',()=>{
+  const composer=new Composition({random:random(64)});
+  const plans=Array.from({length:260},(_,bar)=>composer.planBar(bar,'C',{active:names}));
+  const movements=new Map();
+  const ideaSequences=new Map();
+  let sawQueuedSuccessor=false;
+  for(const plan of plans){
+    const movement=plan.movement;
+    const start=movement.startBar;
+    const accompaniment=Object.keys(plan.roles).filter(name=>plan.roles[name]==='accompaniment').sort().join(',');
+    const previous=movements.get(start);
+    if(previous){
+      assert.deepEqual(movement.currentIdeas,previous.ideas);
+      assert.deepEqual(movement.ideaSchedule,previous.schedule);
+      assert.equal(accompaniment,previous.accompaniment);
+      previous.activeIdeaSets.add(movement.activeIdeas.join(','));
+    }else movements.set(start,{ideas:movement.currentIdeas,schedule:movement.ideaSchedule,accompaniment,activeIdeaSets:new Set([movement.activeIdeas.join(',')])});
+    const sequence=ideaSequences.get(start)??Object.fromEntries(names.map(name=>[name,[]]));
+    for(const name of names)sequence[name].push(plan.phrases[name].idea);
+    ideaSequences.set(start,sequence);
+    assert.ok(movement.melodicSimilarity>=.12&&movement.melodicSimilarity<=.82);
+    assert.ok(movement.melodicAnchor);
+    for(const phrase of Object.values(plan.phrases))assert.ok((movement.ideaWeights[phrase.idea]??0)>0,`${phrase.name} must be in an active idea window`);
+    if(movement.nextName&&plan.bar<start+movement.length&&start+movement.length<plans.length){
+      const remaining=start+movement.length-plan.bar;
+      assert.ok(remaining<=COMPOSITION_STYLES.folk.movementControls.transitionBars);
+      assert.equal(plans[start+movement.length].movement.name,movement.nextName);
+      assert.ok(movement.transitionProgress>0&&movement.transitionProgress<1);
+      sawQueuedSuccessor=true;
+    }
+  }
+  assert.ok(sawQueuedSuccessor);
+  assert.ok(new Set([...movements.values()].map(value=>value.accompaniment)).size>1);
+  assert.ok([...movements.values()].some(value=>value.activeIdeaSets.size>1));
+  for(const sequence of ideaSequences.values())for(const ideas of Object.values(sequence)){
+    let rapidAlternations=0;
+    for(let index=2;index<ideas.length;index++)if(ideas[index]===ideas[index-2]&&ideas[index]!==ideas[index-1])rapidAlternations++;
+    assert.ok(rapidAlternations<=1,`${ideas.join(' -> ')}`);
+  }
+  const first=plans[0].movement;
+  assert.equal(first.ideaSchedule.length,first.currentIdeas.length);
+  assert.ok(first.ideaSchedule.every(phase=>(phase.end-phase.start)*first.length>=4.5));
 });
 
 test('mixed active memberships and tiers constrain entire major and minor progression states',()=>{
@@ -278,7 +359,11 @@ test('only equipped saved controls constrain 100-bar timelines for every instrum
       if(complexity<=.5){assert.ok([0,3,4].includes(plan.currentChord.degree));assert.ok([0,3,4].includes(plan.nextChord.degree));}
       if(previous){
         assert.deepEqual(previous.nextChord,plan.currentChord);
-        for(const name of names)assert.ok(PHRASE_TRANSITIONS[previous.phrases[name].name][plan.phrases[name].name]>0);
+        for(const name of names){
+          const from=previous.phrases[name].name,to=plan.phrases[name].name;
+          const weights={...(PHRASE_TRANSITIONS[from]??{}),...(COMPOSITION_STYLES[plan.genre].motifTransitions[from]??{})};
+          assert.ok((weights[to]??1)>0);
+        }
         const prior=COMPOSITION_PROGRESSIONS.find(value=>value.name===previous.progression);
         if(previous.progressionOffset===prior.degrees.length-1)assert.ok(prior.transitions[plan.progression]>0);
         else {assert.equal(plan.progression,previous.progression);assert.equal(plan.progressionOffset,previous.progressionOffset+1);}
@@ -331,7 +416,7 @@ test('motif pins validate tier and role, rerender under harmony and only replace
     chords.add(plan.phrases.flute.chord);
   }
   assert.ok(chords.size>1);
-  assert.deepEqual(phraseMotifs('flute','C',{complexity:.35,role:'melody',degree:0}).map(value=>value.name),['answer','arch']);
+  assert.deepEqual(phraseMotifs('flute','C',{complexity:.35,role:'melody',degree:0}).map(value=>value.name),['answer','arch','refrain']);
   assert.ok(compositionProfile('piano','C',{role:'melody',degree:3}).every(value=>value.degree===3&&value.role==='melody'));
   for(const phraseOverrides of [{flute:'ornament'},{flute:'held'},{flute:{name:'arch',role:'accompaniment'}},{invalid:'answer'}]){
     assert.throws(()=>composer.planBar(8,'C',{...options,phraseOverrides}),/override|Override/);
