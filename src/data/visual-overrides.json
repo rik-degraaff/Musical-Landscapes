@@ -161,21 +161,6 @@
       }
     },
     {
-      "selector": ".scene .interactive-object[data-sound=\"windmill\"]",
-      "attributes": {},
-      "styles": {
-        "--object-x": "70.71%",
-        "--object-base": "49.96%",
-        "width": "145.50px",
-        "height": "145.50px",
-        "left": "78.19375687568757%",
-        "top": "31.08281893004115%",
-        "right": "auto",
-        "bottom": "auto",
-        "transform": "translate(-50%, -50%)"
-      }
-    },
-    {
       "selector": ".scene .interactive-object[data-sound=\"duck\"]",
       "attributes": {},
       "styles": {
@@ -304,6 +289,21 @@
       "attributes": {},
       "styles": {
         "translate": "-154.04px -82.73px"
+      }
+    },
+    {
+      "selector": ".scene .interactive-object[data-sound=\"windmill\"]",
+      "attributes": {},
+      "styles": {
+        "--object-x": "70.71%",
+        "--object-base": "49.96%",
+        "width": "209.68px",
+        "height": "209.68px",
+        "left": "80.42196485731337%",
+        "top": "34.647365993923614%",
+        "right": "auto",
+        "bottom": "auto",
+        "transform": "translate(-50%, -50%)"
       }
     }
   ]
