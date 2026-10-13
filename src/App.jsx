@@ -38,8 +38,10 @@ export default function App({developmentPreview}={}) {
   const [loading,setLoading] = useState(false);
   const [error,setError] = useState(null);
   const [sceneIndex,setSceneIndex] = useState(developmentPreview?.sceneIndex ?? 0);
+  const [genre,setGenre] = useState('folk');
   const [performanceRoot,setPerformanceRoot] = useState(SCENES[0].root);
   const [harmonyPlan,setHarmonyPlan] = useState(null);
+  const weatherPlanRef=useRef(null);
   const practiceActive=useRef(false);
   const [mixer,setMixer] = useState(false);
   const [metronomeOpen,setMetronomeOpen] = useState(false);
@@ -79,7 +81,7 @@ export default function App({developmentPreview}={}) {
   useAppUpdates({started,loading,parentGuide:parentGuide||Boolean(editingId)||Boolean(help)||saveWarning});
 
   useEffect(()=>{ stateRef.current=instruments; },[instruments]);
-  useLayoutEffect(()=>{startupState.current={settings,sceneIndex};},[settings,sceneIndex]);
+  useLayoutEffect(()=>{startupState.current={settings,sceneIndex,genre};},[settings,sceneIndex,genre]);
   useEffect(()=>{mounted.current=true;return ()=>{mounted.current=false;audioRef.current?.dispose();};},[]);
   useEffect(()=>{if(developmentPreview)setSceneIndex(developmentPreview.sceneIndex);},[developmentPreview?.sceneIndex]);
   useEffect(()=>{
@@ -105,7 +107,7 @@ export default function App({developmentPreview}={}) {
       if(!audioRef.current)audioRef.current = new AudioEngine();
       const engine=audioRef.current;
       engine.onSceneKeyChange=root=>{if(mounted.current&&audioRef.current===engine)setPerformanceRoot(root);};
-      engine.onHarmonyChange=plan=>{if(mounted.current&&audioRef.current===engine&&!practiceActive.current)setHarmonyPlan(plan);};
+      engine.onHarmonyChange=plan=>{if(mounted.current&&audioRef.current===engine&&!practiceActive.current){if(plan)weatherPlanRef.current=plan;setHarmonyPlan(plan);}};
       engine.onActiveChange=(name,active)=>{
           if(!mounted.current||audioRef.current!==engine)return;
           const next={...stateRef.current,[name]:{...stateRef.current[name],active}};
@@ -114,9 +116,11 @@ export default function App({developmentPreview}={}) {
       await engine.init();
       if(!mounted.current||audioRef.current!==engine)return;
       engine.updatePerformanceSettings(startupState.current.settings.instruments);
+      engine.setGenre(startupState.current.genre);
       engine.setSceneKey(SCENES[startupState.current.sceneIndex].root);
       setPerformanceRoot(engine.playbackRoot);
       setHarmonyPlan(engine.harmonyPlan??null);
+      weatherPlanRef.current=engine.harmonyPlan??null;
       setStarted(true);
     }
     catch(e) { if(mounted.current){console.error(e);setError('The sound engine could not start. Try tapping play again.');} }
@@ -351,10 +355,21 @@ export default function App({developmentPreview}={}) {
     setSceneIndex(i=>{ const next=(i+1)%SCENES.length; audioRef.current?.setSceneKey(SCENES[next].root); return next; });
   }
 
+  function changeGenre(next) {
+    if(next===genre)return;
+    setGenre(next);
+    audioRef.current?.setGenre(next);
+  }
+
+  const audiblePlan=started?(audioRef.current?.harmonyPlan??weatherPlanRef.current):null;
+  const audibleGenre=audiblePlan?.genre??(started&&audioRef.current?.genreTransition?.to===genre?audioRef.current.genreTransition.from:genre);
+  const weatherTransition=audiblePlan&&audioRef.current?.genreTransition?.to===audiblePlan.genre?{from:audioRef.current.genreTransition.from,progress:audiblePlan.genreBlend??0}:null;
+
   function enterPractice(playback){if(playback)audioRef.current.setInstrumentActive(playback.name,playback.active);practiceActive.current=true;setHarmonyPlan(null);drag.current=null;setDragging(null);setNearChild(false);setMixer(false);setMetronomeOpen(false);setHasPracticed(true);setPractice(equippedRef.current??settings.selected[0]);}
 
   function returnToMenu() {
     practiceActive.current=false;setHarmonyPlan(null);
+    weatherPlanRef.current=null;
     window.dispatchEvent(new Event('farmjam-input-reset'));
     audioRef.current?.dispose();audioRef.current=null;
     drag.current=null;equippedRef.current=null;mixerTap.current=null;
@@ -366,7 +381,7 @@ export default function App({developmentPreview}={}) {
 
   return <main className={`app-shell ${equipped?'manual-open':''}`}>
     <div className="landscape-world" ref={worldRef} inert={mixer||Boolean(practice)}>
-    <Scene sceneIndex={sceneIndex} playing={started} audio={audioRef.current} onRotate={rotateScene} onCelestialSettled={()=>{if(started)for(const name of Object.keys(INSTRUMENTS))settle(name);}}/>
+    <Scene sceneIndex={sceneIndex} playing={started} audio={audioRef.current} genre={audibleGenre} genreTransition={weatherTransition} onGenreChange={()=>changeGenre(genre==='folk'?'jazz':'folk')} onRotate={rotateScene} onCelestialSettled={()=>{if(started)for(const name of Object.keys(INSTRUMENTS))settle(name);}}/>
     {started&&<YoungMusician child={selectedChild} equipped={equipped?INSTRUMENTS[equipped].label:null} accepting={nearChild} onPractice={enterPractice}/>}
     <div className="instrument-layer">
       {settings.selected.map(name=>{const i=instruments[name];return <Instrument key={name} name={name} label={i.label} x={i.x} y={i.y} active={i.active} equipped={equipped===name} sliding={dragging!==name} onEquip={()=>equip(name)} onToggle={toggle}

@@ -105,6 +105,29 @@ test('live all-instrument plans own audible events, cap accompaniment and carry 
   expect(errors).toEqual([]);
 });
 
+test('existing sky clouds indicate and change music weather without changing scenes',async({page})=>{
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await start(page);
+  await page.evaluate(()=>window.audioEngine.setTempo(208));
+  const cloud=page.locator('.scene-farm .cloud-1');
+  const artwork=page.locator('.scene-farm .scenery-cloud');
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.harmonyPlan?.bar??-1)).toBeGreaterThanOrEqual(0);
+  expect(await artwork.evaluate(element=>element.textContent)).toBe('');
+  const before=await page.evaluate(()=>({bar:window.audioEngine.harmonyPlan.bar,genre:window.audioEngine.harmonyPlan.genre}));
+  const cloudPosition=await page.locator('.scene-farm .cloud-1').getAttribute('transform');
+  await cloud.click();
+  await expect(page.locator('.scene-farm')).toBeVisible();
+  expect(await page.evaluate(()=>({bar:window.audioEngine.harmonyPlan.bar,genre:window.audioEngine.harmonyPlan.genre}))).toEqual(before);
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.harmonyPlan?.bar??-1),{timeout:10000}).toBeGreaterThan(before.bar);
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.harmonyPlan?.genreBlend),{timeout:10000}).toBe(0);
+  await expect.poll(()=>page.evaluate(()=>Number(getComputedStyle(document.querySelector('.scene-farm .cloud-3')).opacity)),{timeout:12000}).toBeGreaterThan(.25);
+  await page.getByRole('button',{name:'Change landscape',exact:true}).click();
+  await expect(page.locator('.scene-garden')).toBeVisible();
+  const nextCloudPosition=await page.locator('.scene-garden .cloud-1').getAttribute('transform');
+  expect(nextCloudPosition.match(/^translate\(([^)]+)\)/)?.[1]).toBe(cloudPosition.match(/^translate\(([^)]+)\)/)?.[1]);
+  expect(await page.getByRole('button',{name:'Change music weather',exact:true}).count()).toBeGreaterThan(0);
+});
+
 for(const name of ['piano','ukulele'])test(`live Simple ${name} stays playable and pins a skipped motif while harmony revoices it`,async({page})=>{
   await start(page);await simple(page,name);await equip(page,name);
   await page.locator(`#instrument-${name}`).click();

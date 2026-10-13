@@ -1,4 +1,11 @@
 .scene .landscape-art { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.scene .landscape-art .scenery-cloud { pointer-events:visiblePainted; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; animation:none; filter:drop-shadow(0 4px 4px #29434a20); transition:filter .2s; }
+.scene .landscape-art .scenery-cloud:hover { filter:drop-shadow(0 5px 7px #29434a52) brightness(1.06); }
+.scene .landscape-art .scenery-cloud:focus-visible { filter:drop-shadow(0 0 3px #d47755) drop-shadow(0 0 7px #fff7db); outline:none; }
+.scene .landscape-art .scenery-cloud-shape:focus-visible { filter:drop-shadow(0 0 4px #d47755) drop-shadow(0 0 8px #fff7db); outline:none; }
+.scene .landscape-art .scenery-cloud.is-tapped { animation:cloudPuff .52s ease-out; }
+@keyframes cloudPuff { 50% { filter:drop-shadow(0 2px 8px #fff5d9b8) brightness(1.12); } }
+@media (prefers-reduced-motion: reduce) { .scene .landscape-art .scenery-cloud.is-tapped { animation:none; } }
 .app-shell .start-overlay { background: #edf4e5a6; backdrop-filter: blur(4px); }
 .app-shell .start-overlay h1 { font-size: 72px; line-height: 1; letter-spacing: 0; }
 .app-shell .start-button { display: flex; align-items: center; gap: 12px; margin-top: 30px; }
@@ -82,7 +89,6 @@
 .sky-star { animation: starShimmer 4s ease-in-out infinite alternate; }
 .firefly-light { animation: fireflyDrift 3s ease-in-out infinite alternate; }
 .pond-reflections { animation: reflectionDrift 5s ease-in-out infinite alternate; }
-.scenery-cloud { animation: cloudDrift 30s ease-in-out infinite alternate; }
 @keyframes objectNod { 0%,100% { transform: rotate(0); } 20%,60% { transform: rotate(-5deg) translateY(-3px); } 40%,80% { transform: rotate(4deg); } }
 @keyframes tractorRide { 0%,100% { transform: translateX(0); } 20%,60% { transform: translate(12px,-3px) rotate(-2deg); } 40%,80% { transform: translate(24px,0) rotate(2deg); } }
 @keyframes birdFlight { 0%,100% { transform: translate(0); } 40% { transform: translate(42px,-45px) rotate(-12deg); } 70% { transform: translate(16px,-26px) rotate(6deg); } }

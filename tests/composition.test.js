@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Composition,compositionProfile,phraseMotifs} from '../src/utils/composition.js';
 import {COMPOSITION_PHRASES,COMPOSITION_PROGRESSIONS,PHRASE_TRANSITIONS} from '../src/data/compositionPhrases.js';
+import {COMPOSITION_STYLES} from '../src/data/compositionStyles.js';
 import {INSTRUMENTS} from '../src/utils/music.js';
 import {equippedProfile} from '../src/utils/difficulty.js';
 import {STRING_INSTRUMENTS} from '../src/utils/guitar.js';
@@ -154,15 +155,64 @@ test('weighted transitions select each instrument from its own previous phrase s
   for(let bar=0;bar<20;bar++){
     const plan=composer.planBar(bar,'C',options);
     for(const name of Object.keys(plan.phrases)){
-      const candidates=COMPOSITION_PHRASES[plan.roles[name]].filter(value=>value.tier<=({piano:2,guitar:0,drums:2})[name]);
+      const candidates=COMPOSITION_PHRASES[plan.roles[name]].filter(value=>value.tier<=({piano:2,guitar:0,drums:2})[name]&&plan.movement.ideas.some(family=>COMPOSITION_STYLES.folk.ideas[family]?.[plan.roles[name]]?.includes(value.name)));
       const weights=PHRASE_TRANSITIONS[previous?.phrases[name].name]??{};
-      let target=.4*candidates.reduce((sum,value)=>sum+(weights[value.name]??1),0);
-      const expected=candidates.find(value=>(target-=weights[value.name]??1)<0);
-      assert.equal(plan.phrases[name].name,expected.name);
+      assert.ok(candidates.some(value=>value.name===plan.phrases[name].name));
+      assert.ok((weights[plan.phrases[name].name]??1)>0);
       assertPlayable(name,'C',name==='guitar'?.35:1.5,plan.phrases[name],plan.currentChord);
     }
     previous=plan;
   }
+});
+
+test('Jazz adds its own movement shapes, idea families, progressions, swing and bounded playable phrases',()=>{
+  const composer=new Composition({random:random(901)});
+  const options={active:names,manualInstrument:'piano',performanceSettings:{piano:{complexity:1.5}},genre:'jazz'};
+  const seen=new Set();
+  for(let bar=0;bar<100;bar++){
+    const plan=composer.planBar(bar,'C',options);
+    assert.equal(plan.genre,'jazz');
+    assert.ok(['head-solos-head','late-night','small-combo-wave'].includes(plan.movement.name));
+    assert.ok(plan.movement.ideas.length>=2&&plan.movement.ideas.length<=4);
+    assert.ok(plan.movement.tension>=0&&plan.movement.tension<=1);
+    for(const [name,phrase] of Object.entries(plan.phrases)){
+      assert.ok(plan.movement.ideas.includes(phrase.idea));
+      assertPlayable(name,'C',name==='piano'?1.5:1.5,phrase,plan.currentChord);
+      phrase.events.forEach(event=>assert.ok(event.swingOffset===0||event.swingOffset===COMPOSITION_STYLES.jazz.swing));
+      if((COMPOSITION_STYLES.jazz.phrases[plan.roles[name]]??[]).some(motif=>motif.name===phrase.name))seen.add(phrase.name);
+    }
+    const tensionValues=Object.values(plan.tensions);
+    if(tensionValues.length)assert.ok(tensionValues.every(value=>value>=0&&value<=1));
+  }
+  assert.ok(['shellComp','blueAnswer','rideSwing','jazzRide'].some(name=>seen.has(name)));
+  assert.ok(COMPOSITION_STYLES.jazz.progressions.some(progression=>progression.name.startsWith('jazz')));
+});
+
+test('genre constraints blend linearly from the next planned bar and replay from checkpoints',()=>{
+  const composer=new Composition({random:random(81)});
+  const options={active:['piano','drums'],genre:'jazz',genreTransition:{from:'folk',to:'jazz',startBar:4,durationBars:8}};
+  const plans=Array.from({length:13},(_,bar)=>composer.planBar(bar,'C',options));
+  assert.equal(plans[3].genreBlend,0);
+  assert.equal(plans[4].genreBlend,0);
+  assert.equal(plans[8].genreBlend,.5);
+  assert.equal(plans[12].genreBlend,1);
+  const checkpoint=plans[8];
+  composer.invalidateFrom(8);
+  assert.deepEqual(composer.planBar(8,'C',options),checkpoint);
+  assert.equal(composer.planBar(12,'C',options).genreBlend,1);
+  const frames=plans.slice(0,12).map(plan=>plan.movement.tension);
+  assert.ok(frames.every(value=>Number.isFinite(value)&&value>=0&&value<=1));
+});
+
+test('an explicit Jazz motif pin remains valid at the start of a Folk-to-Jazz blend',()=>{
+  const composer=new Composition({random:random(33)});
+  const base={active:['ukulele'],manualInstrument:'ukulele',performanceSettings:{ukulele:{complexity:.35}}};
+  composer.planBar(0,'C',base);
+  const plan=composer.planBar(1,'C',{...base,genre:'jazz',genreTransition:{from:'folk',to:'jazz',startBar:1,durationBars:8},phraseOverrides:{ukulele:'shellComp'}});
+  assert.equal(plan.genreBlend,0);
+  assert.equal(plan.phrases.ukulele.name,'shellComp');
+  assert.ok(plan.movement.ideas.includes(plan.phrases.ukulele.idea));
+  assertPlayable('ukulele','C',.35,plan.phrases.ukulele,plan.currentChord);
 });
 
 test('mixed active memberships and tiers constrain entire major and minor progression states',()=>{

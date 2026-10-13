@@ -56,7 +56,7 @@ export function InteractiveObject({ sound, audio, label, className='' }) {
   </button>;
 }
 
-export function Scene({ sceneIndex, playing, audio, onRotate, onCelestialSettled }) {
+export function Scene({ sceneIndex, playing, audio, onRotate, onGenreChange, genre='folk', genreTransition, onCelestialSettled }) {
   const sceneRef = useRef(null);
   const advanceRef = useRef(onRotate);
   const lastPointerAdvance = useRef(null);
@@ -69,7 +69,7 @@ export function Scene({ sceneIndex, playing, audio, onRotate, onCelestialSettled
     function handleCelestialTap(event) {
       const sceneElement = sceneRef.current;
       const world = sceneElement?.parentElement;
-      if (!world?.contains(event.target) || event.target.closest?.('.mixer,.performance-panel,.top-bar')) return;
+      if (!world?.contains(event.target) || event.target.closest?.('.mixer,.performance-panel,.top-bar,.scenery-cloud')) return;
       const previous = lastPointerAdvance.current;
       if (event.type === 'click' && previous && performance.now() - previous.time < 800 && Math.hypot(event.clientX - previous.x, event.clientY - previous.y) < 2) {
         event.preventDefault();
@@ -103,7 +103,7 @@ export function Scene({ sceneIndex, playing, audio, onRotate, onCelestialSettled
     };
   }, []);
   return <div ref={sceneRef} className={`scene scene-${scene.id}`}>
-    <LandscapeArt key={scene.id} scene={scene.id} phase={phase} />
+    <LandscapeArt key={scene.id} scene={scene.id} phase={phase} genre={genre} genreTransition={genreTransition} onGenreChange={onGenreChange}/>
     <SceneComponent key={`${scene.id}-objects-${playing?'play':'menu'}`} audio={sceneAudio} />
     <CelestialControl scene={scene.id} phase={phase} settled={settled} />
   </div>;

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as music from '../src/utils/music.js';
 import * as composition from '../src/utils/composition.js';
+import {compositionStyle} from '../src/data/compositionStyles.js';
 import { SCENE_SOUNDS } from '../src/audio/sceneSounds.js';
 import * as samples from '../src/audio/sampleLibrary.js';
 import * as envelopes from '../src/audio/envelopes.js';
@@ -85,7 +86,7 @@ function setup() {
       start() { this.state = 'started'; }, stop() { this.state = 'stopped'; }, pause() { this.state = 'paused'; },
     },
   };
-  const dependencies = { Tone, ...music, ...composition, SCENE_SOUNDS, audioLevels, ...samples, ...envelopes, STRING_INSTRUMENTS, equippedProfile, beatOffset, releaseManualVoice, AudioResources, ...selection, ...voices, ...session, attachOwnedSamplerVoices };
+  const dependencies = { Tone, ...music, ...composition, compositionStyle, SCENE_SOUNDS, audioLevels, ...samples, ...envelopes, STRING_INSTRUMENTS, equippedProfile, beatOffset, releaseManualVoice, AudioResources, ...selection, ...voices, ...session, attachOwnedSamplerVoices };
   const AudioEngine = new Function(...Object.keys(dependencies), `${source}\nreturn AudioEngine;`)(...Object.values(dependencies));
   const engine = new AudioEngine();
   engine.composition = new composition.Composition({random:()=>.9});
@@ -642,4 +643,21 @@ for(const lookahead of [false,true])test(`incompatible future harmony clears gui
   runtime.draws.at(-1).callback();
   assert.equal(publications.at(-1),engine.scheduledBars.get(1).plan);
   assert.ok([0,3,4].includes(publications.at(-1).currentChord.degree));
+});
+
+test('genre changes retain the captured current bar and interpolate only from the next bar',async()=>{
+  const {engine}=setup();
+  await engine.init();engine.active.piano=true;engine.playEvent=()=>{};
+  engine.scheduleBar(1);
+  const current=engine.scheduledBars.get(0).plan;
+  assert.equal(engine.setGenre('jazz'),true);
+  assert.equal(engine.scheduledBars.get(0).plan,current);
+  engine.scheduleBar(3);
+  const first=engine.scheduledBars.get(1).plan;
+  assert.equal(first.genre,'jazz');assert.equal(first.genreBlend,0);
+  assert.equal(engine.scheduledBars.get(0).plan,current);
+  engine.scheduleBar(5);
+  assert.equal(engine.scheduledBars.get(2).plan.genreBlend,.125);
+  assert.equal(engine.setGenre('jazz'),false);
+  assert.throws(()=>engine.setGenre('unknown'),/Unknown composition genre/);
 });

@@ -1,6 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { celestialPosition } from '../utils/dayCycle';
 
+const cloudPaths=[
+  'M0 0 C-23-19-5-49 20-45 C35-80 80-72 86-42 C120-51 141-19 121-1Z',
+  'M0 0 C-24-15-7-44 16-37 C40-73 83-50 81-33 C117-42 137-16 116 0Z',
+  'M0 0 C-20-24 7-45 24-41 C41-71 81-66 90-32 C130-42 144-12 120 0Z',
+];
+
+const cloudWeather={
+  folk:{color:[255,253,242],opacity:[.5,.7,0],scale:[.82,.9,.78]},
+  jazz:{color:[164,188,202],opacity:[.92,.98,.88],scale:[1,1.08,1.02]},
+};
+
+function blendColor(from,to,amount) {
+  return `rgb(${from.map((value,index)=>Math.round(value+(to[index]-value)*amount)).join(' ')})`;
+}
+
 function Tree({ x, y, size = 1, stretch = 1, color = '#397b59' }) {
   return <g data-name={`Tree ${x < 720 ? 'left' : 'right'} ${x}`} transform={`translate(${x} ${y}) scale(${size * stretch} ${size})`}>
     <path d="M-7 0 L-4-105 L8-105 L12 0Z" fill="#805a49" />
@@ -10,8 +25,9 @@ function Tree({ x, y, size = 1, stretch = 1, color = '#397b59' }) {
   </g>;
 }
 
-export function LandscapeArt({ scene, phase }) {
+export function LandscapeArt({ scene, phase, genre='folk', genreTransition, onGenreChange }) {
   const artRef=useRef(null);
+  const [cloudPulse,setCloudPulse]=useState(false);
   const [stretch, setStretch] = useState(() => 1440 * window.innerHeight / (900 * window.innerWidth));
   useEffect(() => {
     const resize = () => {
@@ -25,6 +41,12 @@ export function LandscapeArt({ scene, phase }) {
   }, []);
   const night = scene === 'night'||scene==='late-night';
   const lateNight = scene === 'late-night';
+  const weatherMix=genreTransition&&genreTransition.from!==genre?Math.max(0,Math.min(1,genreTransition.progress??0)):1;
+  const oldWeather=cloudWeather[genreTransition?.from]??cloudWeather[genre];
+  const newWeather=cloudWeather[genre];
+  const cloudColor=blendColor(oldWeather.color,newWeather.color,weatherMix);
+  const cloudOpacity=oldWeather.opacity.map((value,index)=>value+(newWeather.opacity[index]-value)*weatherMix);
+  const cloudScale=oldWeather.scale.map((value,index)=>value+(newWeather.scale[index]-value)*weatherMix);
   const pond = scene === 'pond';
   const garden = scene === 'garden';
   const dawn = scene === 'dawn';
@@ -34,7 +56,12 @@ export function LandscapeArt({ scene, phase }) {
   const celestialY = Math.max(36 * 900 / (artRef.current?.getBoundingClientRect().height || window.innerHeight), celestial.y * 9);
   const celestialRadius = 30 * 900 / (artRef.current?.getBoundingClientRect().height || window.innerHeight);
   const palette = lateNight ? ['#171f35', '#647d83', '#536d73', '#3c655e', '#244a42'] : dusk ? ['#6c88a0','#efb09a','#87978b','#617f72','#3e685d'] : dawn ? ['#879ab8', '#d4e4eb', '#95aeb6', '#7a999d', '#527d7b'] : night ? ['#232b4d', '#79768e', '#465c66', '#345b58', '#234b47'] : pond ? ['#9edbdc', '#f5eed0', '#8ab6a0', '#659d78', '#4d8965'] : garden ? ['#96d9e7', '#f9e9c9', '#a6c399', '#7fb27e', '#54946b'] : ['#8cd3ed', '#fff0ca', '#a4bf8a', '#85ad65', '#60914c'];
-  return <svg ref={artRef} className="landscape-art" viewBox="0 0 1440 900" preserveAspectRatio="none" aria-hidden="true">
+  function changeWeather(event) {
+    event.stopPropagation();
+    onGenreChange?.();
+    setCloudPulse(true);
+  }
+  return <svg ref={artRef} className="landscape-art" viewBox="0 0 1440 900" preserveAspectRatio="none" role="presentation" aria-hidden="false">
     <defs>
       <linearGradient id={`${scene}-sky`} x2="0" y2="1"><stop stopColor={palette[0]} /><stop offset="1" stopColor={palette[1]} /></linearGradient>
       <linearGradient id={`${scene}-ground`} x2=".3" y2="1"><stop stopColor={palette[3]} /><stop offset="1" stopColor={palette[4]} /></linearGradient>
@@ -52,9 +79,11 @@ export function LandscapeArt({ scene, phase }) {
       {Array.from({ length: 42 }, (_, index) => <circle key={index} className="sky-star" cx={(index * 173 + 70) % 1400} cy={65 + (index * 67) % 310} r={index % 3 ? 1.7 : 3} fill="#fff5da" style={{ animationDelay: `${index % 5}s` }} />)}
     </> : <>
       {dusk && <g fill="#fff6d8" opacity=".7"><circle cx="210" cy="105" r="2.5"/><circle cx="420" cy="78" r="2"/><circle cx="800" cy="118" r="2.5"/><circle cx="1250" cy="90" r="2"/></g>}
-      <g className="scenery-cloud" fill="#fffdf3" opacity=".75"><g transform={`translate(104 184) scale(${stretch} 1)`}><path d="M0 0 C-23-19-5-49 20-45 C35-80 80-72 86-42 C120-51 141-19 121-1Z" /></g><g transform={`translate(710 116) scale(${stretch} 1)`}><path d="M0 0 C-24-15-7-44 16-37 C40-73 83-50 81-33 C117-42 137-16 116 0Z" /></g><g transform={`translate(1290 275) scale(${stretch} 1)`}><path d="M0 0 C-20-24 7-45 24-41 C41-71 81-66 90-32 C130-42 144-12 120 0Z" /></g></g>
       <g fill="none" stroke="#638b93" strokeWidth="3" strokeLinecap="round"><path d="M415 142q10-12 20 0q10-12 20 0 M476 170q8-10 16 0q8-10 16 0" /></g>
     </>}
+    <g className={`scenery-cloud${cloudPulse?' is-tapped':''}`} role="group" aria-label="Sky weather clouds" onClick={changeWeather} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();changeWeather(event);}}} onAnimationEnd={()=>setCloudPulse(false)} fill={cloudColor}>
+      {[[432,100],[720,82],[1008,100]].map(([x,y],index)=><g key={x} className={`scenery-cloud-shape cloud-${index+1}`} role="button" tabIndex={cloudOpacity[index]>.08?0:-1} aria-hidden={cloudOpacity[index]<=.08} aria-label="Change music weather" style={{display:cloudOpacity[index]>.08?undefined:'none'}} transform={`translate(${x} ${y}) scale(${stretch*cloudScale[index]} ${cloudScale[index]})`} opacity={cloudOpacity[index]}><path d={cloudPaths[index]}/></g>)}
+    </g>
     <path data-name="Distant hills" d="M0 403 Q180 269 370 376 T750 378 T1120 349 T1440 366 V900H0Z" fill={palette[2]} />
     <path data-name="Near hills" d="M0 482 Q220 332 474 463 Q699 521 923 417 T1440 481 V900H0Z" fill={palette[3]} />
     <g opacity=".6">{[0, 80, 148, 1270, 1340, 1440].map((position, index) => <Tree key={position} stretch={stretch} x={position} y={465 + index % 2 * 35} size={0.55 + index % 3 * 0.1} color={night ? '#3e5960' : '#6c9b7a'} />)}</g>

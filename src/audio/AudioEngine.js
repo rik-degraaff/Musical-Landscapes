@@ -1,6 +1,7 @@
 import * as Tone from 'tone';
 import { BPM, BAR, INSTRUMENTS } from '../utils/music';
 import { Composition, compositionProfile } from '../utils/composition';
+import {compositionStyle} from '../data/compositionStyles.js';
 import { SCENE_SOUNDS } from './sceneSounds';
 import audioLevels from './audioLevels.json';
 import { DRUM_NOTES, DRUM_SAMPLES, SAMPLE_LIBRARY, sampleUrls } from './sampleLibrary';
@@ -33,6 +34,8 @@ export class AudioEngine {
     this.active = Object.fromEntries(instrumentNames.map(name => [name, false]));
     this.volumes = Object.fromEntries(instrumentNames.map(name => [name, INSTRUMENTS[name].volume]));
     this.composition = new Composition();
+    this.genre='folk';
+    this.genreTransition=null;
     this.harmonyPlan = null;
     this.onHarmonyChange = null;
     this.pendingEvents = new Map();
@@ -298,6 +301,18 @@ export class AudioEngine {
     }
   }
 
+  setGenre(genre) {
+    compositionStyle(genre);
+    if(genre===this.genre)return false;
+    const from=this.genre;
+    const currentBar=Math.max(0,Math.floor(Tone.Transport.getTicksAtTime(Tone.immediate())/(Tone.Transport.PPQ*4)));
+    const startBar=this.barIndex>0?currentBar+1:0;
+    this.genre=genre;
+    this.genreTransition={from,to:genre,startBar,durationBars:8};
+    this.refreshFutureBars();
+    return true;
+  }
+
   applySceneKey(root) {
     if(root===this.playbackRoot)return;
     this.playbackRoot=root;
@@ -456,7 +471,7 @@ export class AudioEngine {
     const plan=scheduled?.plan??(audible?.bar===currentBar?audible:this.composition.planBar(currentBar,this.root,this.compositionOptions(name)));
     const root=plan?.root??this.root;
     const role=this.compositionRole(name,{...this.active,[name]:true});
-    const pool=compositionProfile(name,root,{...(name===this.manualInstrument?this.performanceSettings[name]:{}),role,degree:name==='drums'?0:plan?.currentChord.degree??0});
+    const pool=compositionProfile(name,root,{...(name===this.manualInstrument?this.performanceSettings[name]:{}),role,degree:name==='drums'?0:plan?.currentChord.degree??0,genre:this.genre});
     const preferred=name===this.manualInstrument&&this.phrasePinned?this.equippedPhrase:plan?.phrases[name];
     const phrase=pool.find(candidate=>candidate.name===preferred?.name)??pool[0];
     if(!phrase)return;
@@ -670,7 +685,7 @@ export class AudioEngine {
       const pool=compositionProfile(name,this.root,{...this.performanceSettings[name],role});
       if(this.equippedPhrase?.role!==role||!pool.some(phrase=>phrase.name===this.equippedPhrase?.name))this.phrasePinned=false;
     }
-    return {active,manualInstrument:name,performanceSettings:name?{[name]:this.performanceSettings[name]}:{},phraseOverrides:this.phrasePinned&&name&&active[name]&&this.equippedPhrase?{[name]:{name:this.equippedPhrase.name,role:this.equippedPhrase.role}}:{}};
+    return {active,manualInstrument:name,performanceSettings:name?{[name]:this.performanceSettings[name]}:{},phraseOverrides:this.phrasePinned&&name&&active[name]&&this.equippedPhrase?{[name]:{name:this.equippedPhrase.name,role:this.equippedPhrase.role}}:{},genre:this.genre,genreTransition:this.genreTransition};
   }
 
   selectPhrase(name,bar,_energy,root=this.root) {
@@ -679,8 +694,8 @@ export class AudioEngine {
     const phraseRoot=plan?.root??root;
     const role=this.compositionRole(name,options.active);
     const settings=name===this.manualInstrument?this.performanceSettings[name]:{};
-    let pool=compositionProfile(name,phraseRoot,{...settings,role,degree:name==='drums'?0:plan?.currentChord.degree??0});
-    if(!pool.length)pool=compositionProfile(name,phraseRoot,{...settings,role,degree:0});
+    let pool=compositionProfile(name,phraseRoot,{...settings,role,degree:name==='drums'?0:plan?.currentChord.degree??0,genre:this.genre});
+    if(!pool.length)pool=compositionProfile(name,phraseRoot,{...settings,role,degree:0,genre:this.genre});
     const preferred=name===this.manualInstrument&&this.phrasePinned?this.equippedPhrase:plan?.phrases[name];
     const selected=pool.find(phrase=>phrase.name===preferred?.name)??pool[0];
     if(name===this.manualInstrument){
@@ -695,10 +710,11 @@ export class AudioEngine {
     if(!name||!this.ready)return false;
     const bar=Math.max(0,Math.floor(Tone.Transport.getTicksAtTime(Tone.immediate())/(Tone.Transport.PPQ*4)));
     const root=this.scheduledBars.get(bar)?.root??this.root;
+    const displayedName=this.equippedPhrase?.name;
     const current=this.selectPhrase(name,bar,undefined,root);
-    const pool=compositionProfile(name,root,{...this.performanceSettings[name],role:current.role,degree:current.degree});
+    const pool=compositionProfile(name,root,{...this.performanceSettings[name],role:current.role,degree:current.degree,genre:this.genre});
     if(pool.length<2)return false;
-    const index=pool.findIndex(phrase=>phrase.name===current.name);
+    const index=pool.findIndex(phrase=>phrase.name===(displayedName??current.name));
     this.equippedPhrase=pool[(index+1)%pool.length];
     this.phrasePinned=true;
     this.stopManualVoices();this.manualAutoplayVersion++;this.onManualAutoplayEvent?.(null);
@@ -730,6 +746,7 @@ export class AudioEngine {
     const root=this.root;
     this.barRoot=root;
     const plan=this.composition.planBar(bar,root,this.compositionOptions());
+    if(this.genreTransition&&bar>=this.genreTransition.startBar+this.genreTransition.durationBars)this.genreTransition=null;
     const scheduled={time,root,bar,plan};
     this.scheduledBars.set(bar,scheduled);
     for(const index of this.scheduledBars.keys())if(index<bar-1)this.scheduledBars.delete(index);
@@ -748,7 +765,7 @@ export class AudioEngine {
       if(name===this.manualInstrument)this.equippedPhrase=selected;
       const events = selected.events;
       for (const event of events) {
-        const offset = Tone.Time(event.time).toTicks();
+        const offset = Tone.Time(event.time).toTicks()+Math.round((event.swingOffset??0)*Tone.Transport.PPQ);
         if (offset === 0) {
           this.playEvent(name, event, time,root,scheduled);
           continue;
