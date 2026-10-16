@@ -21,6 +21,7 @@ export function practiceProfile(name,root,options={}) {
   const compositionOptions={...options,complexity:level==='Simple'?.35:level==='Standard'?1:1.5,role};
   const motifs=[...compositionProfile(name,root,compositionOptions),...(includeMelody?compositionProfile(name,root,{...compositionOptions,role:'melody'}):[])];
   const phrases=Object.freeze([...legacy.phrases,...motifs]);
+  // Event pitches are note names; normalize ordering through MIDI pitch numbers, not string order.
   const played=name==='drums'?[]:motifs.flatMap(phrase=>phrase.events.flatMap(event=>event.notes??[event.note]));
   const fullKeyboard=level==='Advanced'?{piano:PIANO_NOTES,marimba:MARIMBA_NOTES}[name]:undefined;
   const notes=Object.freeze([...new Set([...legacy.notes,...played])].sort((first,second)=>noteMidi(first)-noteMidi(second)));

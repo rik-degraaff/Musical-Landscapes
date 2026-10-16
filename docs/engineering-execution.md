@@ -48,3 +48,4 @@ Scope: preserve this local-first children's music toy, its authored musical beha
 ## Deferred By Evidence
 
 The final entry bundle is 756.69 kB (218.64 kB gzip) and offline precache is 17,590.12 KiB across 204 entries. The large-chunk warning remains recorded. Splitting startup audio code or lazy-decoding instrument banks is not justified by a real-device baseline yet and could regress gesture unlocking, complete offline play and key-switch latency. Measure first/warm startup, sustained frames, decoded memory and external audible latency on supported devices before choosing that change. No project-wide state-store rewrite, dual transport, content rewrite or local-data encryption claim was added.
+

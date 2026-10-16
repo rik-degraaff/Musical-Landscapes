@@ -2,6 +2,7 @@ export const PRACTICE_STAGES=['Listen','Learn','Rhythm','Together'];
 export const PRACTICE_TIMING_TOLERANCE=.5;
 
 export function beatOffset(time) {
+  // Composition times use bars:beats:sixteenths; convert them to quarter-note beat units.
   const [bars,beats,sixteenths]=time.split(':').map(Number);
   return bars*4+beats+sixteenths/4;
 }

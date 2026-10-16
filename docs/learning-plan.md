@@ -21,4 +21,6 @@ Approved direction: short child setup, caregiver guidance available on demand, o
 
 ## Progress
 
-- Plan recorded. Implementation and checks pending.
+- Setup, guide library, learning persistence, age-aware suggestions and shared SVG demos implemented in `3b863c0`.
+- Developer documentation reorganized; project instructions and three workflow skills added. All three skills pass the skill validator.
+- Full Node suite: 327 passed. Initial corrected desktop setup/learning batch: 23 passed. Broader desktop/compact-touch and fresh-build production checks are in progress; final results will be recorded below.

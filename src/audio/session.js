@@ -15,6 +15,7 @@ export function findPhraseIndex(pool, phrase) {
 }
 
 export function capturePracticeSnapshot(state) {
+  // Practice temporarily replaces transport and instrument state; copy mutable fields for restoration.
   return {
     active: { ...state.active },
     manual: state.manualInstrument,
@@ -28,6 +29,7 @@ export function capturePracticeSnapshot(state) {
 }
 
 export function restorePracticeSnapshot(snapshot) {
+  // Return the engine-facing field names while copying active flags back into a fresh object.
   return {
     active: { ...snapshot.active },
     manualInstrument: snapshot.manual,

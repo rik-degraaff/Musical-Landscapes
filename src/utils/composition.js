@@ -68,6 +68,7 @@ function render(name,root,role,motif,chord,nextChord,profile,previous,{tension=m
     const breath={2:'4n.',1:'8n.',.5:'16n.',.25:'32n.'};
     const plucked={2:'4n',1:'8n',.5:'16n',.25:'32n'};
     const durations=['flute','melody','panflute'].includes(name)?breath:name==='marimba'||STRING_INSTRUMENTS[name]?plucked:sustained;
+    // Event time is bars:beats:sixteenths; duration is a Tone note value, and pitches are note names.
     const event={time:`0:${Math.floor(beat)}:${Math.round((beat%1)*4)}`,dur:durations[length],velocity:Math.min(.85,.35+motif.energy*.25+(motif.dynamics[index]??0)),swingOffset:style.swing&&Math.abs(beat%1-.5)<.001?style.swing:0};
     if(name==='drums')return {...event,note:contour};
     const maxNotes=name==='piano'?(profile.level==='Simple'?2:3):STRING_INSTRUMENTS[name]?4:1;
@@ -143,6 +144,7 @@ export class Composition {
     if(bar<(this.plans.keys().next().value??this.nextBar))throw new RangeError('bar is outside retained composition history');
     const first=[...this.plans.keys()].find(value=>value>=bar);
     if(first===undefined)return;
+    // Restore the saved random/state checkpoint before dropping this bar and all dependent plans.
     const checkpoint=this.checkpoints.get(first);
     this.state=structuredClone(checkpoint.state);
     this.cursor=checkpoint.cursor;
@@ -182,6 +184,7 @@ export class Composition {
       if(!motif)throw new Error(`Invalid override motif for ${name} ${candidateRoles.join('/')} ${profiles[name].level}: ${motifName}`);
       overrides[name]={motif,role:selectedRole};
     }
+    // A cached plan is reusable only when every input that shapes its events still matches.
     const signature=JSON.stringify([root,genre,mix,activeNames,manualInstrument,names.map(name=>[name,profiles[name].level,overrides[name]?.motif.name,overrides[name]?.role])]);
     const cached=this.plans.get(bar);
     if(cached?.signature===signature)return cached.plan;

@@ -273,6 +273,8 @@ export class AudioEngine {
   }
 
   setSceneKey(root) {
+    // `root` is the requested scene key; `playbackRoot` stays on the currently audible key
+    // until its bar boundary. Replan only future bars so an in-flight bar is never retuned.
     if(root===this.root)return;
     this.root = root;
     this.onHarmonyChange?.(null);
@@ -428,6 +430,7 @@ export class AudioEngine {
     envelope.gain.setValueAtTime(0, when);
     envelope.gain.linearRampToValueAtTime(velocity, when + (['flute','panflute'].includes(name) ? 0.035 : 0.006));
     const voice = { source, envelope, note, name, rate:source.playbackRate.value };
+    // The token owns this live source until note-off; its release tail remains tracked separately.
     this.manualVoices.set(token, voice);
     source.onended = () => finishManualVoice(voice, token, this.manualVoices, this.retiringVoices);
     source.start(when,legato && loop ? loop.loopStart : 0);
@@ -438,6 +441,7 @@ export class AudioEngine {
     const voice = this.manualVoices.get(token);
     if (!voice) return;
     this.manualVoices.delete(token);
+    // Remove ownership immediately, but retain the voice until `onended` disconnects its release tail.
     this.retiringVoices.add(voice);
     const when = Tone.getContext().rawContext.currentTime;
     const release = quick ? 0.04 : MANUAL_RELEASE[voice.name] ?? 0.08;
@@ -489,6 +493,7 @@ export class AudioEngine {
     if(this.tempoHeld||this.backgrounded||document.hidden)return;
     if(this.practiceSession)return;
     if (this.transportEvent === null) {
+      // Initialization generations fence off callbacks left behind by a disposed audio graph.
       const generation = this.audioGeneration;
       this.transportEvent = Tone.Transport.scheduleRepeat(time => { if(this.ready&&generation===this.audioGeneration)this.scheduleBar(time); }, BAR);
     }
@@ -508,6 +513,7 @@ export class AudioEngine {
   refreshFutureBars() {
     const currentBar=Math.max(0,Math.floor(Tone.Transport.getTicksAtTime(Tone.immediate())/(Tone.Transport.PPQ*4)));
     const first=this.barIndex>0?currentBar+1:0;
+    // Composition plans and queued audio events are invalidated together from the first inaudible bar.
     this.composition.invalidateFrom(first);
     const future=[...this.scheduledBars.values()].filter(scheduled=>scheduled.bar>=first).sort((firstBar,secondBar)=>firstBar.bar-secondBar.bar);
     if(future.length){
@@ -612,6 +618,7 @@ export class AudioEngine {
     const startTime=Tone.now()+.12;
     const ticksPerBeat=Tone.Transport.PPQ;
     const ticksPerBar=ticksPerBeat*4;
+    // Phrase times become quarter-note beats, then Transport ticks; one bar is four beats.
     const phraseStartTick=ticksPerBar;
     const repeat=(callback,interval,start)=>ids.push(Tone.Transport.scheduleRepeat(time=>{if(valid())callback(time);},interval,start));
     let beatCount=0;
@@ -767,6 +774,7 @@ export class AudioEngine {
         this.onHarmonyChange?.(root===this.root?plan:null);
       }
     },time+(Tone.Draw.anticipation??.008)+.001);
+    // Scheduled event IDs are indexed by bar so a replan can cancel only events at or after its boundary.
     const barPosition = bar * Tone.Transport.PPQ * 4;
     for (const name of instrumentNames) {
       if (!this.shouldSchedule(name)) continue;

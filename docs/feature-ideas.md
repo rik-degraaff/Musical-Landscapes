@@ -1,6 +1,6 @@
 # Child-Centered Future Ideas
 
-Every idea below is **not implemented**. These are possibilities to investigate with children and caregivers, not claims about current behavior or a delivery roadmap.
+This document mixes implemented capabilities with future possibilities. Sections labeled as proposals are not implemented; they are ideas to investigate with children and caregivers, not claims about current behavior or a delivery roadmap. The caregiver local-data section records existing profile behavior and separates it from proposed export, restore, and backup features.
 
 ## Baseline And Phases
 

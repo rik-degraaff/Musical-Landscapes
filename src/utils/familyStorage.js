@@ -55,6 +55,7 @@ export function createFamilyStorage(storageProvider=()=>window.localStorage) {
       const familyJSON=JSON.stringify(normalizedFamily);
       const settingsJSON=JSON.stringify(selectedChild?.settings??normalizeSettings(settings));
       storage=storageProvider();previousSettings=storage.getItem(SETTINGS_KEY);
+      // The legacy settings key is written first for older readers; roll it back if the family write fails.
       storage.setItem(SETTINGS_KEY,settingsJSON);settingsWritten=true;
       storage.setItem(CHILDREN_KEY,familyJSON);
       return {ok:true,error:null};
@@ -71,6 +72,7 @@ export function createFamilyStorage(storageProvider=()=>window.localStorage) {
 }
 
 export function recoverFamilySnapshot(initial,current,recovered) {
+  // Recovered storage supplies unchanged data; preserve edits made in memory since the initial load.
   const children=recovered.family.children.map(saved=>{
     const previous=initial.family.children.find(child=>child.id===saved.id);
     const edited=current.family.children.find(child=>child.id===saved.id);
