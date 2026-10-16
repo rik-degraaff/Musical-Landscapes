@@ -18,7 +18,7 @@
 .gesture-strings { position: absolute; left: 25%; right: 20%; top: 25px; display: grid; gap: 12px; }
 .gesture-strings i { height: 2px; background: #78563f; }
 .gesture-demo figcaption { font-weight: 800; margin: 8px 0; text-align: center; }
-.gesture-demo button,.guide-card button,.learning-action { display: inline-flex; gap: 6px; align-items: center; min-height: 42px; padding: 8px 12px; border: 1px solid #578676; border-radius: 6px; color: #245d52; background: #fff; cursor: pointer; }
+.gesture-demo > button,.guide-card button,.learning-action { display: inline-flex; gap: 6px; align-items: center; min-height: 42px; padding: 8px 12px; border: 1px solid #578676; border-radius: 6px; color: #245d52; background: #fff; cursor: pointer; }
 .gesture-static-note { font-size: 12px; margin-bottom: 0; }
 .is-demonstrating.gesture-tap .gesture-pointer { animation: gestureTap 1.2s 2; }
 .is-demonstrating.gesture-double-tap .gesture-pointer { animation: gestureTap .55s 4; }

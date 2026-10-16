@@ -1,9 +1,9 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Music,Headphones,Footprints,Timer,Users,Play,Pause,RotateCcw,Check,CircleAlert,DoorOpen,ArrowRight} from 'lucide-react';
+import {Music,Check,CircleAlert} from 'lucide-react';
 import {INSTRUMENTS} from '../utils/music';
 import {practiceProfile} from '../utils/practiceComposition';
 import {noteMidi} from '../utils/autoplay';
-import {PRACTICE_STAGES,PRACTICE_TIMING_TOLERANCE,learningSteps,createTimingAttempt,scoreTimedInput,expireSteps,attemptSummary} from '../utils/practice';
+import {PRACTICE_TIMING_TOLERANCE,learningSteps,createTimingAttempt,scoreTimedInput,expireSteps,attemptSummary} from '../utils/practice';
 import {InstrumentSurface} from './PerformancePanel';
 import {InstrumentArt} from './InstrumentArt';
 import {PracticeRoomArt} from './PracticeRoomArt';
@@ -11,6 +11,7 @@ import {YoungMusicianArt} from './YoungMusician';
 import {Metronome} from './Metronome';
 import {PracticeFeedback} from './PracticeFeedback';
 import {HelpButton} from './CaregiverHelp';
+import {PracticeStageTabs,PracticeSelectors,PracticeProgress,PracticeTransport,PracticeExit} from './PracticeRoomControls';
 import './practice.css';
 
 export function PracticeRoom({child,audio,initialInstrument,settings,root,onClose,onHelp}) {
@@ -161,7 +162,7 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
     const escape=event=>{
       if(event.key==='Escape'){event.preventDefault();onClose();}
       if(event.key==='Tab'){
-        const controls=[...room.current.querySelectorAll('button:not(:disabled),select,[tabindex="0"]')];
+        const controls=[...room.current.querySelectorAll('button:not(:disabled),select,[tabindex="0"]'),...document.querySelectorAll('.live-coach button')];
         const first=controls[0],last=controls.at(-1);
         if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
         else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
@@ -199,28 +200,26 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
     };
     frame.current=requestAnimationFrame(tick);
   }
-  const stageIcons=[Headphones,Footprints,Timer,Users];
   const targetNotes=target?.notes??(target?.note?[target.note]:[]);
   const progress=stage===1?Math.min(step,steps.length):stage===0?(complete?steps.length:0):attempt.current.reduce((sum,value)=>sum+value.hits,0);
   return <section ref={room} className="practice-room" role="dialog" aria-modal="true" aria-label="Farm practice room" onPointerDownCapture={captureInput} onKeyDownCapture={captureInput}>
     <PracticeRoomArt/>
-    <header className="practice-topbar"><HelpButton onOpen={()=>onHelp(name)}/><h1 className="practice-room-title"><Music size={22}/>Farm Practice</h1>
+    <header className="practice-topbar"><HelpButton onOpen={()=>onHelp(name,stage)}/><h1 className="practice-room-title"><Music size={22}/>Farm Practice</h1>
       <div className="practice-lineup" role="group" aria-label="Musician and instruments">
         <div className="practice-musician" data-child-name={child?.name}><YoungMusicianArt child={child}/><InstrumentArt type={name}/><span>{INSTRUMENTS[name].label}</span></div>
         <div className="practice-neighbors" aria-label="Other landscape instruments">{settings.selected.filter(instrument=>instrument!==name).map(instrument=><button key={instrument} className={companions[instrument]!==undefined?'is-accompanying':''} aria-label={`Switch to ${INSTRUMENTS[instrument].label}`} title={companions[instrument]!==undefined?`${INSTRUMENTS[instrument].label}, phrase ${companions[instrument]+1}`:`Practice ${INSTRUMENTS[instrument].label}`} onClick={()=>{cancel();setPhraseIndex(0);setName(instrument);}}><InstrumentArt type={instrument}/></button>)}</div>
       </div>
-      <label className="practice-select"><span className="practice-instrument-tools" aria-hidden="true"><InstrumentArt type={name}/></span><select aria-label="Practice instrument" value={name} onChange={event=>{cancel();setPhraseIndex(0);setName(event.target.value);}}>{Object.entries(INSTRUMENTS).map(([id,instrument])=><option key={id} value={id}>{instrument.label}</option>)}</select></label>
-      <label className="practice-select"><select aria-label="Practice phrase" value={Math.min(phraseIndex,profile.phrases.length-1)} onChange={event=>{cancel();setPhraseIndex(Number(event.target.value));}}>{profile.phrases.map((value,index)=><option key={index} value={index}>{value.role?`${value.name[0].toUpperCase()}${value.name.slice(1)} · ${value.role} · ${value.chord}`:`Phrase ${index+1}`} · {value.events.length} actions</option>)}</select></label>
+      <PracticeSelectors name={name} onInstrument={instrument=>{cancel();setPhraseIndex(0);setName(instrument);}} phraseIndex={phraseIndex} onPhrase={index=>{cancel();setPhraseIndex(index);}} phrases={profile.phrases}/>
       <Metronome audio={audio} open={metronomeOpen} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>
-      <button className="practice-exit" aria-label="Leave practice through the open door" title="Leave practice" onClick={onClose}><DoorOpen size={26}/><span>Leave</span></button>
+      <PracticeExit onClose={onClose}/>
     </header>
-    <nav className="practice-stages" aria-label="Practice stages">{PRACTICE_STAGES.map((label,index)=>{const Icon=stageIcons[index];return <button key={label} aria-pressed={stage===index} onClick={()=>{cancel();setStage(index);}}><Icon size={18}/>{index+1}. {label}</button>;})}</nav>
+    <PracticeStageTabs stage={stage} onChange={index=>{cancel();setStage(index);}}/>
     <main className="practice-main">
       <div className="practice-guide"><div className="practice-target"><strong>{stage===1&&complete?'Finished':countingIn?`Count ${beat+1}`:targetNotes.join(' + ')||'Ready'}</strong></div>
         <div key={`${feedback.tone}:${feedback.text}`} className="practice-feedback-display" data-tone={feedback.tone} role="status" aria-live="polite">{feedback.tone==='correct'?<Check size={28}/>:feedback.tone==='wrong'?<CircleAlert size={28}/>:<Music size={24}/>}<strong>{feedback.text}</strong></div>
-        <div className="practice-tools"><div className="practice-progress"><progress aria-label="Practice progress" max={steps.length} value={progress}/>{summary&&<span className="practice-score">{summary.hits}/{summary.total} · {summary.percent}%</span>}</div><div className="practice-beat-strip" aria-label="Beat">{[0,1,2,3].map(value=><i key={value} className={beat===value?'is-current':''}/>)}</div></div>
+        <PracticeProgress beat={beat} progress={progress} max={steps.length} summary={summary}/>
       </div>
-      <div className="practice-control-dock">{stage!==1&&<button className="practice-run-button" aria-label={running?'Stop practice':'Start repeating'} onClick={()=>running?stopAttempt():startAttempt()}>{running?<Pause size={18}/>:<Play size={18}/>}<span>{running?'Stop':summary?'Repeat':'Ready'}</span></button>}<button className="practice-restart-button" aria-label="Restart practice" title="Restart practice" onClick={reset}><RotateCcw size={17}/><span>Restart</span></button><button className="practice-next-button" aria-label={stage===3?'Finish practice':'Next practice step'} disabled={!complete} onClick={()=>{if(stage===3){onClose();return;}cancel();setStage(stage+1);}}><span>{stage===3?'Finish':'Next'}</span><ArrowRight size={17}/></button></div>
+      <PracticeTransport stage={stage} running={running} summary={summary} complete={complete} onToggle={()=>running?stopAttempt():startAttempt()} onRestart={reset} onNext={()=>{if(stage===3){onClose();return;}cancel();setStage(stage+1);}}/>
       <div className="practice-phrase-track" aria-label="Phrase actions">{(stage===1?steps:phrase.events).map((value,index)=><span key={index} className={`${stage===1&&index<step?'is-complete':''} ${(stage===1&&index===step&&!complete)||(stage!==1&&cue?.eventIndex===index)?'is-current':''} ${stage>1&&results[index]==='correct'?'is-complete':''} ${results[index]==='missed'?'is-missed':''}`}>{stage===1?value.notes.join('+'):(value.notes??[value.note]).join('+')}</span>)}</div>
       <div className="practice-surface-host" data-timed-cue={stage!==1&&Boolean(cue)}><div className="practice-duration-track" role="progressbar" aria-label="Note hold duration" aria-valuemin={0} aria-valuemax={100} aria-valuenow={cue?100:0}><i/></div><InstrumentSurface key={`${name}:${phraseIndex}:${stage}`} name={name} audio={audio} root={root} options={options} profile={profile} cue={target} practice/></div>
     </main>

@@ -23,13 +23,13 @@ Instrument and display preferences are saved for each child. Caregiver familiari
 
 ## Guides and help
 
-Guides are optional reference material. Opening one does not mark it as read; use **Mark as read** when you choose. New or unread guides have badges in the menu. Guide revisions can make previously read material appear new again.
+Guides are optional reference material, organized into short task pages. Use Back, Next or the page selector to jump freely. The practice guide covers the room controls and all four stages. Opening or paging through a guide does not mark it as read; **Mark as read** is an explicit choice on the final page. New or unread guides have badges in the menu. Guide revisions can make previously read material appear new again.
 
 The **?** button opens contextual help with one tap. Help returns to the screen where it was opened. During play, gameplay Settings still opens with a double-tap of its button. In help and guides, explanations adapt to the caregiver familiarity setting.
 
 ## Learning hints
 
-Hints offer brief suggestions for actions such as tapping, changing landscapes, equipping an instrument, or visiting practice. They never open by themselves. At most one suggestion is highlighted at a time, and selecting it opens an explanation with replayable hand illustrations, text, and static alternatives. The illustrations do not press controls or make sounds.
+Hints offer brief suggestions for actions such as tapping, changing landscapes, equipping an instrument, or visiting practice. They never open by themselves. At most one suggestion is highlighted at a time, and selecting it shows a hand over the actual control in play, with a short caption and Replay gesture / Stop hint controls. There is no child hint dialog. Equipping and entering practice can continue into a second action after the child performs the first. Demonstrations never press controls or make sounds. Reduced-motion users see static contact and direction cues. Stopping dismisses a hint; an unfinished suggestion remains available after restarting.
 
 Hint timing counts active, visible, focused play in landscape when dialogs are closed. Automatic suggestions have different age and activity defaults. These are product defaults, not developmental guidance. Caregivers can turn hints on or off for the selected child, reset an individual hint, or explicitly suggest one regardless of its automatic eligibility.
 

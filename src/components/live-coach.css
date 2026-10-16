@@ -1,0 +1,11 @@
+.live-coach { position: fixed; inset: 0; z-index: 180; pointer-events: none; }
+.coach-hand { position: absolute; width: 64px; height: 68px; transform: translate(-38%,-9%); filter: drop-shadow(0 2px 3px #14372e66); }
+.coach-hand .gesture-hand { width: 100%; height: 100%; fill: #ffddb7; stroke: #704b36; stroke-width: 2; }
+.coach-hand .hand-crease,.coach-hand .hand-contact { fill: none; }
+.coach-caption { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); max-width: min(440px,65vw); padding: 7px 12px; border-radius: 10px; background: #fffef0ee; color: #23483d; box-shadow: 0 2px 8px #173d3422; text-align: center; }
+.coach-caption p { margin: 0 0 4px; font-size: 14px; }
+.coach-caption button { pointer-events: auto; min-height: 30px; margin: 0 4px; border: 1px solid #578676; border-radius: 5px; background: white; color: #245d52; cursor: pointer; }
+.coach-route { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: #245d52; stroke-width: 4; stroke-dasharray: 7 5; }
+@media(max-height:400px) { .coach-caption { max-width: 52vw; padding: 4px 8px; } .coach-caption p { font-size: 12px; } }
+
+.coach-in-practice .coach-caption { left: 8px; transform: none; max-width: min(340px,42vw); text-align: left; }

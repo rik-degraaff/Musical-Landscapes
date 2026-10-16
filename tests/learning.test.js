@@ -5,7 +5,7 @@ import {GUIDES,HINTS,childLearning,createLearningStorage,emptyLearning,guideStat
 test('guides distinguish unread, changed revisions and completed revisions',()=>{
   const state=emptyLearning(),guide=GUIDES[0];
   assert.equal(guideStatus(state,guide),'Unread');state.guides[guide.id]=1;
-  assert.equal(guideStatus(state,guide),'Read');assert.equal(guideStatus(state,{...guide,version:2}),'New');
+  assert.equal(guideStatus(state,guide),'New');state.guides[guide.id]=guide.version;assert.equal(guideStatus(state,guide),'Read');
   state.guides[guide.id]=3;assert.equal(guideStatus(state,guide),'Read');
 });
 test('automatic suggestions respect age, active time, prerequisites and child isolation',()=>{
@@ -42,4 +42,14 @@ test('invalid progress is normalized without trusting unknown hints or negative 
   const state=normalizeLearning({guides:{instruments:-1,bad:99},children:{a:{seconds:-4,hints:{bad:{completed:true},tap:{seen:'yes',suggested:true}}}}});
   assert.deepEqual(state.guides,{});assert.equal(state.children.a.seconds,0);assert.equal(state.children.a.hints.tap.seen,false);
   assert.equal(state.children.a.hints.bad,undefined);
+});
+
+test('unfinished live coaching resumes across reload while explicit dismissal survives',()=>{
+  let state=updateHint(emptyLearning(),'a','equip',{suggested:true,seen:true,dismissed:false});
+  state=normalizeLearning(JSON.parse(JSON.stringify(state)));
+  assert.equal(nextHint(state,{id:'a',age:'under3'}).id,'equip');
+  state=updateHint(state,'a','equip',{dismissed:true});
+  assert.notEqual(nextHint(normalizeLearning(state),{id:'a',age:'under3'})?.id,'equip');
+  const legacy=normalizeLearning({children:{a:{hints:{equip:{suggested:true,seen:true}}}}});
+  assert.equal(legacy.children.a.hints.equip.dismissed,true);
 });

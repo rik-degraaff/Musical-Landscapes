@@ -11,6 +11,30 @@ export function caregiverHelp(topic,familiarity='some') {
   return {title:content.title,items:content.items,note:content.notes[familiarity]??content.notes.some};
 }
 
+// Help answers the task on the current screen; full guides own the walkthroughs.
+const QUICK_HELP={
+  menu:{title:'Choose a child to play',paragraphs:['Select a child’s avatar to play with their saved instruments and settings. Add child creates a profile; the pencil beside a child opens their profile for editing.'],guide:'profiles',illustration:{kind:'profile'}},
+  instruments:{title:'Start a sound or play it yourself',paragraphs:['Tap a landscape instrument to start or stop its repeating part. Drag it onto your child’s avatar to open its playable controls.'],guide:'instruments',illustration:{kind:'equip',gesture:'drag'}},
+  landscape:{title:'Explore the landscape',paragraphs:['Tap the sun or moon to visit another landscape. Tap a cloud to change between Folk and Jazz. Open the metronome at the bottom left to change the beat.'],guide:'landscape',illustration:{kind:'sun',gesture:'tap'}},
+  practice:{title:'Choose a practice stage',paragraphs:['Choose an instrument and phrase, then a stage. Listen demonstrates it; Learn waits for the highlighted notes. Rhythm and Together let you play with the beat. Use the open door to return to the landscape.'],guide:'practice',illustration:{kind:'practice-room',focus:'stages'}},
+  settings:{title:'Adjust this child’s setup',paragraphs:['Use Instruments for this child’s six instruments, complexity and labels. During play, Sound adjusts this session’s levels. Caregiver contains shared music familiarity and this child’s hint choices.'],guide:'settings',illustration:{kind:'settings',focus:'selectors'}}
+};
+
+const STAGE_HELP={
+  Listen:{title:'Listen to the phrase',paragraphs:['Press Ready and wait for the count-in. The instrument plays the phrase and highlights its controls. Stop ends the repeating demonstration; Next becomes available after a full phrase.'],illustration:{kind:'practice-stage',stage:'Listen',focus:'transport'}},
+  Learn:{title:'Play the highlighted notes',paragraphs:['Play each highlighted note or complete chord. Learn waits for you, with no Ready button or timing target. Next becomes available when you finish the whole phrase.'],illustration:{kind:'practice-stage',stage:'Learn',focus:'progress'}},
+  Rhythm:{title:'Start each note with the beat',paragraphs:['Press Ready and wait through the count-in. Play the highlighted notes at their place in the beat. Orange bars guide how long to hold; hold duration is not scored.'],illustration:{kind:'practice-stage',stage:'Rhythm',focus:'progress'}},
+  Together:{title:'Play with your partners',paragraphs:['Press Ready and wait for the count-in. Play your phrase while two quieter partner instruments accompany you. Finish becomes available after one correct full phrase; the door lets you leave at any time.'],illustration:{kind:'practice-stage',stage:'Together'}}
+};
+
+export function contextualHelp(topic,familiarity='some',practiceStage) {
+  const stage=typeof practiceStage==='number'?['Listen','Learn','Rhythm','Together'][practiceStage]:practiceStage;
+  const base=QUICK_HELP[topic]??QUICK_HELP.menu;
+  const content=topic==='practice'&&STAGE_HELP[stage]?{...base,...STAGE_HELP[stage]}:base;
+  const note=topic==='practice'&&stage==='Learn'&&familiarity==='new'?'A chord means several notes sounding together.':null;
+  return {...content,note};
+}
+
 const INSTRUMENT_HELP={
   piano:{action:'Press or hold the piano keys. The orange keys show the part currently sounding.',new:'Each key makes one note. Try one at a time, or press several together to make a chord.',some:'Higher notes are to the right. Try repeating a short melody, then adding two or three notes together.',confident:'The keyboard has all twelve notes in each octave. Orange highlights show the current notes; try a short answer to the repeating part.'},
   marimba:{action:'Tap or hold the bars. Orange highlights show the notes to follow.',new:'Each bar makes a different note. Play one, then answer it with another.',some:'Compare a melody that moves between nearby bars with one that skips farther.',confident:'Compare short and sustained sounds, or make a reply that moves between higher and lower bars.'},

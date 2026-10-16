@@ -1,10 +1,13 @@
-import React,{useState} from 'react';
-import {BookOpen,Check,Download,Info} from 'lucide-react';
+import React,{useEffect,useRef,useState} from 'react';
+import {ArrowLeft,ArrowRight,BookOpen,Check,Download,Play,RotateCcw} from 'lucide-react';
 import {GUIDES,guideStatus} from '../utils/learning';
+import {guidePages,guidePageNote} from '../utils/guidePages';
+import {instrumentHelp} from '../utils/caregiverHelp';
+import {INSTRUMENTS} from '../utils/music';
 import {installationGuide} from '../utils/installation';
 import {CaregiverDialog} from './CaregiverDialog';
-import {GuideTopic} from './CaregiverHelp';
-import {GestureDemo} from './GestureDemo';
+import {GuideIllustration} from './GuideIllustration';
+import './guides.css';
 
 export function GuideLibrary({learning,onOpen}) {
   return <div className="guide-library">{GUIDES.map(guide=>{
@@ -16,38 +19,91 @@ export function GuideLibrary({learning,onOpen}) {
   })}</div>;
 }
 
-function InstallationGuide({installation}) {
-  const [guide]=useState(()=>installationGuide(navigator));
-  const {installed,available,status,pending,install}=installation;
-  return <section>
-    <h3>Install FarmJam</h3><p>Optional: add an app icon and, where supported, a separate app window. You can also keep playing in the browser.</p>
-    {installed&&<p className="parent-guide-note"><Check size={17}/>FarmJam is already running as an installed app.</p>}
-    <ol className="parent-install-steps">{guide.steps.map(text=><li key={text}>{text}</li>)}</ol>
+function InstallationPage({pageId,installation}) {
+  const [deviceGuide]=useState(()=>installationGuide(typeof navigator==='undefined'?{}:navigator));
+  const {installed=false,available=false,status='',pending=false,install}=installation??{};
+  if(pageId==='install')return <div className="guide-device-instructions">
+    {installed&&<p className="guide-install-state"><Check size={17}/>FarmJam is already running as an installed app.</p>}
+    <ol className="parent-install-steps">{deviceGuide.steps.map(text=><li key={text}>{text}</li>)}</ol>
     {!installed&&available&&<button className="learning-action" disabled={pending} onClick={install}><Download size={17}/>{pending?'Opening installation…':'Install FarmJam'}</button>}
-    <p role="status">{status}</p><p><a href={guide.installUrl} target="_blank" rel="noopener noreferrer">Official installation help for {guide.label}</a></p>
-    <p className="parent-guide-note"><Info size={17}/>Profiles stay in this browser on this device. Switching browsers or app contexts may not carry them over. A bookmark is an alternative if installation is unavailable.</p>
-    <h3>Offline play</h3><p>Let the app finish loading online before using it offline. To check readiness, disconnect and try reloading and playing. Device storage can be cleared by the browser or operating system; it is not a backup.</p>
-    <h3>Keep your child in the app</h3><p>Installation and fullscreen do not prevent leaving FarmJam. FarmJam cannot enable device restrictions; a caregiver must configure and test them.</p>
-    <h4>{guide.restriction.title}</h4><ol className="parent-restriction-steps">{guide.restriction.steps.map(text=><li key={text}>{text}</li>)}</ol>
-    {guide.restriction.url&&<p><a href={guide.restriction.url} target="_blank" rel="noopener noreferrer">Official help: {guide.restriction.title}</a></p>}
-    <p><a href={guide.restriction.searchUrl} target="_blank" rel="noopener noreferrer">Find instructions for {guide.restriction.title.toLowerCase()}</a></p>
-  </section>;
-}
-
-export function TopicDemonstration({topic}) {
-  if(topic==='instruments')return <GestureDemo gesture="drag"/>;
-  if(topic==='practice')return <GestureDemo gesture="double-tap" target="avatar"/>;
-  if(topic==='landscape')return <><GestureDemo target="weather" label="Tap a cloud to change the musical style"/><GestureDemo gesture="tempo" target="metronome"/></>;
+    {status&&<p role="status">{status}</p>}
+    <p><a href={deviceGuide.installUrl} target="_blank" rel="noopener noreferrer">Official installation help for {deviceGuide.label}</a></p>
+  </div>;
+  if(pageId==='restrict')return <div className="guide-device-instructions">
+    <h4>{deviceGuide.restriction.title}</h4>
+    <ol className="parent-restriction-steps">{deviceGuide.restriction.steps.map(text=><li key={text}>{text}</li>)}</ol>
+    {deviceGuide.restriction.url&&<p><a href={deviceGuide.restriction.url} target="_blank" rel="noopener noreferrer">Official help: {deviceGuide.restriction.title}</a></p>}
+    <p><a href={deviceGuide.restriction.searchUrl} target="_blank" rel="noopener noreferrer">Find instructions for {deviceGuide.restriction.title.toLowerCase()}</a></p>
+  </div>;
   return null;
 }
 
-export function GuideReader({id,learning,familiarity,onOpen,onRead,onClose,installation}) {
+// Kept for consumers that embed a single topic illustration.
+export function TopicDemonstration({topic,child}) {
+  const props={instruments:{kind:'equip',gesture:'drag'},practice:{kind:'profile',gesture:'double-tap'},landscape:{kind:'sun',gesture:'tap'}}[topic];
+  return props?<GuideIllustration {...props} child={child}/>:null;
+}
+
+function GuidePageArt({illustration,child,instrument}) {
+  const [replay,setReplay]=useState(0);
+  return <figure className="guide-task-visual">
+    <GuideIllustration key={replay} {...illustration} instrument={instrument} child={child} demonstrating={replay>0}/>
+    {illustration.gesture&&<button className="guide-replay" onClick={()=>setReplay(value=>value+1)}>{replay?<RotateCcw size={16}/>:<Play size={16}/>}<span>{replay?'Replay gesture':'Show gesture'}</span></button>}
+  </figure>;
+}
+
+export function GuideReader({id,learning,familiarity,child,onOpen,onRead,onClose,installation,saveError,onRetry}) {
   const guide=GUIDES.find(value=>value.id===id);
-  if(!guide)return <CaregiverDialog title="Guides" onClose={onClose} footer={<button onClick={onClose}>Back</button>}>
-    <p>Explore a guide now or return whenever you like. Unread and New badges stay here until you choose Mark as read.</p>
-    <GuideLibrary learning={learning} onOpen={onOpen}/>
-  </CaregiverDialog>;
-  return <CaregiverDialog key={guide.id} title={guide.title} onClose={onClose} footer={<><button onClick={()=>onOpen('index')}>All guides</button><button onClick={()=>{onRead(guide);onOpen('index');}}><Check size={17}/>Mark as read</button></>}>
-    {guide.id==='installation'?<InstallationGuide installation={installation}/>:guide.id==='together'?<section><h3>Make music together</h3><ul className="parent-care-list"><li>Let your child choose a sound. Copy a rhythm or take turns leading.</li><li>Try a short musical question and answer. There is no need to read notes.</li><li>Pause when attention or enjoyment fades. Make room for movement, conversation and rest.</li><li>Take a favorite rhythm off screen: clap, sing, or try a real instrument together.</li></ul><p>Be especially selective with screen use for very young children and follow your family's professional guidance.</p></section>:<><GuideTopic topic={guide.id} familiarity={familiarity}/><TopicDemonstration topic={guide.id}/></>}
+  const pages=guidePages(id);
+  const [location,setLocation]=useState({id,index:0});
+  const [instrument,setInstrument]=useState('piano');
+  const heading=useRef(null);
+  const index=location.id===id?Math.min(location.index,Math.max(0,pages.length-1)):0;
+  const page=pages[index];
+  const last=index===pages.length-1;
+  const go=next=>setLocation({id,index:next});
+  useEffect(()=>{
+    const frame=requestAnimationFrame(()=>{
+      heading.current?.focus();
+      const content=heading.current?.closest('.parent-guide-content');
+      if(content)content.scrollTop=0;
+    });
+    return ()=>cancelAnimationFrame(frame);
+  },[id,index]);
+  const read=guide&&!saveError&&guideStatus(learning,guide)==='Read';
+  const playing=page?.id==='surface'?instrumentHelp(instrument,familiarity):null;
+  const illustration=playing?{...page.illustration,gesture:['guitar','ukulele','panflute'].includes(instrument)?'swipe':['flute','melody'].includes(instrument)?'hold':'tap'}:page?.illustration;
+  const note=page?guidePageNote(page,familiarity):null;
+  return <CaregiverDialog title={guide?.title??'Guides'} onClose={onClose} footer={guide&&page?<div className="guide-reader-footer">
+    <button onClick={()=>onOpen('index')}>All guides</button>
+    <nav aria-label="Guide pages" className="guide-page-buttons">
+      <button disabled={index===0} onClick={()=>go(index-1)}><ArrowLeft size={17}/>Back</button>
+      {last?<button className="is-next" disabled={read} onClick={()=>onRead(guide)}><Check size={17}/>{read?'Read':'Mark as read'}</button>:<button className="is-next" onClick={()=>go(index+1)}>Next<ArrowRight size={17}/></button>}
+    </nav>
+  </div>:<button onClick={onClose}>Close guides</button>}>
+    {saveError&&<div className="guide-save-error" role="alert"><p>{typeof saveError==='string'?saveError:'Guide progress could not be saved on this device.'}</p>{onRetry&&<button className="learning-action" onClick={onRetry}>Retry saving</button>}</div>}
+    {!guide||!page?<>
+      <p className="guide-library-intro" ref={heading} tabIndex={-1}>Choose any guide. You can leave, revisit pages or jump ahead whenever you like. Reading never changes what your child can play.</p>
+      <GuideLibrary learning={learning} onOpen={onOpen}/>
+    </>:<>
+      <div className="guide-page-picker">
+        <label htmlFor="guide-page-jump">Page <select id="guide-page-jump" aria-label="Choose a guide page" value={index} onChange={event=>go(Number(event.target.value))}>{pages.map((value,number)=><option key={value.id} value={number}>{number+1}. {value.title}</option>)}</select></label>
+        <span>{index+1} of {pages.length}</span>
+      </div>
+      <p className="guide-page-announcement" role="status" aria-live="polite" aria-atomic="true">{page.title}. Page {index+1} of {pages.length}.</p>
+      <section key={`${id}-${page.id}`} className={`guide-task ${page.illustration?'has-illustration':'guide-text-page'}`} data-guide-page={page.id}>
+        <div className="guide-task-copy">
+          <h3 ref={heading} tabIndex={-1}>{page.title}</h3>
+          {page.paragraphs.map(text=><p key={text}>{text}</p>)}
+          {playing&&<><label className="guide-instrument-picker">Instrument <select aria-label="Guide instrument" value={instrument} onChange={event=>setInstrument(event.target.value)}>{Object.entries(INSTRUMENTS).map(([name,value])=><option key={name} value={name}>{value.label}</option>)}</select></label><p>{playing.action}</p><p>{playing.note}</p></>}
+          {note&&<p className="guide-explanation">{note}</p>}
+          {id==='installation'&&<InstallationPage pageId={page.id} installation={installation}/>}
+          {id==='together'&&<p>Keep screen use brief and responsive to your child, especially for very young children. Follow your family’s professional guidance.</p>}
+          {last&&<p className="guide-read-note">{read?'This guide is marked as read.':'Mark as read saves a reminder for you. You can return to every page at any time.'}</p>}
+        </div>
+        {illustration&&<GuidePageArt illustration={illustration} instrument={instrument} child={child}/>}
+      </section>
+    </>}
   </CaregiverDialog>;
 }
+

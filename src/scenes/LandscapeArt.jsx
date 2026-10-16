@@ -1,12 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { celestialPosition } from '../utils/dayCycle';
 
-const cloudPaths=[
-  'M0 0 C-23-19-5-49 20-45 C35-80 80-72 86-42 C120-51 141-19 121-1Z',
-  'M0 0 C-24-15-7-44 16-37 C40-73 83-50 81-33 C117-42 137-16 116 0Z',
-  'M0 0 C-20-24 7-45 24-41 C41-71 81-66 90-32 C130-42 144-12 120 0Z',
-];
-
+import {CloudShape,CelestialArtwork} from './SkyArt';
 const cloudWeather={
   folk:{color:[255,253,242],opacity:[.5,.7,0],scale:[.82,.9,.78]},
   jazz:{color:[164,188,202],opacity:[.92,.98,.88],scale:[1,1.08,1.02]},
@@ -75,12 +70,7 @@ export function LandscapeArt({ scene, phase, genre='folk', genreTransition, onGe
       <pattern id={`${scene}-grain`} width="37" height="31" patternUnits="userSpaceOnUse"><circle cx="8" cy="6" r=".8" fill="#fff" opacity=".12" /><circle cx="24" cy="20" r=".7" fill="#173d36" opacity=".1" /></pattern>
     </defs>
     <path data-name="Sky" fill={`url(#${scene}-sky)`} d="M0 0H1440V900H0Z" />
-    <g className={`celestial-art ${celestial.moon ? 'is-moon' : 'is-sun'}`} transform={`translate(${celestialX} ${celestialY})`} opacity={celestial.opacity}>
-      <g transform={`scale(${stretch} 1)`}>
-        <circle className="celestial-halo" r={celestialRadius * 1.18} fill={celestial.moon ? '#f8edc3' : '#fff4ce'} opacity=".24" />
-        {celestial.moon ? <g className="celestial-pulse"><path d={`M${celestialRadius * .52} ${-celestialRadius * .9} A${celestialRadius} ${celestialRadius} 0 1 0 ${celestialRadius * .74} ${celestialRadius * .55} A${celestialRadius * .78} ${celestialRadius * .78} 0 0 1 ${celestialRadius * .52} ${-celestialRadius * .9}Z`} fill="#f8edc3" /></g> : <g className="celestial-pulse"><circle r={celestialRadius} fill={dusk ? '#ffd4a2' : dawn ? '#edf2dd' : '#ffd875'} /></g>}
-      </g>
-    </g>
+    <CelestialArtwork moon={celestial.moon} radius={celestialRadius} x={celestialX} y={celestialY} stretch={stretch} opacity={celestial.opacity} dusk={dusk} dawn={dawn}/>
     {night ? <>
       {Array.from({ length: 42 }, (_, index) => <circle key={index} className="sky-star" cx={(index * 173 + 70) % 1400} cy={65 + (index * 67) % 310} r={index % 3 ? 1.7 : 3} fill="#fff5da" style={{ animationDelay: `${index % 5}s` }} />)}
     </> : <>
@@ -88,7 +78,7 @@ export function LandscapeArt({ scene, phase, genre='folk', genreTransition, onGe
       <g fill="none" stroke="#638b93" strokeWidth="3" strokeLinecap="round"><path d="M415 142q10-12 20 0q10-12 20 0 M476 170q8-10 16 0q8-10 16 0" /></g>
     </>}
     <g className={`scenery-cloud${cloudPulse?' is-tapped':''}`} role="button" tabIndex={0} aria-label="Change music weather" onClick={changeWeather} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();changeWeather(event);}}} onAnimationEnd={()=>setCloudPulse(false)} fill={cloudColor}>
-      {[[432,100],[720,82],[1008,100]].map(([x,y],index)=><g key={x} className={`scenery-cloud-shape cloud-${index+1}`} style={{display:cloudOpacity[index]>.08?undefined:'none'}} transform={`translate(${x} ${y}) scale(${stretch*cloudScale[index]} ${cloudScale[index]})`} opacity={cloudOpacity[index]}><path d={cloudPaths[index]}/></g>)}
+      {[[432,100],[720,82],[1008,100]].map(([x,y],index)=><CloudShape key={x} index={index} x={x} y={y} stretch={stretch} scale={cloudScale[index]} opacity={cloudOpacity[index]}/>)}
     </g>
     <path data-name="Distant hills" d="M0 403 Q180 269 370 376 T750 378 T1120 349 T1440 366 V900H0Z" fill={palette[2]} />
     <path data-name="Near hills" d="M0 482 Q220 332 474 463 Q699 521 923 417 T1440 481 V900H0Z" fill={palette[3]} />

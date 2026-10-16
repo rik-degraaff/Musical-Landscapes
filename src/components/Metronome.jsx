@@ -2,10 +2,8 @@ import React,{useEffect,useRef,useState} from 'react';
 import {Volume2,VolumeX} from 'lucide-react';
 import {useDismissible} from './useDismissible';
 import './metronome.css';
+import {MetronomeBody as BodyArt} from './MetronomeArtwork';
 
-function BodyArt() {
-  return <svg className="metronome-body" viewBox="0 0 100 140" aria-hidden="true"><path d="M32 6h36l25 124H7Z" fill="#9d7053" stroke="#624d40" strokeWidth="3"/><path d="M36 14h28l18 101H18Z" fill="#f0e2be" stroke="#c19b69" strokeWidth="2"/><path d="M6 126h88v10H6Z" fill="#526d58"/><circle cx="50" cy="112" r="7" fill="#526d58"/>{[28,44,60,76,92].map(y=><path key={y} d={`M43 ${y}h14`} stroke="#977c5c" strokeWidth="1"/>)}</svg>;
-}
 
 export function Metronome({audio,open,onOpen,onClose,disabled}) {
   const container=useRef(null);

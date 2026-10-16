@@ -1,0 +1,102 @@
+.guide-illustration { position:relative; isolation:isolate; width:100%; height:180px; min-height:120px; overflow:hidden; border:1px solid #a7c8b6; border-radius:10px; background:linear-gradient(#e1f4eb 0 72%,#d0e4be 72%); color:#245d52; }
+.guide-illustration,.guide-illustration * { box-sizing:border-box; }
+.guide-illustration > svg { width:100%;height:100%;display:block; }
+.guide-illustration .instrument-illustration { display:block;width:100%;height:100%; }
+.guide-avatar { position:absolute;left:calc(50% - 40px);top:10%;width:80px;height:85%; }
+.guide-avatar > svg { width:100%;height:100%; }
+.guide-band-instrument { position:absolute;width:76px;height:65px; }
+.guide-band-0 { left:5%;top:12%; }.guide-band-1 { right:5%;top:10%; }.guide-band-2 { left:12%;bottom:3%; }.guide-band-3 { right:5%;bottom:4%; }
+.guide-equip-source { position:absolute;left:7%;top:23%;width:95px;height:84px;z-index:2; }
+.guide-art-equip .guide-avatar { left:65%; }
+.guide-equip-destination { position:absolute;left:68%;top:40%;width:47px;height:47px;border:2px dashed #427a5b;border-radius:50%;background:#ffffff44; }
+.guide-art-profile .guide-avatar { left:8%;width:76px; }
+.guide-profile-card { position:absolute;left:40%;right:5%;top:25%;display:grid;gap:8px;font-size:11px; }
+.guide-profile-card strong { font-size:17px; }.guide-profile-instruments { display:flex;height:40px;gap:4px; }
+.guide-profile-instruments > svg { width:44px; }
+.guide-art-profile.guide-gesture-double-tap .guide-pointer { left:16%;top:38%; }
+.guide-together-first { left:17%;width:66px; }.guide-together-second { left:65%;width:66px; }
+.guide-together-instrument { position:absolute;left:38%;top:25%;width:80px;height:85px; }
+.guide-together-turn { position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:11px;font-weight:800; }
+.guide-surface-label { position:absolute;top:9px;left:14px;font-size:12px;font-weight:800; }
+.guide-art-surface { background:#eef4ed; }
+.guide-art-surface > .guide-surface { position:absolute;left:4%;top:19%;width:92%;height:60%; }
+.guide-surface-toolbar { position:absolute;left:4%;right:4%;bottom:3%;height:27px;border-top:1px solid #bdcabc;display:flex;align-items:center;gap:5px;font-size:11px; }
+.guide-surface-toolbar strong { margin-right:auto; }.guide-surface-toolbar .next-phrase,.guide-surface-toolbar .return-instrument { min-height:22px;height:24px;width:27px; }.guide-surface-toolbar button svg { width:18px;height:18px; }.guide-surface-focus-exit .return-instrument,.guide-surface-focus-transport .next-phrase { outline:2px solid #b5692b;background:#fff0c7; }
+.guide-surface > .performance-surface { width:200%;height:200%;max-width:none;margin:0;padding:6px 8px;transform:scale(.5);transform-origin:0 0; }
+.guide-surface button { font-family:inherit; }
+.guide-surface .manual-keyboard { min-height:0; }
+.guide-surface .note-key { min-height:0;min-width:0; }
+.guide-illustration .guide-metronome-art { position:absolute;left:calc(50% - 52px);top:5px;width:104px;height:162px; }
+.guide-metronome-art > svg { position:absolute;inset:0;width:100%;height:100%; }
+.guide-tempo-slower,.guide-tempo-faster { position:absolute;left:8%;font-size:12px;font-weight:800; }.guide-tempo-slower { top:20%; }.guide-tempo-faster { bottom:21%; }
+.guide-practice-preview { background:#78d9cc; }
+.guide-illustration .guide-room-canvas.practice-room { position:relative;inset:auto;z-index:0;display:flex;width:780px;height:450px;padding:0;font-size:14px; }
+.guide-illustration .guide-room-canvas .practice-topbar { min-height:65px;height:65px;padding:4px 12px;gap:12px; }
+.guide-illustration .guide-room-canvas .practice-lineup { flex:0 0 50px; }
+.guide-illustration .guide-room-canvas .guide-room-selectors { display:flex;gap:12px;flex:1; }
+.guide-illustration .guide-room-canvas .practice-select { flex:1;min-width:0; }
+.guide-illustration .guide-room-canvas .practice-select select { width:100%;height:35px;font-size:14px; }
+.guide-illustration .guide-room-canvas .practice-stages { min-height:40px;height:40px;padding:3px 12px; }
+.guide-illustration .guide-room-canvas .practice-stages button { font-size:14px;gap:7px;min-height:30px;padding:4px; }
+.guide-illustration .guide-room-canvas .practice-stages button svg { width:17px;height:17px; }
+.guide-illustration .guide-room-canvas .practice-guide { min-height:50px;height:50px;padding:5px 12px; }
+.guide-illustration .guide-room-canvas .practice-control-dock { min-height:40px;height:40px;padding:3px 12px; }
+.guide-illustration .guide-room-canvas .practice-control-dock button { min-height:32px;font-size:14px; }
+.guide-illustration .guide-room-canvas .practice-phrase-track { min-height:36px;padding:4px 16px; }
+.guide-illustration .guide-room-canvas .practice-phrase-track span { font-size:13px; }
+.guide-illustration .guide-room-canvas .practice-surface-host { flex:0 0 158px;max-height:158px;margin:5px 30px; }
+.guide-illustration .guide-room-canvas .guide-surface { width:100%;height:100%; }
+.guide-illustration .guide-room-canvas .guide-surface > .performance-surface { width:100%;height:100%;transform:none; }
+.guide-illustration .guide-room-canvas .guide-room-metronome { position:relative;width:36px;height:52px;flex:none; }
+.guide-illustration .guide-room-canvas .guide-room-metronome .guide-metronome-art { inset:0;width:100%;height:100%; }
+.guide-room-focus-selectors .guide-room-selectors,.guide-room-focus-stages .practice-stages,.guide-room-focus-progress .practice-tools,.guide-room-focus-transport .practice-control-dock,.guide-room-focus-exit .practice-exit { outline:5px solid #bc602a;outline-offset:-2px;background-color:#fff5d5; }
+.guide-illustration .guide-room-detail.practice-room { position:relative;inset:auto;z-index:0;display:flex;width:100%;height:100%;padding:8px 10px;gap:5px;font-size:12px; }
+.guide-room-detail .guide-detail-heading { display:flex;align-items:center;justify-content:space-between;gap:8px;flex:none;min-height:20px;font-size:11px; }
+.guide-room-detail .guide-detail-heading strong { font-size:14px; }.guide-room-detail .guide-detail-heading > span { font-size:10px;text-align:right; }
+.guide-room-detail .guide-detail-selectors { display:grid;gap:13px;padding:12px 4px; }.guide-room-detail .guide-detail-selectors .practice-select { display:flex;gap:8px;align-items:center;width:100%; }.guide-room-detail .practice-select select { min-width:0;width:100%;height:30px;font-size:12px; }.guide-room-detail .practice-instrument-tools { flex:0 0 35px;height:30px; }
+.guide-room-detail .practice-control-dock { min-height:36px;height:36px;padding:3px;gap:5px;justify-content:center;border:1px solid #bc602a;border-radius:4px; }.guide-room-detail .practice-control-dock button { min-width:0;min-height:28px;padding:3px 6px;gap:4px;font-size:12px; }.guide-room-detail .practice-control-dock button svg { width:14px;height:14px; }
+.guide-room-detail .practice-tools { display:flex;justify-content:space-between;width:100%;min-height:24px;padding:2px 6px;background:#f3fff5dd;border:1px solid #bc602a;border-radius:4px; }.guide-room-detail .practice-progress { flex:1;min-width:80px;padding:0; }.guide-room-detail .practice-progress progress { max-width:100%;width:100px;flex:none;height:7px; }.guide-room-detail .practice-beat-strip { width:auto;gap:5px; }.guide-room-detail .practice-beat-strip i { width:9px;height:9px; }
+.guide-room-detail .practice-phrase-track { min-height:21px;height:21px;flex:none;padding:0;gap:4px;background:transparent;border:0; }.guide-room-detail .practice-phrase-track span { min-width:22px;padding:3px 5px;font-size:10px; }
+.guide-room-detail .practice-surface-host { position:relative;display:flex;flex-direction:column;flex:1;min-height:30px;height:auto;max-height:none;margin:0;padding:0;overflow:hidden; }.guide-room-detail .guide-surface { flex:1;width:100%;min-height:0; }.guide-room-detail .practice-duration-track { flex:none;width:100%;height:5px;margin:0 0 3px; }
+.guide-room-detail .practice-stages { display:grid;grid-template-columns:1fr 1fr;height:auto;gap:4px;padding:8px 0;border:0;background:transparent; }.guide-room-detail .practice-stages button { min-height:36px;font-size:12px;background:#e9faed; }.guide-room-detail .practice-stages button svg { width:16px;height:16px; }
+.guide-room-detail .guide-detail-exit { display:grid;justify-items:center;align-content:center;gap:14px;flex:1; }.guide-room-detail .guide-detail-exit .practice-exit { width:auto;min-width:115px;height:48px;max-height:none;gap:10px;padding:8px 15px;font-size:16px; }.guide-room-detail .guide-detail-exit .practice-exit svg { width:27px;height:27px; }.guide-room-detail .guide-detail-exit > span { font-size:12px;font-weight:700; }
+.guide-settings-preview { position:absolute;inset:10px 12px;padding:0 10px 8px;background:#f7fff6;border:1px solid #92b6a2;border-radius:5px;font-size:10px; }
+.guide-settings-tabs { display:flex;gap:10px;border-bottom:1px solid #aec8b6;padding:5px 0; }.guide-settings-tabs span { padding:4px; }.guide-settings-tabs .is-selected { background:#d6ead7;border-bottom:2px solid #95582e;font-weight:800; }
+.guide-setting-instrument { height:36px;display:flex;align-items:center;gap:6px; }.guide-setting-instrument > svg { width:42px!important;height:36px!important; }
+.guide-setting-legend { display:block;margin:4px 0 8px; }.guide-setting-levels { display:flex;gap:4px; }.guide-setting-levels > span { flex:1;padding:7px 3px;border:1px solid #a2b99b;border-radius:4px;text-align:center; }.guide-setting-levels .is-selected { background:#d7e8c3;border:2px solid #5c8b5c; }
+.guide-setting-detail { display:block;margin-top:10px; }.guide-display-options { display:grid;gap:8px;padding-top:7px; }
+.guide-slot-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;margin-top:5px; }.guide-slot { height:52px;display:grid;grid-template-rows:35px auto;justify-items:center;align-items:center;border:1px solid #9fbea8;border-radius:4px;background:#ecf7e9;font-size:8px; }.guide-slot > svg { width:52px!important;height:35px!important; }.guide-caregiver-settings { display:grid;gap:8px;margin-top:10px;font-size:10px; }
+.guide-settings-preview > label { display:flex;align-items:center;justify-content:space-between;gap:8px;margin:11px 0; }.guide-setting-slider { position:relative;display:block;width:45%;height:5px;background:#8aa891;border-radius:5px; }.guide-setting-slider i { position:absolute;top:-4px;left:65%;width:12px;height:12px;border:2px solid #376249;border-radius:50%;background:#e7f1cf; }
+.guide-art-settings.guide-gesture-double-tap .guide-settings-preview { opacity:.4; }.guide-settings-open { position:absolute;top:28%;left:29%; }.guide-settings-open button { display:flex;align-items:center;gap:8px;min-height:42px;border:1px solid #578676;border-radius:6px;padding:8px 12px;background:#fffdf0;color:#245d52;font:inherit;font-size:14px;font-weight:700; }.guide-art-settings.guide-gesture-double-tap .guide-pointer { left:41%;top:43%; }.guide-art-settings.guide-gesture-double-tap .guide-contact-label { left:60%;top:43%; }
+.guide-pointer { position:absolute;left:49%;top:40%;width:56px;height:65px;z-index:8;transform-origin:35% 10%;pointer-events:none; }
+.guide-illustration .gesture-hand { position:absolute;inset:0;width:56px;height:65px;fill:#f5d7b4;stroke:#5b4736;stroke-width:2.7;stroke-linejoin:round;filter:drop-shadow(1px 3px 1px #385a4433); }
+.guide-illustration .hand-crease { fill:none;stroke-width:1.8;stroke-linecap:round; }.guide-illustration .hand-contact { fill:none;stroke:#9b4937;stroke-width:2; }
+.guide-hand-contact { opacity:0; }
+.guide-contact-ring { position:absolute;left:9px;top:-4px;width:25px;height:11px;border:2px solid #9b4937;border-radius:50%;opacity:0; }
+.guide-art-equip .guide-pointer { left:17%;top:40%; }.guide-art-weather .guide-pointer { left:38%;top:43%; }.guide-art-metronome .guide-pointer { left:48%;top:42%; }
+.guide-art-band .guide-pointer { left:calc(5% + 16px);top:28%; }
+.guide-motion-route { position:absolute;inset:0;z-index:5;overflow:visible;pointer-events:none; }.guide-motion-route path { fill:none;stroke:#9b4937;stroke-width:2;stroke-linecap:round;stroke-dasharray:4 5; }.guide-motion-route path+path { stroke-dasharray:none; }
+.guide-motion-cue { position:absolute;display:grid;place-items:center;width:19px;height:19px;border-radius:50%;background:#fff8df;border:1px solid #94552c;font-size:11px;font-weight:900;z-index:6; }.guide-start { left:20%;top:48%; }.guide-end { left:73%;top:45%; }
+.guide-gesture-tempo .guide-start { left:55%;top:72%; }.guide-gesture-tempo .guide-end { left:55%;top:16%; }.guide-gesture-swipe .guide-start { left:22%;top:40%; }.guide-gesture-swipe .guide-end { left:77%;top:40%; }
+.guide-contact-label { position:absolute;left:calc(49% - 18px);top:25%;padding:2px 5px;background:#fff5d5;border-radius:4px;font-size:12px;font-weight:900;z-index:7; }
+.guide-art-profile .guide-contact-label { left:13%;top:22%; }.guide-wind .guide-pointer { left:15%;top:45%; }.guide-wind .guide-second-pointer { left:66%;top:50%; }.guide-wind-label { position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:10px;font-weight:800; }
+.guide-illustration.is-demonstrating .guide-hand-ready { animation:guideReady 1.4s steps(1,end) 2; }.guide-illustration.is-demonstrating .guide-hand-contact,.guide-illustration.is-demonstrating .guide-contact-ring { animation:guideContact 1.4s steps(1,end) 2; }
+.guide-illustration.is-demonstrating.guide-gesture-double-tap .guide-hand-ready { animation-duration:.65s;animation-iteration-count:4; }.guide-illustration.is-demonstrating.guide-gesture-double-tap .guide-hand-contact,.guide-illustration.is-demonstrating.guide-gesture-double-tap .guide-contact-ring { animation-duration:.65s;animation-iteration-count:4; }
+.guide-illustration.is-demonstrating.guide-gesture-hold .guide-hand-ready { animation:guideHoldReady 3s steps(1,end) 2; }.guide-illustration.is-demonstrating.guide-gesture-hold .guide-hand-contact,.guide-illustration.is-demonstrating.guide-gesture-hold .guide-contact-ring { animation:guideHoldContact 3s steps(1,end) 2; }
+.guide-illustration.is-demonstrating.guide-gesture-drag .guide-pointer,.guide-illustration.is-demonstrating.guide-gesture-drag .guide-equip-source { animation:guideCarry 3s ease-in-out 2; }.guide-illustration.is-demonstrating.guide-gesture-drag .guide-hand-ready { animation:none; }
+.guide-illustration.is-demonstrating.guide-gesture-swipe .guide-pointer { animation:guideSweep 2.4s ease-in-out 2; }.guide-illustration.is-demonstrating.guide-gesture-tempo .guide-pointer { animation:guideWeightSlide 2.8s ease-in-out 2; }
+.guide-string-swipe .guide-pointer { left:calc(76% - 22px);top:24%; }
+.guide-string-swipe .guide-start { left:81%;top:21%; }.guide-string-swipe .guide-end { left:81%;top:66%; }
+.guide-illustration.is-demonstrating.guide-string-swipe .guide-pointer { animation:guideStrum 2.4s ease-in-out 2; }
+.guide-illustration.is-demonstrating.guide-gesture-tempo .guide-metronome-weight { animation:guideWeight 2.8s ease-in-out 2; }
+@keyframes guideReady { 0%,65%,100% { opacity:1; } 30% { opacity:0; } }
+@keyframes guideContact { 0%,65%,100% { opacity:0; } 30% { opacity:1; } }
+@keyframes guideHoldReady { 0%,90%,100% { opacity:1; } 15% { opacity:0; } }
+@keyframes guideHoldContact { 0%,90%,100% { opacity:0; } 15% { opacity:1; } }
+@keyframes guideCarry { 0%,12%,100% { transform:translateX(0); } 65%,84% { transform:translateX(130px); } }
+@keyframes guideSweep { 0%,10%,100% { transform:translateX(-70px); } 65%,85% { transform:translateX(65px); } }
+@keyframes guideStrum { 0%,10%,100% { transform:translateY(0); } 65%,85% { transform:translateY(65px); } }
+@keyframes guideWeightSlide { 0%,100% { transform:translateY(16px); } 45%,65% { transform:translateY(-30px); } }
+@keyframes guideWeight { 0%,100% { translate:0 10px; } 45%,65% { translate:0 -25px; } }
+@media(max-height:550px) { .guide-illustration { height:150px; }.guide-illustration .guide-metronome-art { top:2px;width:88px;height:142px;left:calc(50% - 44px); }.guide-illustration .guide-room-metronome .guide-metronome-art { inset:0;width:100%;height:100%; } }
+@media(prefers-reduced-motion:reduce) { .guide-illustration * { animation:none!important;transition:none!important; }.guide-illustration .guide-hand-ready { opacity:0; }.guide-illustration .guide-hand-contact,.guide-illustration .guide-contact-ring { opacity:1; }.guide-gesture-drag .guide-hand-ready { opacity:1; }.guide-motion-cue { border-width:2px; } }

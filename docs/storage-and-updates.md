@@ -7,7 +7,7 @@ FarmJam stores family and learning data locally in browser storage. It has no ac
 - `farmjam-children-v1` stores the family record, selected child, child profile fields, and each child's instrument/display settings.
 - `farmjam-settings-v1` is the legacy settings mirror used for compatibility with older installs. It is not the owner of independent child settings.
 - `farmjam-caregiver-settings-v1` stores caregiver familiarity shared across profiles. Existing installs can seed it from the selected child's legacy answer once.
-- `farmjam-learning-v1` stores guide read revisions and per-child hint preferences/progress, including accumulated active-play time and suggested/seen/completed state.
+- `farmjam-learning-v1` stores guide read revisions and per-child hint preferences/progress, including accumulated active-play time and suggested/seen/completed/dismissed state.
 
 The normalization functions and storage adapters in `src/utils/` remain the schema boundary. Preserve existing keys and readable formats when changing fields. New records should be versioned and tolerate missing or unknown fields where feasible.
 
@@ -15,7 +15,7 @@ The normalization functions and storage adapters in `src/utils/` remain the sche
 
 Profile edits and deletion use a coordinated write: the legacy settings mirror is written first, then the family record; if the family write fails, the mirror is rolled back where possible. Ordinary settings and child-selection saves write the family record first and then the legacy mirror, so a mirror failure can occur after the family record has already been updated. Profile creation and other ordinary snapshot saves use this latter path. These multi-key writes are not fully atomic. A failed read must not be treated as an empty record and overwritten. If persistence reports a failure, current in-session choices may remain usable, but the UI must not claim they were saved.
 
-Caregiver familiarity is independent of child selection and is saved on completed setup or an explicit settings change. Learning state belongs to the selected child except for guide read revisions, which are shared. The caregiver can turn all hints on or off for a child, or reset an individual hint without deleting the profile. Guide revisions determine whether a guide is unread or new; merely opening it does not mark it read.
+Caregiver familiarity is independent of child selection and is saved on completed setup or an explicit settings change. Learning state belongs to the selected child except for guide read revisions, which are shared. The caregiver can turn all hints on or off for a child, or reset an individual hint without deleting the profile. Guide revisions determine whether a guide is unread or new; merely opening it does not mark it read. An unfinished live hint remains available across reloads. Explicit Stop hint records dismissal; legacy seen hints migrate as dismissed so an upgrade respects earlier choices.
 
 Do not add automatic migration that discards original data. Do not clear all site storage, unregister all workers, or delete caches as a routine recovery step. There is no built-in export or restore workflow.
 

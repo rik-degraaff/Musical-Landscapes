@@ -1,29 +1,40 @@
 import React from 'react';
-import {BookOpen,CircleHelp,Cloud,DoorOpen,Eye,Footprints,Hand,Headphones,Layers,Music,Pencil,Settings2,SkipForward,Sun,Timer,UserPlus,Users,Volume2} from 'lucide-react';
+import {BookOpen,CircleHelp} from 'lucide-react';
 import {CaregiverDialog} from './CaregiverDialog';
-import {caregiverHelp,discoveryHelp,instrumentHelp} from '../utils/caregiverHelp';
+import {contextualHelp,instrumentHelp} from '../utils/caregiverHelp';
+import {GUIDES} from '../utils/learning';
 import {INSTRUMENTS} from '../utils/music';
 import {GestureDemo} from './GestureDemo';
+import {GuideIllustration} from './GuideIllustration';
 import {PlayActions} from './LearningHint';
+import './guides.css';
 
 export function HelpButton({onOpen,className=''}) {
   return <button className={`caregiver-help-button ${className}`} aria-label="Open caregiver help" title="Help for this screen" onClick={onOpen}><CircleHelp size={23}/></button>;
 }
 
-export function GuideTopic({topic,familiarity,heading=true}) {
-  const content=caregiverHelp(topic,familiarity);
-  const icons={menu:[UserPlus,Users,Pencil,Settings2],instruments:[Music,Hand,SkipForward],landscape:[Sun,Cloud,Timer,Settings2],practice:[DoorOpen,Headphones,Footprints,Timer,Users,DoorOpen],settings:[Layers,Eye,Volume2,BookOpen]}[topic]??[];
-  return <section>{heading&&<h3>{content.title}</h3>}<ul className="parent-feature-list">{content.items.map(([label,text],index)=>{const Icon=icons[index]??BookOpen;return <li key={label}><Icon aria-hidden="true"/><span><strong>{label}</strong> {text}</span></li>;})}</ul><p className="parent-guide-note">{content.note}</p></section>;
+export function GuideTopic({topic,familiarity,heading=true,child,practiceStage,illustrate=false}) {
+  const content=contextualHelp(topic,familiarity,practiceStage);
+  return <section className={`help-topic ${illustrate?'guide-task':''}`}>
+    <div className="guide-task-copy">{heading&&<h3>{content.title}</h3>}{content.paragraphs.map(text=><p key={text}>{text}</p>)}{content.note&&<p>{content.note}</p>}</div>
+    {illustrate&&<GuideIllustration {...content.illustration} child={child}/>}
+  </section>;
 }
 
-export function CaregiverHelp({topic,familiarity,instrument,discovery,onClose,onGuides,instruments,onEquip,onPractice}) {
-  const playing=instrumentHelp(instrument,familiarity);
-  const discover=discovery?discoveryHelp(discovery,familiarity):[];
+export function CaregiverHelp({topic,familiarity,instrument,child,practiceStage,onClose,onGuides,instruments,onEquip,onPractice}) {
+  const playing=topic==='instruments'?instrumentHelp(instrument,familiarity):null;
+  const content=contextualHelp(topic,familiarity,practiceStage);
+  const guide=GUIDES.find(value=>value.id===(playing?'instruments':content.guide));
+  const openGuide=id=>{onClose();onGuides(id);};
   return <CaregiverDialog title="Caregiver help" onClose={onClose} footer={<button onClick={onClose}>Back to {topic==='menu'?'main menu':topic==='practice'?'practice':topic==='settings'?'Settings':'play'}</button>}>
-    {playing&&<section className="instrument-help"><h3>{INSTRUMENTS[instrument].label}</h3><p>{playing.action}</p><GestureDemo instrument={instrument} gesture={['guitar','ukulele','panflute'].includes(instrument)?'swipe':['flute','melody'].includes(instrument)?'hold':'tap'}/><p className="parent-guide-note">{playing.note}</p></section>}
-    {discover.length>0&&<section className="discovery-help"><h3>Explore together</h3><ul className="parent-feature-list">{discover.map(([label,text])=><li key={label}><Music/><span><strong>{label}</strong> {text}</span></li>)}</ul></section>}
-    <GuideTopic topic={topic} familiarity={familiarity}/>
-    {instruments&&onEquip&&onPractice&&<PlayActions instruments={instruments} onEquip={onEquip} onPractice={onPractice}/>}
-    {onGuides&&<button className="learning-action guide-index-button" onClick={()=>{onClose();onGuides('index');}}>Browse all guides</button>}
+    {playing?<section className="guide-task instrument-help">
+      <div className="guide-task-copy"><h3>Play the {INSTRUMENTS[instrument].label.toLowerCase()}</h3><p>{playing.action}</p><p>{playing.note}</p></div>
+      <GestureDemo instrument={instrument} child={child} gesture={['guitar','ukulele','panflute'].includes(instrument)?'swipe':['flute','melody'].includes(instrument)?'hold':'tap'}/>
+    </section>:<GuideTopic topic={topic} familiarity={familiarity} child={child} practiceStage={practiceStage} illustrate/>}
+    {['instruments','landscape'].includes(topic)&&instruments?.length>0&&onEquip&&onPractice&&<PlayActions instruments={instruments} onEquip={onEquip} onPractice={onPractice}/>}
+    {onGuides&&<nav className="help-guide-links" aria-label="More caregiver help">
+      {guide&&<button className="learning-action" onClick={()=>openGuide(guide.id)}><BookOpen size={17}/>Read: {guide.title}</button>}
+      <button className="learning-action" onClick={()=>openGuide('index')}>All guides</button>
+    </nav>}
   </CaregiverDialog>;
 }

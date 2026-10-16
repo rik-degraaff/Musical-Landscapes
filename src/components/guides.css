@@ -1,0 +1,70 @@
+.caregiver-dialog:has(.guide-page-picker) { width: min(940px, calc(100vw - var(--safe-left) - var(--safe-right) - 24px)); }
+.caregiver-dialog .guide-library { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.caregiver-dialog .guide-card { display: flex; flex-direction: column; padding: 14px; border: 1px solid #aacbb7; border-radius: 8px; background: #fbfff8; }
+.caregiver-dialog .guide-card h3 { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin: 0; font-size: 19px; }
+.caregiver-dialog .guide-card p { flex: 1; margin: 9px 0 12px; }
+.caregiver-dialog .guide-card button { display: inline-flex; justify-content: center; align-items: center; gap: 6px; min-height: 40px; padding: 7px 10px; border: 1px solid #578676; border-radius: 5px; background: #e7f5e6; color: #245d52; font-weight: 700; text-align: left; }
+.caregiver-dialog .guide-status { flex: none; padding: 2px 6px; border-radius: 4px; background: #f8e5b6; color: #654719; font-size: 12px; font-weight: 700; }
+.caregiver-dialog .guide-status.is-read { background: #dcefe0; color: #2c5d45; }
+.caregiver-dialog .guide-page-picker { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 14px; }
+.guide-page-picker label { display: flex; flex: 1; align-items: center; gap: 8px; min-width: 0; font-weight: 700; }
+.guide-page-picker select,.guide-instrument-picker select { min-width: 0; max-width: 100%; min-height: 36px; padding: 4px 8px; border: 1px solid #578676; border-radius: 5px; background: #fffef8; color: #244c46; font: inherit; }
+.guide-page-picker select { width: min(100%, 390px); }
+.guide-page-picker > span { flex: none; color: #4b6559; font-variant-numeric: tabular-nums; }
+.caregiver-dialog select:focus-visible { outline: 3px solid #a34b19; outline-offset: 2px; }
+.caregiver-dialog .parent-guide-content .guide-task { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.04fr); align-items: center; gap: 24px; max-width: none; margin: 0; }
+.guide-task-copy { min-width: 0; overflow-wrap: anywhere; }
+.caregiver-dialog .guide-task-copy h3 { margin-top: 0; font-size: 26px; line-height: 1.17; }
+.caregiver-dialog .guide-task-copy p { line-height: 1.5; }
+.caregiver-dialog .guide-task-copy h3:focus-visible { outline: 2px solid #b86a30; outline-offset: 5px; border-radius: 1px; }
+.caregiver-dialog .parent-guide-content .guide-text-page { display: block; max-width: 680px; margin: 0 auto; }
+.guide-task > :last-child { min-width: 0; }
+.guide-task-visual { display: grid; align-content: start; gap: 8px; min-width: 0; margin: 0; }
+.guide-replay { display: inline-flex; align-items: center; justify-content: center; justify-self: center; gap: 7px; min-height: 36px; padding: 6px 11px; border: 1px solid #578676; border-radius: 5px; background: #f9fff6; color: #245d52; font: inherit; font-weight: 700; }
+.guide-task .gesture-demo { width: 100%; margin: 0; }
+.caregiver-dialog .guide-explanation { color: #4d6555; font-size: .93em; }
+.caregiver-dialog .guide-read-note { margin-top: 20px; padding-top: 10px; border-top: 1px solid #c4dac8; color: #4d6555; font-size: 13px; }
+.guide-instrument-picker { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-weight: 700; }
+.caregiver-dialog .guide-reader-footer { display: flex; justify-content: space-between; align-items: center; flex: 1; gap: 8px; }
+.guide-page-buttons { display: flex; align-items: center; gap: 8px; }
+.guide-device-instructions h4 { margin: 12px 0 8px; font-size: 17px; }
+.guide-device-instructions ol { display: grid; gap: 12px; margin: 12px 0; padding-left: 24px; }
+.guide-device-instructions a { color: #216b61; text-underline-offset: 2px; }
+.guide-install-state { display: flex; align-items: center; gap: 6px; }
+.guide-save-error { padding: 10px 12px; margin-bottom: 14px; border: 1px solid #b2614d; border-radius: 5px; background: #fff0e7; color: #813e2a; }
+.guide-save-error p { margin: 0 0 7px; }
+.help-guide-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; padding-top: 14px; border-top: 1px solid #c4dac8; }
+.guide-page-announcement { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px!important; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 620px) {
+  .caregiver-dialog .guide-library { grid-template-columns: 1fr; }
+  .caregiver-dialog .parent-guide-content .guide-task { grid-template-columns: 1fr; gap: 16px; }
+  .caregiver-dialog .guide-task-copy h3 { font-size: 23px; }
+  .guide-task .gesture-demo { max-width: 380px; justify-self: center; }
+  .guide-page-picker label { flex-wrap: wrap; gap: 4px; }
+  .guide-page-picker select { width: 100%; }
+}
+@media (max-height: 550px) and (orientation: landscape) {
+  .caregiver-dialog:has(.guide-page-picker) .parent-guide-head { padding: 7px 14px; }
+  .caregiver-dialog:has(.guide-page-picker) .parent-guide-kicker { display: none; }
+  .caregiver-dialog:has(.guide-page-picker) .parent-guide-head h2 { margin: 0; font-size: 19px; }
+  .caregiver-dialog:has(.guide-page-picker) .parent-guide-close { height: 32px; width: 32px; }
+  .caregiver-dialog:has(.guide-page-picker) .parent-guide-content { padding: 9px 16px; }
+  .caregiver-dialog .guide-page-picker { gap: 8px; margin-bottom: 10px; font-size: 13px; }
+  .guide-page-picker label { flex-wrap: nowrap; }
+  .guide-page-picker select { width: min(100%,350px); min-height: 32px; }
+  .caregiver-dialog .parent-guide-content .guide-task { grid-template-columns: minmax(0,1.08fr) minmax(0,1fr); gap: 18px; align-items: start; font-size: 14px; }
+  .caregiver-dialog .guide-task-copy h3 { font-size: 21px; }
+  .caregiver-dialog .guide-task-copy p { margin: 6px 0 10px; line-height: 1.45; }
+  .caregiver-dialog .parent-guide-content .guide-text-page { display: block; }
+  .caregiver-dialog .guide-read-note { margin-top: 12px; }
+  .caregiver-dialog .guide-reader-footer { flex-wrap: wrap; }
+  .guide-page-buttons { margin-left: auto; }
+  .caregiver-dialog:has(.guide-page-picker) .parent-guide-footer { padding: 6px 12px; }
+  .guide-device-instructions ol { gap: 8px; }
+  .help-guide-links { margin-top: 12px; padding-top: 10px; }
+}
+@media (max-width: 420px) {
+  .guide-page-buttons { gap: 4px; }
+  .caregiver-dialog .guide-reader-footer { flex-wrap: wrap; }
+  .guide-page-buttons { margin-left: auto; }
+}
