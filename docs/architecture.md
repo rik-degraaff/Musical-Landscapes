@@ -5,7 +5,7 @@ FarmJam is a React application built with Vite. Its main design boundary is betw
 ## Runtime areas
 
 - `src/App.jsx` coordinates the active child, screen transitions, caregiver dialogs, settings, hints, help, and session lifetime.
-- `src/components/` implements reusable UI, child setup and profile editing, settings, guides, hint explanations, instruments, and practice controls.
+- `src/components/` implements reusable UI, child setup and profile editing, settings, guides, live gesture coaching, instruments, and practice controls.
 - `src/scenes/` renders the seven landscapes and their interactive objects. `LandscapeArt.jsx` and `scene-art.css` hold authored scenery artwork and styling.
 - `src/audio/AudioEngine.js` owns Tone.js initialization, transport scheduling, instruments, audio resource lifecycle, and output mixing. `sampleLibrary.js` maps local recordings; `sceneSounds.js` defines procedural effects.
 - `src/data/` contains authored musical phrases and other content.
