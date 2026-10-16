@@ -28,6 +28,8 @@ function Tree({ x, y, size = 1, stretch = 1, color = '#397b59' }) {
 export function LandscapeArt({ scene, phase, genre='folk', genreTransition, onGenreChange }) {
   const artRef=useRef(null);
   const [cloudPulse,setCloudPulse]=useState(false);
+  const [cloudWeatherFrom,setCloudWeatherFrom]=useState(null);
+  const cloudWeatherTimer=useRef(null);
   const [stretch, setStretch] = useState(() => 1440 * window.innerHeight / (900 * window.innerWidth));
   useEffect(() => {
     const resize = () => {
@@ -41,8 +43,8 @@ export function LandscapeArt({ scene, phase, genre='folk', genreTransition, onGe
   }, []);
   const night = scene === 'night'||scene==='late-night';
   const lateNight = scene === 'late-night';
-  const weatherMix=genreTransition&&genreTransition.from!==genre?Math.max(0,Math.min(1,genreTransition.progress??0)):1;
-  const oldWeather=cloudWeather[genreTransition?.from]??cloudWeather[genre];
+  const weatherMix=cloudWeatherFrom?0:1;
+  const oldWeather=cloudWeather[cloudWeatherFrom?.genre??genre];
   const newWeather=cloudWeather[genre];
   const cloudColor=blendColor(oldWeather.color,newWeather.color,weatherMix);
   const cloudOpacity=oldWeather.opacity.map((value,index)=>value+(newWeather.opacity[index]-value)*weatherMix);
@@ -58,9 +60,13 @@ export function LandscapeArt({ scene, phase, genre='folk', genreTransition, onGe
   const palette = lateNight ? ['#171f35', '#647d83', '#536d73', '#3c655e', '#244a42'] : dusk ? ['#6c88a0','#efb09a','#87978b','#617f72','#3e685d'] : dawn ? ['#879ab8', '#d4e4eb', '#95aeb6', '#7a999d', '#527d7b'] : night ? ['#232b4d', '#79768e', '#465c66', '#345b58', '#234b47'] : pond ? ['#9edbdc', '#f5eed0', '#8ab6a0', '#659d78', '#4d8965'] : garden ? ['#96d9e7', '#f9e9c9', '#a6c399', '#7fb27e', '#54946b'] : ['#8cd3ed', '#fff0ca', '#a4bf8a', '#85ad65', '#60914c'];
   function changeWeather(event) {
     event.stopPropagation();
+    setCloudWeatherFrom({genre});
+    clearTimeout(cloudWeatherTimer.current);
+    cloudWeatherTimer.current=setTimeout(()=>setCloudWeatherFrom(null),280);
     onGenreChange?.();
     setCloudPulse(true);
   }
+  useEffect(()=>()=>clearTimeout(cloudWeatherTimer.current),[]);
   return <svg ref={artRef} className="landscape-art" viewBox="0 0 1440 900" preserveAspectRatio="none" role="presentation" aria-hidden="false">
     <defs>
       <linearGradient id={`${scene}-sky`} x2="0" y2="1"><stop stopColor={palette[0]} /><stop offset="1" stopColor={palette[1]} /></linearGradient>
@@ -81,8 +87,8 @@ export function LandscapeArt({ scene, phase, genre='folk', genreTransition, onGe
       {dusk && <g fill="#fff6d8" opacity=".7"><circle cx="210" cy="105" r="2.5"/><circle cx="420" cy="78" r="2"/><circle cx="800" cy="118" r="2.5"/><circle cx="1250" cy="90" r="2"/></g>}
       <g fill="none" stroke="#638b93" strokeWidth="3" strokeLinecap="round"><path d="M415 142q10-12 20 0q10-12 20 0 M476 170q8-10 16 0q8-10 16 0" /></g>
     </>}
-    <g className={`scenery-cloud${cloudPulse?' is-tapped':''}`} role="group" aria-label="Sky weather clouds" onClick={changeWeather} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();changeWeather(event);}}} onAnimationEnd={()=>setCloudPulse(false)} fill={cloudColor}>
-      {[[432,100],[720,82],[1008,100]].map(([x,y],index)=><g key={x} className={`scenery-cloud-shape cloud-${index+1}`} role="button" tabIndex={cloudOpacity[index]>.08?0:-1} aria-hidden={cloudOpacity[index]<=.08} aria-label="Change music weather" style={{display:cloudOpacity[index]>.08?undefined:'none'}} transform={`translate(${x} ${y}) scale(${stretch*cloudScale[index]} ${cloudScale[index]})`} opacity={cloudOpacity[index]}><path d={cloudPaths[index]}/></g>)}
+    <g className={`scenery-cloud${cloudPulse?' is-tapped':''}`} role="button" tabIndex={0} aria-label="Change music weather" onClick={changeWeather} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();changeWeather(event);}}} onAnimationEnd={()=>setCloudPulse(false)} fill={cloudColor}>
+      {[[432,100],[720,82],[1008,100]].map(([x,y],index)=><g key={x} className={`scenery-cloud-shape cloud-${index+1}`} style={{display:cloudOpacity[index]>.08?undefined:'none'}} transform={`translate(${x} ${y}) scale(${stretch*cloudScale[index]} ${cloudScale[index]})`} opacity={cloudOpacity[index]}><path d={cloudPaths[index]}/></g>)}
     </g>
     <path data-name="Distant hills" d="M0 403 Q180 269 370 376 T750 378 T1120 349 T1440 366 V900H0Z" fill={palette[2]} />
     <path data-name="Near hills" d="M0 482 Q220 332 474 463 Q699 521 923 417 T1440 481 V900H0Z" fill={palette[3]} />
