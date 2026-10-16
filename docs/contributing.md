@@ -6,6 +6,7 @@ Use Node.js 22 and the committed npm lockfile. From the repository root, install
 
 - Source changes: run the relevant Node tests with `npm test` (or `node --test tests/<area>.test.js`) and `npm run build` as appropriate.
 - Browser behavior: choose the smallest relevant Playwright file first. `npm run test:e2e:smoke` covers core lifecycle, practice, string voicing, children, and settings on desktop and compact landscape touch.
+- Setup, guides and discovery: `node --test tests/learning.test.js tests/caregiverHelp.test.js tests/parentGuide.test.js` and `npx playwright test e2e/learning.spec.js e2e/parent-guide.spec.js --project=desktop --project=phone-landscape`. Use `page.clock` for active-time rules instead of waiting several real minutes.
 - Visual editor: use `npm run test:editor`.
 - Release gate: `npm run test:e2e:release` runs desktop and compact landscape touch. `npm run test:production` builds and checks the production service worker and offline behavior. `npm run test:e2e` additionally includes portrait emulation.
 
@@ -23,3 +24,5 @@ The Playwright configs use fixed local ports. Production checks require a fresh 
 - Do not claim device, browser, accessibility, audio-latency, or release compatibility from Chromium emulation alone.
 
 For the design context see [architecture](architecture.md) and [storage and updates](storage-and-updates.md). See [release validation](release-validation.md) before interpreting gate results.
+
+Repository skills package recurring workflows: [instrument work](../.agents/skills/farmjam-instrument/SKILL.md), [visual editing](../.agents/skills/farmjam-visual-editing/SKILL.md), and [release checks](../.agents/skills/farmjam-release/SKILL.md). They point to these shared references rather than duplicating the architecture.

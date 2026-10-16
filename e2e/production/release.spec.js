@@ -161,12 +161,14 @@ test('complete production precache supports offline reload, recordings, keyboard
   expect(unexpectedErrors(browserErrors)).toEqual([]);
 });
 
-for (const phase of ['play', 'guide', 'activation-reentry']) test(phase === 'activation-reentry'
+for (const phase of ['play', 'guide', 'menu-settings', 'menu-guides', 'activation-reentry']) test(phase === 'activation-reentry'
   ? 'genuine production worker activation reentry retains a new unsaved guide until cancel, then reloads once without a second SKIP_WAITING'
-  : `genuine production worker update waits for ${phase === 'play' ? 'play' : 'unsaved guide'}, then reloads once at a safe menu`, async ({ page, context, browserErrors, browserName }, testInfo) => {
+  : `genuine production worker update waits for ${phase}, then reloads once at a safe menu`, async ({ page, context, browserErrors, browserName }, testInfo) => {
   test.skip(browserName !== 'chromium', 'Worker-owned network routing is only supported here in Chromium');
   const activationReentry = phase === 'activation-reentry';
-  const startsInPlay = phase !== 'guide';
+  const startsInPlay = phase === 'play' || activationReentry;
+  const menuSettings = phase.startsWith('menu-');
+  const menuGuides = phase === 'menu-guides';
   await page.addInitScript(({ holdSkipWaiting }) => {
     if (window.top !== window) return;
     const record = key => sessionStorage.setItem(key, String(Number(sessionStorage.getItem(key) || 0) + 1));
@@ -241,6 +243,12 @@ for (const phase of ['play', 'guide', 'activation-reentry']) test(phase === 'act
       if (startsInPlay) {
         await page.getByRole('button', { name: 'Tap to play', exact: true }).click();
         await expect(page.locator('.start-overlay')).toHaveCount(0);
+      } else if (menuSettings) {
+        await page.getByRole('button', { name: /^Settings/ }).click();
+        if (menuGuides) {
+          await page.getByRole('tab', { name: /^Guides/ }).click();
+          await page.getByRole('button', { name: 'Read play an instrument', exact: true }).click();
+        }
       } else {
         await page.getByRole('button', { name: 'Add child', exact: true }).click();
         await page.getByRole('textbox', { name: 'Child name or nickname', exact: true }).fill('Unsaved Release Draft');
@@ -271,6 +279,15 @@ for (const phase of ['play', 'guide', 'activation-reentry']) test(phase === 'act
         await page.keyboard.up('Space');
         await expect(note).toHaveAttribute('aria-pressed', 'false');
         await expect(page.locator('#young-musician')).toHaveAttribute('data-child-name', 'Release Player');
+      } else if (menuSettings) {
+        if (menuGuides) {
+          const reader = page.getByRole('dialog', { name: 'Play an instrument', exact: true });
+          await expect(reader).toBeVisible();
+          await reader.getByRole('button', { name: 'Show me', exact: true }).click();
+          await expect(reader.locator('.is-demonstrating')).toHaveCount(1);
+        } else {
+          await expect(page.getByRole('tab', { name: 'Caregiver', exact: true })).toHaveAttribute('aria-selected','true');
+        }
       } else {
         await page.getByRole('button', { name: 'Next step', exact: true }).click();
         await page.getByRole('button', { name: 'Previous step', exact: true }).click();
@@ -294,6 +311,16 @@ for (const phase of ['play', 'guide', 'activation-reentry']) test(phase === 'act
             page.getByRole('button', { name: 'Return to main menu', exact: true }).click(),
           ]);
         }
+      } else if (menuSettings) {
+        if (menuGuides) {
+          await page.getByRole('button', { name: 'Close caregiver dialog', exact: true }).click();
+          await expect(page.getByRole('dialog', { name: 'Settings', exact: true })).toBeVisible();
+          expect((await observations()).waiting).toBe(true);
+        }
+        await Promise.all([
+          page.waitForEvent('load'),
+          page.getByRole('button', { name: 'Close settings', exact: true }).click(),
+        ]);
       } else {
         await Promise.all([
           page.waitForEvent('load'),

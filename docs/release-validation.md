@@ -2,7 +2,22 @@
 
 ## Current revision status — 2026-10-16
 
-This document does not contain a completed validation result for the current working revision. Historical runs below describe older, dated application commits and must not be used as evidence that the current code passes. Check the current run output and CI result for release decisions. No real Safari/iPad validation or real-device performance measurements are recorded here.
+The setup/help/learning implementation has passed the focused checks below on Windows, Node 24.14.0, npm 11.9.0 and Playwright 1.63.0 Chromium. CI still targets Node 22. These are current local affected-area results, not a completed full development release gate or a CI result. The unrelated working-tree cloud/artwork edits were present during validation and were not included in these implementation commits. No real Safari/iPad validation or device-performance measurements are recorded here.
+
+| Check | Result |
+| --- | --- |
+| Full Node suite | 327 passed |
+| Affected desktop and compact-touch suites | 121 passed, 1 intentional desktop native-touch skip |
+| Final setup/learning regressions after integration review | 48 passed |
+| Focused avatar-editor compatibility | 4 passed |
+| Production offline and real-worker update gate | 14 passed; includes main-menu Settings and guide readers |
+| Final instrument-specific visual/reduced-motion correction | 2 passed; fresh production build succeeded |
+| Final build guide-worker update and offline slice | 2 passed on desktop and compact touch; separate `test-results/production-final` output |
+| Project skill validation | All three skills valid |
+
+The affected batch covers `avatar-options`, `caregiver`, `children`, `learning`, `parent-guide`, `settings`, `storage-failures` and `update-accessibility`. The final 48-check batch repeats `learning` and `parent-guide` after review fixes: app-lifetime install offers, focus restoration, metronome/portrait timing and guide revision preservation. The full production run tested `index-BAPLigtz.js`; the final pan-flute/string illustration correction produced `index-Bh9mRbiM.js` and was checked separately. Do not add these overlapping execution counts to claim a unique test total.
+
+The final build reports JavaScript **846.88 kB (246.19 kB gzip)**, CSS **119.62 kB (25.56 kB gzip)** and **204 precache entries / 17,687.49 KiB**. Vite's large-chunk warning remains. These are build sizes, not runtime memory or speaker latency. Production evidence from the 14-check gate is retained under ignored `test-results/production/results.json`; guide previews are `test-results/learning-desktop-guide.png` and `test-results/learning-phone-landscape-guide.png`.
 
 ## Gate commands
 

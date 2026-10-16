@@ -68,7 +68,7 @@ test('object library, real character dialog, replay, responsive viewport, and vi
   await expect(preview.locator('body')).toHaveClass(/editor-animations-paused/);
   await page.getByRole('button',{name:'Character',exact:true}).click();
   await expect(preview.getByRole('dialog',{name:'Add a child',exact:true})).toBeVisible();
-  await expect(preview.getByRole('heading',{name:'A look of their own.'})).toBeVisible();
+  await expect(preview.getByRole('heading',{name:'A look of their own',exact:true})).toBeVisible();
   await preview.locator('.avatar-style-options label').filter({has:preview.locator('input[value="ponytail"]')}).click();
   await expect(preview.locator('.avatar-live-preview .child-avatar')).toHaveAttribute('data-avatar-hair','ponytail');
   await page.locator('.editor-avatar summary').click();

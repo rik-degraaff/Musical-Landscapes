@@ -23,4 +23,7 @@ Approved direction: short child setup, caregiver guidance available on demand, o
 
 - Setup, guide library, learning persistence, age-aware suggestions and shared SVG demos implemented in `3b863c0`.
 - Developer documentation reorganized; project instructions and three workflow skills added. All three skills pass the skill validator.
-- Full Node suite: 327 passed. Initial corrected desktop setup/learning batch: 23 passed. Broader desktop/compact-touch and fresh-build production checks are in progress; final results will be recorded below.
+- Full Node suite: 327 passed. Affected desktop/compact-touch batch: 121 passed, one intentionally inapplicable desktop touch test skipped. Post-review setup/learning regressions: 48 passed. Production offline/real-worker gate: 14 passed. Focused avatar-editor checks: 4 passed. Final instrument-specific visual checks: 2 passed, followed by a successful build.
+- Review fixes capture installation offers for the App lifetime, restore focus when a learning beacon disappears, pause exposure time during metronome/portrait use, and avoid downgrading a newer saved guide revision. Tests exercise these boundaries.
+- Complete scope and remaining release/device limits are recorded in [release-validation.md](release-validation.md). The full development release gate was not rerun. Unrelated artwork changes remain outside these commits.
+- The final visual-only build also passed the focused two-viewport production guide/update/offline slice (2 checks), without overwriting the 14-check gate evidence.

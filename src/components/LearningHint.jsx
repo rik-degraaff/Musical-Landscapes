@@ -11,7 +11,7 @@ export function LearningBeacon({hint,onOpen}) {
 export function LearningHint({hint,instruments,onEquip,onPractice,onClose}) {
   const [instrument,setInstrument]=useState(instruments[0]);
   const target=hint.id==='practice'?'avatar':hint.id==='weather'?'weather':hint.id==='landscape'?'sun':'instrument';
-  return <CaregiverDialog title={hint.title} onClose={onClose} footer={<button onClick={onClose}>Back to play</button>}>
+  return <CaregiverDialog title={hint.title} onClose={onClose} returnFocus={()=>document.querySelector('.caregiver-help-corner')} footer={<button onClick={onClose}>Back to play</button>}>
     <p>{hint.text}</p>
     <GestureDemo gesture={hint.gesture} target={target} instrument={instrument}/>
     {hint.id==='equip'&&<div className="learning-actions"><label>Instrument <select aria-label="Instrument to play yourself" value={instrument} onChange={event=>setInstrument(event.target.value)}>{instruments.map(id=><option key={id} value={id}>{INSTRUMENTS[id].label}</option>)}</select></label><button className="learning-action" onClick={()=>{onClose();onEquip(instrument);}}>Play it yourself</button></div>}

@@ -16,12 +16,12 @@ export function GestureDemo({gesture='tap',target='instrument',instrument='piano
   const [playing,setPlaying]=useState(false);
   const [replay,setReplay]=useState(0);
   const wind=gesture==='hold'&&['flute','melody'].includes(instrument);
-  const instruction=label??(wind?(instrument==='melody'?'Hold the breath area and press a valve; slide to change register':'Hold the indicated keys together; slide the headjoint control to change register'):({tap:'Tap once', 'double-tap':'Tap twice',drag:'Drag to your avatar',swipe:'Swipe across',hold:'Press and hold',tempo:'Slide up for slower, down for faster'}[gesture]));
+  const instruction=label??(wind?(instrument==='melody'?'Hold the breath area and press a valve; slide to change register':'Keys work together; slide the headjoint control to change register'):({tap:'Tap once', 'double-tap':'Tap twice',drag:'Drag to your avatar',swipe:instrument==='panflute'?'Slide across the pipes':'Choose a chord, then swipe across the strings',hold:'Press and hold',tempo:'Slide up for slower, down for faster'}[gesture]));
   return <figure className="gesture-demo">
     <div key={replay} className={`gesture-stage gesture-${gesture} ${wind?'gesture-wind':''} ${playing?'is-demonstrating':''}`} aria-hidden="true">
       <div className="gesture-source">{target==='avatar'?<YoungMusicianArt/>:target==='weather'?<Cloud/>:target==='sun'?<Sun/>:target==='metronome'?<Timer/>:<InstrumentArt type={instrument}/>}</div>
       {gesture==='drag'&&<div className="gesture-destination"><YoungMusicianArt/></div>}
-      {gesture==='swipe'&&<div className="gesture-strings"><i/><i/><i/><i/></div>}
+      {gesture==='swipe'&&['guitar','ukulele'].includes(instrument)&&<div className="gesture-strings"><i/><i/><i/><i/></div>}
       <div className="gesture-pointer"><GestureHand pose={gesture==='drag'?'grip':gesture==='hold'?'open':'point'}/><i className="gesture-tap-ring"/></div>
       {wind&&<><div className="gesture-second-pointer"><GestureHand/><i className="gesture-tap-ring"/></div><span className="gesture-register">↔ Register</span></>}
       {gesture==='drag'&&<span className="gesture-route">→</span>}

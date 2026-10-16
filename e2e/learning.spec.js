@@ -35,12 +35,13 @@ test('main-menu Settings works before setup and keeps familiarity outside sound 
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('farmjam-caregiver-settings-v1')).familiarity)).toBe('new');
 });
 
-test('guide opening is not completion and explicit read status survives reload',async({page})=>{
+test('guide opening is not completion and explicit read status survives reload',async({page},testInfo)=>{
   await visit(page);await settings(page);await page.getByRole('tab',{name:/^Guides/}).click();
   const card=page.locator('.guide-card').filter({has:page.getByRole('heading',{name:/Play an instrument/})});
   await expect(card).toContainText('Unread');
   await card.getByRole('button').click();
   await expect(page.getByRole('dialog',{name:'Play an instrument',exact:true})).toBeVisible();
+  await page.screenshot({path:`test-results/learning-${testInfo.project.name}-guide.png`});
   expect(await state(page)).toBeNull();
   await page.getByRole('button',{name:'Mark as read',exact:true}).click();
   await expect(page.getByRole('dialog',{name:'Guides',exact:true})).toBeVisible();
@@ -71,6 +72,7 @@ test('suggestions wait for a click, persist across starts, and distinguish viewi
   await dialog.getByRole('button',{name:'Show me',exact:true}).click();await expect(dialog.locator('.is-demonstrating')).toHaveCount(1);
   await dialog.getByRole('button',{name:'Replay demonstration',exact:true}).click();
   await dialog.getByRole('button',{name:'Back to play',exact:true}).click();await expect(beacon).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Open caregiver help',exact:true})).toBeFocused();
   expect(await savedHint(page,'tap')).toMatchObject({suggested:true,seen:true,completed:false});
   await page.locator('#instrument-piano').press('Enter');
   await expect.poll(async()=>(await savedHint(page,'tap')).completed).toBe(true);
@@ -107,6 +109,13 @@ test('context help offers pointer alternatives and reduced-motion demonstrations
   await page.getByRole('button',{name:'Open caregiver help',exact:true}).click();
   const help=page.getByRole('dialog',{name:'Caregiver help',exact:true});await help.getByRole('button',{name:'Show me',exact:true}).click();
   expect(await help.locator('.gesture-pointer').evaluate(element=>getComputedStyle(element).animationName)).toBe('none');
+  for(const instrument of ['ukulele','panflute']) {
+    await help.getByRole('combobox',{name:'Instrument to play yourself',exact:true}).selectOption(instrument);
+    await help.getByRole('button',{name:'Play it yourself',exact:true}).click();
+    await page.getByRole('button',{name:'Open caregiver help',exact:true}).click();
+    await expect(help.locator('.gesture-strings')).toHaveCount(instrument==='ukulele'?1:0);
+    await expect(help.locator('figcaption')).toContainText(instrument==='panflute'?'pipes':'strings');
+  }
   await page.getByRole('button',{name:'Open practice',exact:true}).click();await expect(page.getByRole('dialog',{name:'Farm practice room',exact:true})).toBeVisible();
 });
 
@@ -116,8 +125,34 @@ test('active play time pauses in Settings, persists, and does not grant time bet
   await page.getByRole('button',{name:'Open settings',exact:true}).dblclick();
   const paused=(await state(page)).children.a.seconds;await page.clock.runFor(20000);
   expect((await state(page)).children.a.seconds).toBe(paused);
+  await page.getByRole('button',{name:'Close settings',exact:true}).click();
+  await page.getByRole('button',{name:'Open metronome',exact:true}).click();
+  await page.clock.runFor(100);const metronomePaused=(await state(page)).children.a.seconds;
+  await page.clock.runFor(20000);expect((await state(page)).children.a.seconds).toBe(metronomePaused);
+  await page.keyboard.press('Escape');
+  const size=page.viewportSize();await page.setViewportSize({width:393,height:851});
+  await expect(page.getByRole('dialog',{name:'Landscape orientation required',exact:true})).toBeVisible();
+  await page.clock.runFor(100);const portraitPaused=(await state(page)).children.a.seconds;
+  await page.clock.runFor(20000);expect((await state(page)).children.a.seconds).toBe(portraitPaused);
+  await page.setViewportSize(size);
+  await page.getByRole('button',{name:'Open settings',exact:true}).dblclick();
+  const finalPause=(await state(page)).children.a.seconds;
   await page.getByRole('button',{name:'Return to main menu'}).click();await page.clock.runFor(60000);
-  expect((await state(page)).children.a.seconds).toBe(paused);
+  expect((await state(page)).children.a.seconds).toBe(finalPause);
+});
+
+test('an installation offer received on the menu remains available when its guide is opened later',async({page})=>{
+  await visit(page);await expect(page.getByRole('button',{name:/^Settings/})).toBeVisible();
+  const captured=await page.evaluate(()=>{
+    window.earlyInstallCalls=0;const event=new Event('beforeinstallprompt',{cancelable:true});
+    event.prompt=async()=>{window.earlyInstallCalls++;};event.userChoice=Promise.resolve({outcome:'dismissed'});
+    window.dispatchEvent(event);return event.defaultPrevented;
+  });
+  expect(captured).toBe(true);await settings(page);await page.getByRole('tab',{name:/^Guides/}).click();
+  await page.getByRole('button',{name:'Read install and prepare your device',exact:true}).click();
+  await page.getByRole('button',{name:'Install FarmJam',exact:true}).click();
+  await expect(page.getByText('You can keep playing in the browser.',{exact:true})).toBeVisible();
+  expect(await page.evaluate(()=>window.earlyInstallCalls)).toBe(1);
 });
 
 test('failed learning reads preserve sibling progress until retry and save failures retain live choices',async({page})=>{

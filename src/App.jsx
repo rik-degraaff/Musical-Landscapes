@@ -28,6 +28,7 @@ import {useLearning} from './components/useLearning';
 import {GUIDES,childLearning,guideStatus,nextHint,updateHint} from './utils/learning';
 import {useLearningClock} from './components/useLearningClock';
 import {LearningBeacon,LearningHint} from './components/LearningHint';
+import {useInstallation} from './components/useInstallation';
 
 function initialInstruments(selected, preview = false) {
   const size = {width:window.innerWidth,height:window.innerHeight};
@@ -57,6 +58,7 @@ export default function App({developmentPreview}={}) {
   const [guideView,setGuideView]=useState(null);
   const [hintView,setHintView]=useState(null);
   const learning=useLearning(Boolean(developmentPreview));
+  const installation=useInstallation();
   const [storage]=useState(()=>developmentPreview ? {saveSnapshot:()=>({ok:true}),saveLegacySettings:()=>({ok:true})} : createFamilyStorage());
   const [initial]=useState(()=>developmentPreview ? { family: { children: [developmentPreview.child], selectedId: developmentPreview.child.id }, settings: developmentPreview.child.settings, saveError: false } : storage.load());
   const [caregiverStorage]=useState(()=>createCaregiverStorage(developmentPreview?()=>({getItem:()=>null,setItem(){}}):undefined));
@@ -86,7 +88,7 @@ export default function App({developmentPreview}={}) {
   const [nearChild,setNearChild] = useState(false);
   const startupState=useRef({settings,sceneIndex});
   const mounted=useRef(false);
-  const learningActive=started&&!loading&&!mixer&&!practice&&!parentGuide&&!editingId&&!help&&!guideView&&!hintView&&!developmentPreview;
+  const learningActive=started&&!loading&&!mixer&&!metronomeOpen&&!practice&&!parentGuide&&!editingId&&!help&&!guideView&&!hintView&&!developmentPreview;
   const suggestion=nextHint(learning.state,selectedChild);
   useLearningClock({active:learningActive,childId:selectedChild?.id,change:learning.change});
   useEffect(()=>{
@@ -434,7 +436,7 @@ export default function App({developmentPreview}={}) {
     {learningActive&&suggestion&&childLearning(learning.state,selectedChild.id).hints[suggestion.id]?.suggested&&<LearningBeacon hint={suggestion} onOpen={()=>{window.dispatchEvent(new Event('farmjam-input-reset'));setHintView(suggestion);learning.change(state=>updateHint(state,selectedChild.id,suggestion.id,{seen:true}));}}/>}
     {hintView&&<LearningHint hint={hintView} instruments={settings.selected} onEquip={equip} onPractice={()=>enterPractice()} onClose={()=>setHintView(null)}/>}
     {help&&<CaregiverHelp {...help} instruments={started&&!practice?settings.selected:null} onEquip={name=>{setHelp(null);setMixer(false);equip(name);}} onPractice={()=>{setHelp(null);setMixer(false);enterPractice();}} onGuides={setGuideView} discovery={started&&help.topic!=='practice'?{hasEquipped,hasPracticed}:null} familiarity={familiarity} onClose={()=>setHelp(null)}/>}
-    {guideView&&<GuideReader id={guideView} learning={learning.state} familiarity={familiarity} onOpen={setGuideView} onRead={guide=>learning.change(state=>({...state,guides:{...state.guides,[guide.id]:guide.version}}))} onClose={()=>setGuideView(null)}/>}
+    {guideView&&<GuideReader id={guideView} installation={installation} learning={learning.state} familiarity={familiarity} onOpen={setGuideView} onRead={guide=>learning.change(state=>({...state,guides:{...state.guides,[guide.id]:Math.max(state.guides[guide.id]??0,guide.version)}}))} onClose={()=>setGuideView(null)}/>}
     <LandscapeGuard/>
   </main>;
 }
