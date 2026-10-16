@@ -17,7 +17,7 @@ export function useDismissible(ref,open,onDismiss) {
       window.setTimeout(()=>window.removeEventListener('click',swallowClick,true),700);
       event.preventDefault();event.stopImmediatePropagation();callback.current();
     };
-    const escape=event=>{if(event.key==='Escape'){event.preventDefault();callback.current();}};
+    const escape=event=>{if(event.key==='Escape'&&!document.querySelector('dialog[open]')){event.preventDefault();callback.current();}};
     window.addEventListener('pointerdown',outside,true);
     window.addEventListener('keydown',escape);
     return ()=>{window.removeEventListener('pointerdown',outside,true);window.removeEventListener('keydown',escape);};

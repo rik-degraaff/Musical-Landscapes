@@ -88,10 +88,11 @@ export default function App({developmentPreview}={}) {
   const [nearChild,setNearChild] = useState(false);
   const startupState=useRef({settings,sceneIndex});
   const mounted=useRef(false);
-  const learningActive=started&&!loading&&!mixer&&!metronomeOpen&&!practice&&!parentGuide&&!editingId&&!help&&!guideView&&!hintView&&!developmentPreview;
+  const activeLandscape=started&&!loading&&!mixer&&!metronomeOpen&&!practice&&!parentGuide&&!editingId&&!help&&!guideView&&!developmentPreview;
+  const learningActive=activeLandscape&&!hintView;
   const suggestion=nextHint(learning.state,selectedChild);
   useEffect(()=>{if(selectedChild&&!childLearning(learning.state,selectedChild.id).enabled)setHintView(null);},[learning.state,selectedChild]);
-  useLearningClock({active:learningActive,childId:selectedChild?.id,change:learning.change});
+  useLearningClock({active:activeLandscape,childId:selectedChild?.id,change:learning.change});
   useEffect(()=>{
     if(learningActive&&suggestion&&!childLearning(learning.state,selectedChild.id).hints[suggestion.id]?.suggested){
       learning.change(state=>updateHint(state,selectedChild.id,suggestion.id,{suggested:true}));

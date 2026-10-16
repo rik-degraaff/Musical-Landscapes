@@ -30,7 +30,7 @@ export function ParentGuide({settings,onComplete,onClose,familiarity='some',fami
   useEffect(()=>{
     const previousTouch=document.body.style.touchAction;document.body.style.touchAction='pan-y pinch-zoom';
     const keydown=event=>{
-      if(event.defaultPrevented)return;
+      if(event.defaultPrevented||document.querySelector('dialog[open]'))return;
       if(event.key==='Escape'){event.preventDefault();closeRef.current();return;}
       if(event.key!=='Tab')return;
       const controls=[...dialog.current.querySelectorAll('button:not(:disabled),select,input,a[href]')].filter(element=>element.getClientRects().length);

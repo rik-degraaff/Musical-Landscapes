@@ -160,6 +160,7 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
   },[cue,stage]);
   useEffect(()=>{
     const escape=event=>{
+      if(event.defaultPrevented||document.querySelector('dialog[open]'))return;
       if(event.key==='Escape'){event.preventDefault();onClose();}
       if(event.key==='Tab'){
         const controls=[...room.current.querySelectorAll('button:not(:disabled),select,[tabindex="0"]'),...document.querySelectorAll('.live-coach button')];
