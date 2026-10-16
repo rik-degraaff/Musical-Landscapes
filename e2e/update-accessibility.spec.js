@@ -123,9 +123,6 @@ test('App defers mock updates during setup and play until returning to menu', as
   await page.goto('/');
   await installApplyProbe(page);
   await page.getByRole('button', { name: 'Add child', exact: true }).click();
-  await page.getByRole('button', { name: 'Next step' }).click();
-  await page.getByRole('button', { name: 'Next step' }).click();
-  await page.getByRole('button', { name: 'Next step' }).click();
   await page.getByLabel('Child name or nickname').fill('Unsaved draft');
   await requestMockUpdate(page);
   await expectDeferred(page);
@@ -192,7 +189,6 @@ test('late controller change keeps a reentered caregiver draft until the next me
   });
   await expect.poll(()=>page.evaluate(()=>window.updateMessages)).toBe(1);
   await page.getByRole('button',{name:'Add child',exact:true}).click();
-  for(let step=0;step<3;step++)await page.getByRole('button',{name:'Next step'}).click();
   await page.getByLabel('Child name or nickname').fill('Reentered draft');
   await page.evaluate(()=>window.finishControllerChange());
   await expect(page.getByLabel('Child name or nickname')).toHaveValue('Reentered draft');
@@ -211,9 +207,6 @@ test('caregiver menu and unsaved dialog permit zoom events and pinch through eve
   await page.getByRole('button', { name: 'Add child', exact: true }).click();
   expect((await zoomEvents(page, '.parent-guide-close')).every(event => !event.prevented)).toBe(true);
   await expectPinchAncestry(page, '.parent-guide-close');
-  await page.getByRole('button', { name: 'Next step' }).click();
-  await page.getByRole('button', { name: 'Next step' }).click();
-  await page.getByRole('button', { name: 'Next step' }).click();
   await page.getByLabel('Child name or nickname').fill('Still here');
   expect((await zoomEvents(page, '#parent-child-name')).every(event => !event.prevented)).toBe(true);
   await expectPinchAncestry(page, '#parent-child-name');
@@ -246,6 +239,7 @@ test('body-targeted zoom keys use focus or visible dialog; gameplay still suppre
 test('caregiver scrolling is allowed and gameplay multi-touch remains cancelled', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Add child', exact: true }).click();
+  await page.getByLabel('Child name or nickname').fill('Scroll draft');
   await page.getByRole('button', { name: 'Next step' }).click();
   const scroll = await page.locator('.parent-guide-content').evaluate(element => {
     const wheel = new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true });

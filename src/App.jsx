@@ -23,6 +23,11 @@ import {defaultSettings,resetSoundMix} from './utils/settings.js';
 import {createCaregiverStorage,normalizeFamiliarity} from './utils/caregiverSettings.js';
 import savedVisuals from './data/visual-overrides.json';
 import {instrumentHome} from './utils/responsiveVisuals.js';
+import {GuideReader} from './components/Guides';
+import {useLearning} from './components/useLearning';
+import {GUIDES,childLearning,guideStatus,nextHint,updateHint} from './utils/learning';
+import {useLearningClock} from './components/useLearningClock';
+import {LearningBeacon,LearningHint} from './components/LearningHint';
 
 function initialInstruments(selected, preview = false) {
   const size = {width:window.innerWidth,height:window.innerHeight};
@@ -49,6 +54,9 @@ export default function App({developmentPreview}={}) {
   const [parentGuide,setParentGuide]=useState(false);
   const [editingId,setEditingId]=useState(null);
   const [help,setHelp]=useState(null);
+  const [guideView,setGuideView]=useState(null);
+  const [hintView,setHintView]=useState(null);
+  const learning=useLearning(Boolean(developmentPreview));
   const [storage]=useState(()=>developmentPreview ? {saveSnapshot:()=>({ok:true}),saveLegacySettings:()=>({ok:true})} : createFamilyStorage());
   const [initial]=useState(()=>developmentPreview ? { family: { children: [developmentPreview.child], selectedId: developmentPreview.child.id }, settings: developmentPreview.child.settings, saveError: false } : storage.load());
   const [caregiverStorage]=useState(()=>createCaregiverStorage(developmentPreview?()=>({getItem:()=>null,setItem(){}}):undefined));
@@ -58,7 +66,7 @@ export default function App({developmentPreview}={}) {
   const [caregiverSaveError,setCaregiverSaveError]=useState(Boolean(initialCaregiver.error));
   const caregiverEdited=useRef(false);
   const [saveError,setSaveError]=useState(Boolean(initial.saveError));
-  const saveWarning=saveError||caregiverSaveError;
+  const saveWarning=saveError||caregiverSaveError||learning.error;
   const storageReadFailed=useRef(Boolean(initial.saveError));
   const [family,setFamily]=useState(initial.family);
   const selectedChild=family.children.find(child=>child.id===family.selectedId)??null;
@@ -78,7 +86,20 @@ export default function App({developmentPreview}={}) {
   const [nearChild,setNearChild] = useState(false);
   const startupState=useRef({settings,sceneIndex});
   const mounted=useRef(false);
-  useAppUpdates({started,loading,parentGuide:parentGuide||Boolean(editingId)||Boolean(help)||saveWarning});
+  const learningActive=started&&!loading&&!mixer&&!practice&&!parentGuide&&!editingId&&!help&&!guideView&&!hintView&&!developmentPreview;
+  const suggestion=nextHint(learning.state,selectedChild);
+  useLearningClock({active:learningActive,childId:selectedChild?.id,change:learning.change});
+  useEffect(()=>{
+    if(learningActive&&suggestion&&!childLearning(learning.state,selectedChild.id).hints[suggestion.id]?.suggested){
+      learning.change(state=>updateHint(state,selectedChild.id,suggestion.id,{suggested:true}));
+    }
+  },[learningActive,suggestion,learning.state,selectedChild,learning.change]);
+  useAppUpdates({started,loading,parentGuide:parentGuide||mixer||Boolean(guideView)||Boolean(hintView)||Boolean(editingId)||Boolean(help)||saveWarning});
+
+  function discovered(id) {
+    if(!started||!selectedChild||developmentPreview)return;
+    learning.change(state=>childLearning(state,selectedChild.id).hints[id]?.completed?state:updateHint(state,selectedChild.id,id,{completed:true}));
+  }
 
   useEffect(()=>{ stateRef.current=instruments; },[instruments]);
   useLayoutEffect(()=>{startupState.current={settings,sceneIndex,genre};},[settings,sceneIndex,genre]);
@@ -129,6 +150,7 @@ export default function App({developmentPreview}={}) {
 
   function toggle(name) {
     if(!started) return;
+    discovered('tap');
     const next = !stateRef.current[name].active;
     const nextState = {...stateRef.current,[name]:{...stateRef.current[name],active:next}};
     stateRef.current=nextState; setInstruments(nextState);
@@ -197,6 +219,7 @@ export default function App({developmentPreview}={}) {
   }
 
   function retrySave() {
+    if(learning.error)learning.retry();
     if(caregiverSaveError){
       const recovered=caregiverStorage.load(familiarity);
       if(recovered.error){setCaregiverSaveError(true);return;}
@@ -233,6 +256,8 @@ export default function App({developmentPreview}={}) {
     if(!nextFamily)return false;
     const nextSettings=nextFamily.children.find(child=>child.id===nextFamily.selectedId)?.settings??defaultSettings();
     if(!storage.saveProfileSnapshot({family:nextFamily,settings:nextSettings}).ok){setSaveError(true);return false;}
+    const removed=family.children.filter(child=>!nextFamily.children.some(next=>next.id===child.id)).map(child=>child.id);
+    if(removed.length)learning.change(state=>({...state,children:Object.fromEntries(Object.entries(state.children).filter(([id])=>!removed.includes(id)))}));
     setSaveError(false);setFamily(nextFamily);setSettings(nextSettings);
     const next=initialInstruments(nextSettings.selected);stateRef.current=next;setInstruments(next);
     return true;
@@ -303,6 +328,7 @@ export default function App({developmentPreview}={}) {
 
   function equip(name, resetPrevious=true) {
     if(!started) return;
+    if(name)discovered('equip');
     if(name)setHasEquipped(true);
     const previous=equippedRef.current;
     equippedRef.current=name;setEquipped(name);
@@ -352,11 +378,13 @@ export default function App({developmentPreview}={}) {
   },[equipped,sceneIndex,started,settings.selected]);
 
   function rotateScene() {
+    discovered('landscape');
     setSceneIndex(i=>{ const next=(i+1)%SCENES.length; audioRef.current?.setSceneKey(SCENES[next].root); return next; });
   }
 
   function changeGenre(next) {
     if(next===genre)return;
+    discovered('weather');
     setGenre(next);
     audioRef.current?.setGenre(next);
   }
@@ -365,7 +393,7 @@ export default function App({developmentPreview}={}) {
   const audibleGenre=audiblePlan?.genre??(started&&audioRef.current?.genreTransition?.to===genre?audioRef.current.genreTransition.from:genre);
   const weatherTransition=audiblePlan&&audioRef.current?.genreTransition?.to===audiblePlan.genre?{from:audioRef.current.genreTransition.from,progress:audiblePlan.genreBlend??0}:null;
 
-  function enterPractice(playback){if(playback)audioRef.current.setInstrumentActive(playback.name,playback.active);practiceActive.current=true;setHarmonyPlan(null);drag.current=null;setDragging(null);setNearChild(false);setMixer(false);setMetronomeOpen(false);setHasPracticed(true);setPractice(equippedRef.current??settings.selected[0]);}
+  function enterPractice(playback){discovered('practice');if(playback)audioRef.current.setInstrumentActive(playback.name,playback.active);practiceActive.current=true;setHarmonyPlan(null);drag.current=null;setDragging(null);setNearChild(false);setMixer(false);setMetronomeOpen(false);setHasPracticed(true);setPractice(equippedRef.current??settings.selected[0]);}
 
   function returnToMenu() {
     practiceActive.current=false;setHarmonyPlan(null);
@@ -393,17 +421,20 @@ export default function App({developmentPreview}={}) {
       {started && <button className="mixer-button" onClick={activateMixer} aria-expanded={mixer} aria-controls="landscape-mixer" aria-label={mixer?'Close settings':'Open settings'} title={mixer?'Close settings':'Double-click or double-tap to open settings'}>{mixer?<X size={22}/>:<Menu size={22}/>}</button>}
     </div>
 
-    {started && mixer && <Mixer familiarity={familiarity} onFamiliarity={updateFamiliarity} onHelp={()=>setHelp({topic:'settings',instrument:equipped})} saveError={saveWarning} onRetrySave={retrySave} instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} onRestoreSound={restoreSound} settings={settings} onSettings={updateSettings} onMenu={returnToMenu} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
+    {mixer && <Mixer playing={started} child={selectedChild} learning={learning.state} onLearning={learning.change} onGuide={setGuideView} familiarity={familiarity} onFamiliarity={updateFamiliarity} onHelp={()=>setHelp({topic:'settings',instrument:equipped})} saveError={saveWarning} onRetrySave={retrySave} instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} onRestoreSound={restoreSound} settings={settings} onSettings={updateSettings} onMenu={returnToMenu} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
     {started&&<Metronome audio={audioRef.current} open={metronomeOpen} disabled={mixer||Boolean(practice)} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}
 
     {equipped&&!practice&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={performanceRoot} options={settings.instruments[equipped]} settingsOpen={mixer} harmonyPlan={harmonyPlan} onClose={()=>equip(null)}/>}
     {practice&&<PracticeRoom child={selectedChild} audio={audioRef.current} initialInstrument={practice} settings={settings} root={SCENES[sceneIndex].root} onHelp={instrument=>setHelp({topic:'practice',instrument})} onClose={()=>{practiceActive.current=false;setHarmonyPlan(null);setPractice(null);}}/>}
 
-    {!started && <StartScreen saveError={saveWarning} onRetrySave={retrySave} children={family.children} selectedId={family.selectedId} loading={loading} error={error} onStart={start} onSelect={selectChild} onEdit={setEditingId} onAdd={()=>setParentGuide(true)}/>}
-    {!started&&parentGuide&&<ParentGuide familiarity={familiarity} familiarityEstablished={familiarityEstablished} settings={settings} onComplete={addChild} onClose={()=>setParentGuide(false)}/>}
+    {!started && <StartScreen inert={mixer||parentGuide||Boolean(editingId)} onSettings={()=>setMixer(true)} unreadGuides={GUIDES.filter(guide=>guideStatus(learning.state,guide)!=='Read').length} saveError={saveWarning&&!mixer} onRetrySave={retrySave} children={family.children} selectedId={family.selectedId} loading={loading} error={error} onStart={start} onSelect={selectChild} onEdit={setEditingId} onAdd={()=>setParentGuide(true)}/>}
+    {!started&&parentGuide&&<ParentGuide learning={learning.state} onGuide={setGuideView} familiarity={familiarity} familiarityEstablished={familiarityEstablished} settings={settings} onComplete={addChild} onClose={()=>setParentGuide(false)}/>}
     {!started&&editingId&&<ChildEditor child={family.children.find(child=>child.id===editingId)} onSave={draft=>saveFamily(editChild(family,editingId,draft))} onDelete={()=>saveFamily(removeChild(family,editingId))} onClose={()=>setEditingId(null)}/>}
     {!mixer&&!practice&&!parentGuide&&!editingId&&!loading&&<HelpButton className="caregiver-help-corner" onOpen={()=>{window.dispatchEvent(new Event('farmjam-input-reset'));setHelp({topic:started?(equipped?'instruments':'landscape'):'menu',instrument:equipped});}}/>}
-    {help&&<CaregiverHelp {...help} discovery={started&&help.topic!=='practice'?{hasEquipped,hasPracticed}:null} familiarity={familiarity} onClose={()=>setHelp(null)}/>}
+    {learningActive&&suggestion&&childLearning(learning.state,selectedChild.id).hints[suggestion.id]?.suggested&&<LearningBeacon hint={suggestion} onOpen={()=>{window.dispatchEvent(new Event('farmjam-input-reset'));setHintView(suggestion);learning.change(state=>updateHint(state,selectedChild.id,suggestion.id,{seen:true}));}}/>}
+    {hintView&&<LearningHint hint={hintView} instruments={settings.selected} onEquip={equip} onPractice={()=>enterPractice()} onClose={()=>setHintView(null)}/>}
+    {help&&<CaregiverHelp {...help} instruments={started&&!practice?settings.selected:null} onEquip={name=>{setHelp(null);setMixer(false);equip(name);}} onPractice={()=>{setHelp(null);setMixer(false);enterPractice();}} onGuides={setGuideView} discovery={started&&help.topic!=='practice'?{hasEquipped,hasPracticed}:null} familiarity={familiarity} onClose={()=>setHelp(null)}/>}
+    {guideView&&<GuideReader id={guideView} learning={learning.state} familiarity={familiarity} onOpen={setGuideView} onRead={guide=>learning.change(state=>({...state,guides:{...state.guides,[guide.id]:guide.version}}))} onClose={()=>setGuideView(null)}/>}
     <LandscapeGuard/>
   </main>;
 }

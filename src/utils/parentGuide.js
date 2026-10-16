@@ -22,8 +22,8 @@ export function recommendParentSettings(profile,currentSettings,selectedLevel) {
       ?'The simplest phrases are the gentlest starting point. For children under 2, prioritize shared real-world play and follow your pediatrician’s screen-use guidance.'
       :'Simple keeps the note choices small and the rhythms roomy. You can move to Standard whenever your child asks for more variety.'
     :profile.parent==='new'
-      ?'Standard offers a little more variety while keeping every part playable with the controls already on screen. We’ll use everyday language, and note names are switched on to help you explore together.'
-      :'Standard adds a little more rhythmic and melodic variety without adding controls. Note names stay visible so you can talk about the patterns together.';
+      ?'Standard offers more notes and controls to explore. We’ll use everyday language, and note names are switched on to help you explore together.'
+      :'Standard offers more notes, controls and rhythmic variety. Note names stay visible so you can talk about the patterns together.';
   return {level,appliedLevel,explanation,settings:{...currentSettings,instruments}};
 }
 

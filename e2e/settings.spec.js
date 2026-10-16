@@ -80,7 +80,7 @@ test('guitar buttons overlay the neck with diagrams off by default and display o
 
 test('per-instrument Simple Standard and Advanced configuration stays independent in storage and the engine',async({page},testInfo)=>{
   await start(page);await settings(page,'Instruments');
-  await expect(page.getByRole('tab')).toHaveText(['Sound','Instruments']);
+  await expect(page.getByRole('tab')).toHaveText(['Sound','Instruments','Caregiver',/Guides/]);
   await expect(page.getByRole('slider')).toHaveCount(0);
   const initial=await stored(page);
   expect(initial.selected).toEqual(['piano','drums','guitar','melody','marimba','flute']);
@@ -120,7 +120,7 @@ test('per-instrument Simple Standard and Advanced configuration stays independen
 test('settings modal keeps sound controls, traps focus, and hides advanced information per instrument by default',async({page},testInfo)=>{
   await start(page);await equip(page,'piano');await expect(page.locator('.note-key span').first()).toBeHidden();await expect(page.locator('.autoplay-notes')).toBeHidden();
   await settings(page,'Sound');
-  await expect(page.getByRole('tab')).toHaveText(['Sound','Instruments']);
+  await expect(page.getByRole('tab')).toHaveText(['Sound','Instruments','Caregiver',/Guides/]);
   await expect(page.getByRole('slider',{name:'Scenery sounds volume',exact:true})).toBeVisible();
   await page.getByRole('slider',{name:'Piano volume',exact:true}).fill('-18');await expect(page.getByRole('slider',{name:'Piano volume',exact:true})).toHaveValue('-18');
   await page.getByRole('button',{name:'Open caregiver help',exact:true}).focus();await page.keyboard.press('Shift+Tab');

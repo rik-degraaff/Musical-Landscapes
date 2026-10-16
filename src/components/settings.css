@@ -1,7 +1,7 @@
 .settings-footer { padding: 10px 12px; border-top: 1px solid #9bbbaa; }
 .settings-footer button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 38px; border: 1px solid #638d77; border-radius: 4px; background: #edf7e9; color: #285742; font: inherit; cursor: pointer; }
 .settings-footer button:focus-visible { outline: 3px solid #a44132; outline-offset: 2px; }
-.settings-backdrop { position:absolute;inset:0;z-index:100;display:grid;place-items:center;background:#18382b66;padding:calc(var(--safe-top) + 12px) calc(var(--safe-right) + 12px) calc(var(--safe-bottom) + 12px) calc(var(--safe-left) + 12px); }
+.settings-backdrop { position:absolute;inset:0;z-index:210;display:grid;place-items:center;background:#18382b66;padding:calc(var(--safe-top) + 12px) calc(var(--safe-right) + 12px) calc(var(--safe-bottom) + 12px) calc(var(--safe-left) + 12px); }
 .settings-backdrop,.settings-dialog,.settings-dialog * { touch-action:pan-y pinch-zoom; }
 .app-shell .settings-dialog.mixer { position:relative;inset:auto;width:min(660px,100%);height:min(460px,100%);max-height:100%;padding:0;margin:0;display:flex;flex-direction:column;border:1px solid #afc7b9;border-radius:8px;background:#f5f8f2;color:#355e4c;overflow:hidden;box-shadow:0 12px 40px #16382b55;touch-action:pan-y pinch-zoom; }
 .settings-dialog .settings-head { display:flex;align-items:center;justify-content:space-between;padding:8px 16px;flex:none;height:44px;border-bottom:1px solid #c9d8cd; }

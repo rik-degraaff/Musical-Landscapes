@@ -1,5 +1,5 @@
 const ZOOM_KEYS = new Set(['+', '=', '-', '_', '0']);
-const CAREGIVER_AREAS = '.start-overlay,.parent-guide-backdrop,.settings-backdrop';
+const CAREGIVER_AREAS = '.start-overlay,.parent-guide-backdrop,.settings-backdrop,.caregiver-dialog';
 
 function elementTarget(event) {
   const element = event.target;

@@ -4,7 +4,7 @@ test('expanded hair and clothing options share palettes and matching colors pers
   const size=page.viewportSize();if(size.height>size.width)await page.setViewportSize({width:size.height,height:size.width});
   await page.goto('/');await page.getByRole('button',{name:'Add child',exact:true}).click();
   if(size.height>size.width)await page.setViewportSize(size);
-  for(let step=0;step<3;step++)await page.getByRole('button',{name:'Next step',exact:true}).click();
+  await page.getByRole('button',{name:'Next step',exact:true}).click();
   await page.getByRole('textbox',{name:'Child name'}).fill('Robin');await page.getByRole('button',{name:'Next step',exact:true}).click();
   const preview=page.locator('.avatar-live-preview svg');
   for(const [label,id] of [['Long curls','longCurls'],['Long straight','longStraight']]){
@@ -25,7 +25,7 @@ test('expanded hair and clothing options share palettes and matching colors pers
   await expect(preview).toHaveAttribute('data-avatar-bottom-primary','#b34b58');await expect(preview).toHaveAttribute('data-avatar-bottom-secondary','#f5f1e8');
   await page.screenshot({path:testInfo.outputPath('coordinated-avatar.png')});
   const metrics=await page.locator('.parent-guide-content').evaluate(element=>({width:element.clientWidth,scroll:element.scrollWidth}));expect(metrics.scroll).toBeLessThanOrEqual(metrics.width);
-  for(let step=4;step<10;step++)await page.getByRole('button',{name:'Next step',exact:true}).click();
+  for(let step=0;step<2;step++)await page.getByRole('button',{name:'Next step',exact:true}).click();
   await page.getByRole('dialog',{name:'Add a child',exact:true}).getByRole('button',{name:'Add child',exact:true}).click();
   if(size.height>size.width)await page.setViewportSize({width:size.height,height:size.width});
   await page.reload();const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('farmjam-children-v1')).children[0].avatar);

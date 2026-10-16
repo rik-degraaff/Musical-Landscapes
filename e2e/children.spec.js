@@ -7,7 +7,7 @@ async function start(page){const size=page.viewportSize();if(size.height>size.wi
 async function children(page){return page.evaluate(key=>JSON.parse(localStorage.getItem(key)??'{"children":[],"selectedId":null}'),CHILDREN_KEY);}
 async function settings(page){return page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SETTINGS_KEY);}
 async function next(page){await page.getByRole('button',{name:'Next step',exact:true}).click();}
-async function openNameStep(page){await page.getByRole('button',{name:'Add child',exact:true}).click();for(let step=0;step<3;step++)await next(page);}
+async function openNameStep(page){await page.getByRole('button',{name:'Add child',exact:true}).click();if(await page.getByRole('heading',{name:'How familiar are you with music?',exact:true}).isVisible())await next(page);}
 async function avatarMarkup(svg){return svg.evaluate(element=>({viewBox:element.getAttribute('viewBox'),art:element.innerHTML}));}
 async function expectAvatar(svg,child,preview){
   await expect(svg).toBeVisible();await expect(svg).toHaveAttribute('data-age',child.age);
@@ -24,10 +24,9 @@ async function addChild(page,{name,age,styles,colors,level}){
   for(const label of styles)await page.getByRole('radio',{name:label,exact:true}).check();
   for(const label of colors)await page.getByRole('radio',{name:label,exact:true}).check();
   const preview=await avatarMarkup(page.locator('.avatar-live-preview svg'));
-  await next(page);await next(page);
+  await next(page);
   await page.getByRole('radio',{name:level,exact:true}).check();
-  await page.getByRole('button',{name:'Use these settings',exact:true}).click();
-  for(let step=6;step<10;step++)await next(page);
+  await next(page);
   await page.getByRole('dialog',{name:'Add a child',exact:true}).getByRole('button',{name:'Add child',exact:true}).click();
   await expect(page.getByRole('dialog',{name:'Add a child',exact:true})).toHaveCount(0);
   await expect(page.locator('.start-overlay')).toBeVisible();await expect(page.getByRole('button',{name:'Tap to play'})).toBeEnabled();
@@ -50,8 +49,8 @@ test('empty menu cannot play and every cancellation path discards child setup',a
   const initialSettings=await settings(page);
   for(const cancel of ['Escape','Cancel child setup','Cancel setup']){
     await openNameStep(page);await page.getByRole('textbox',{name:'Child name'}).fill('Draft');
-    await next(page);await next(page);await next(page);
-    await page.getByRole('button',{name:'Use these settings',exact:true}).click();
+    await next(page);await next(page);
+    await page.getByRole('radio',{name:'Advanced',exact:true}).check();await next(page);
     expect((await children(page)).children).toEqual([]);expect(await settings(page)).toEqual(initialSettings);
     if(cancel==='Escape')await page.keyboard.press('Escape');else await page.getByRole('button',{name:cancel,exact:true}).click();
     await expect(page.getByRole('dialog',{name:'Add a child',exact:true})).toHaveCount(0);
@@ -86,8 +85,8 @@ test('cancelling another child preserves the selected saved child and all its se
   await page.reload();await expect(page.getByRole('radio',{name:'Select Player',exact:true})).toBeChecked();
   await expect.poll(()=>settings(page)).toEqual(savedSettings);const original=await children(page);
   await openNameStep(page);await page.getByRole('textbox',{name:'Child name'}).fill('Draft');
-  await next(page);await next(page);await next(page);
-  await page.getByRole('radio',{name:'Simple',exact:true}).check();await page.getByRole('button',{name:'Use these settings',exact:true}).click();
+  await next(page);await next(page);
+  await page.getByRole('radio',{name:'Simple',exact:true}).check();
   expect(await children(page)).toEqual(original);expect(await settings(page)).toEqual(savedSettings);
   await page.getByRole('button',{name:'Cancel setup',exact:true}).click();
   await expect(page.getByRole('radio',{name:'Select Player',exact:true})).toBeChecked();await expect(page.getByRole('button',{name:'Tap to play'})).toBeEnabled();

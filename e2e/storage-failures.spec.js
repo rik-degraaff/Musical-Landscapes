@@ -98,13 +98,13 @@ test('denied storage getter does not crash the menu or discard a caregiver draft
   await expect(page.getByRole('button',{name:'Tap to play'})).toBeDisabled();
   await expect(page.getByRole('status')).toContainText('could not save');
   await page.getByRole('button',{name:'Add child',exact:true}).click();
-  for(let step=0;step<3;step++)await page.getByRole('button',{name:'Next step',exact:true}).click();
+  for(let step=0;step<1;step++)await page.getByRole('button',{name:'Next step',exact:true}).click();
   await page.getByRole('textbox',{name:'Child name'}).fill('Draft');
-  for(let step=3;step<10;step++)await page.getByRole('button',{name:'Next step',exact:true}).click();
+  for(let step=0;step<3;step++)await page.getByRole('button',{name:'Next step',exact:true}).click();
   await page.getByRole('dialog',{name:'Add a child',exact:true}).getByRole('button',{name:'Add child',exact:true}).click();
   await expect(page.getByRole('dialog',{name:'Add a child',exact:true})).toBeVisible();
   await expect(page.getByRole('alert')).toContainText('save');
-  for(let step=10;step>3;step--)await page.getByRole('button',{name:'Previous step',exact:true}).click();
+  for(let step=0;step<3;step++)await page.getByRole('button',{name:'Previous step',exact:true}).click();
   await expect(page.getByRole('textbox',{name:'Child name'})).toHaveValue('Draft');
   expect(errors).toEqual([]);
 });

@@ -243,7 +243,6 @@ for (const phase of ['play', 'guide', 'activation-reentry']) test(phase === 'act
         await expect(page.locator('.start-overlay')).toHaveCount(0);
       } else {
         await page.getByRole('button', { name: 'Add child', exact: true }).click();
-        for (let step = 0; step < 3; step++) await page.getByRole('button', { name: 'Next step', exact: true }).click();
         await page.getByRole('textbox', { name: 'Child name or nickname', exact: true }).fill('Unsaved Release Draft');
         await page.getByRole('radio', { name: '8+', exact: true }).check();
       }
@@ -308,7 +307,6 @@ for (const phase of ['play', 'guide', 'activation-reentry']) test(phase === 'act
           waiting: true, sameController: true, sameWaiting: true,
         });
         await page.getByRole('button', { name: 'Add child', exact: true }).click();
-        for (let step = 0; step < 3; step++) await page.getByRole('button', { name: 'Next step', exact: true }).click();
         const draftName = page.getByRole('textbox', { name: 'Child name or nickname', exact: true });
         await draftName.fill('Reentered Release Draft');
         await page.getByRole('radio', { name: '8+', exact: true }).check();

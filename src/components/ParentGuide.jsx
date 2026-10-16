@@ -1,64 +1,38 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {ArrowLeft,ArrowRight,Check,Compass,Download,Heart,Info,Music,Settings2,Users,X} from 'lucide-react';
-import {GUIDE_INSTRUMENTS,GUIDE_LEVELS,recommendParentSettings} from '../utils/parentGuide';
-import {installationGuide,isInstalled} from '../utils/installation';
+import {ArrowLeft,ArrowRight,Check,Heart,Info,X} from 'lucide-react';
+import {GUIDE_LEVELS,recommendParentSettings} from '../utils/parentGuide';
 import {DEFAULT_AVATAR,normalizeAvatar} from '../utils/children';
+import {emptyLearning} from '../utils/learning';
 import {AvatarDesigner} from './AvatarDesigner';
-import {CaregiverHelp,GuideTopic,HelpButton} from './CaregiverHelp';
-import {CAREGIVER_FAMILIARITY,CHILD_AGE_OPTIONS,caregiverHelp} from '../utils/caregiverHelp';
+import {CaregiverHelp,HelpButton} from './CaregiverHelp';
+import {CAREGIVER_FAMILIARITY,CHILD_AGE_OPTIONS} from '../utils/caregiverHelp';
+import {GuideLibrary} from './Guides';
 import './parent-guide.css';
 
-const STEPS=['Welcome','Install FarmJam','Your familiarity','Your child','Your avatar','Music experience','Recommended setup','Instruments','Landscapes and sound','Practice room','Play together'];
-const AGE_OPTIONS=CHILD_AGE_OPTIONS;
-const EXPERIENCE=[['new','Just starting'],['some','Has tried a little'],['familiar','Already plays or sings']];
-const FAMILIARITY=CAREGIVER_FAMILIARITY;
-
-export function ParentGuide({settings,onComplete,onClose,familiarity='some',familiarityEstablished=false,developmentPreview}) {
+export function ParentGuide({settings,onComplete,onClose,familiarity='some',familiarityEstablished=false,learning=emptyLearning(),onGuide,developmentPreview}) {
   const preview=import.meta.env.DEV?developmentPreview:null;
-  const [step,setStep]=useState(preview?.step??0);
+  const [steps]=useState(()=>[...(!familiarityEstablished?['familiarity']:[]),'child','avatar','setup','guides']);
+  const [step,setStep]=useState(()=>preview?.step===4?steps.indexOf('avatar'):0);
   const [profile,setProfile]=useState(()=>({age:preview?.age??'5to7',parent:familiarity,music:'new',instruments:[]}));
-  const [help,setHelp]=useState(false);
   const [name,setName]=useState(preview?.name??'');
   const [avatar,setAvatar]=useState(()=>({...DEFAULT_AVATAR,...preview?.avatar}));
+  const [selectedLevel,setSelectedLevel]=useState(null);
+  const [help,setHelp]=useState(false);
+  const [completionError,setCompletionError]=useState('');
+  const [completing,setCompleting]=useState(false);
+  const dialog=useRef(null);
+  const previousFocus=useRef(document.activeElement);
+  const closeRef=useRef(onClose);closeRef.current=onClose;
   const changePreviewAvatar=useRef(preview?.onAvatarChange);changePreviewAvatar.current=preview?.onAvatarChange;
   useEffect(()=>{changePreviewAvatar.current?.(avatar);},[avatar]);
   useEffect(()=>{if(preview?.avatar)setAvatar(current=>JSON.stringify(current)===JSON.stringify(preview.avatar)?current:preview.avatar);},[preview?.avatar]);
-  const [completionError,setCompletionError]=useState('');
-  const [completing,setCompleting]=useState(false);
-  const [applied,setApplied]=useState(false);
-  const [selectedLevel,setSelectedLevel]=useState(null);
-  const [installation]=useState(()=>installationGuide(navigator));
-  const [installed,setInstalled]=useState(()=>isInstalled({standalone:navigator.standalone,displayMode:window.matchMedia('(display-mode: standalone)').matches}));
-  const [installPrompt,setInstallPrompt]=useState(null);
-  const [installPending,setInstallPending]=useState(false);
-  const [installStatus,setInstallStatus]=useState('');
-  const dialog=useRef(null);
-  const returnFocus=useRef(document.activeElement===document.body?document.querySelector('.start-help-button'):document.activeElement);
-  const closeRef=useRef(onClose);closeRef.current=onClose;
-  const recommendation=recommendParentSettings(profile,settings,selectedLevel);
+  useEffect(()=>{const heading=dialog.current?.querySelector('.parent-guide-content h3');heading?.setAttribute('tabindex','-1');heading?.focus({preventScroll:true});},[step]);
   useEffect(()=>{
-    const media=window.matchMedia('(display-mode: standalone)');
-    const checkInstalled=()=>setInstalled(isInstalled({standalone:navigator.standalone,displayMode:media.matches}));
-    const beforeInstall=event=>{event.preventDefault();setInstallPrompt(event);};
-    const didInstall=()=>{setInstalled(true);setInstallPrompt(null);setInstallStatus('FarmJam is installed. Installation does not prevent exiting; use the device restrictions below for restricted play.');};
-    media.addEventListener('change',checkInstalled);
-    window.addEventListener('beforeinstallprompt',beforeInstall);
-    window.addEventListener('appinstalled',didInstall);
-    return ()=>{media.removeEventListener('change',checkInstalled);window.removeEventListener('beforeinstallprompt',beforeInstall);window.removeEventListener('appinstalled',didInstall);};
-  },[]);
-  useEffect(()=>{
-    const heading=dialog.current?.querySelector('.parent-guide-content h3');
-    heading?.setAttribute('tabindex','-1');
-    heading?.focus({preventScroll:true});
-  },[step]);
-  useEffect(()=>{
-    const bodyTouchAction=document.body.style.touchAction;
-    document.body.style.touchAction='pan-y pinch-zoom';
-    const previous=returnFocus.current;
-    dialog.current?.querySelector('button,select,input')?.focus();
+    const previousTouch=document.body.style.touchAction;document.body.style.touchAction='pan-y pinch-zoom';
     const keydown=event=>{
+      if(event.defaultPrevented)return;
       if(event.key==='Escape'){event.preventDefault();closeRef.current();return;}
-      if(event.key!=='Tab'||!dialog.current)return;
+      if(event.key!=='Tab')return;
       const controls=[...dialog.current.querySelectorAll('button:not(:disabled),select,input,a[href]')].filter(element=>element.getClientRects().length);
       const first=controls[0],last=controls.at(-1);
       if(!controls.includes(document.activeElement)){event.preventDefault();(event.shiftKey?last:first)?.focus();}
@@ -66,80 +40,35 @@ export function ParentGuide({settings,onComplete,onClose,familiarity='some',fami
       else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
     };
     window.addEventListener('keydown',keydown);
-    return ()=>{window.removeEventListener('keydown',keydown);document.body.style.touchAction=bodyTouchAction;previous?.focus();};
+    return ()=>{window.removeEventListener('keydown',keydown);document.body.style.touchAction=previousTouch;previousFocus.current?.isConnected&&previousFocus.current.focus();};
   },[]);
-  function update(key,value){setProfile(current=>({...current,[key]:value,...(key==='music'&&value==='new'?{instruments:[]}:{} )}));setApplied(false);}
-  async function finish(){
-    const childName=name.trim().slice(0,40);
-    if(!childName){setStep(3);return;}
+  const recommendation=recommendParentSettings(profile,settings,selectedLevel);
+  const current=steps[step];
+  async function finish() {
+    if(!name.trim()){setStep(steps.indexOf('child'));return;}
     if(completing)return;
-    setCompletionError('');setCompleting(true);
+    setCompleting(true);setCompletionError('');
     try {
-      const result=await onComplete({name:childName,age:profile.age,avatar:normalizeAvatar(avatar),profile:{...profile,instruments:[...profile.instruments]},settings:recommendation.settings});
+      const result=await onComplete({name:name.trim().slice(0,40),age:profile.age,avatar:normalizeAvatar(avatar),profile:{...profile,instruments:[]},settings:recommendation.settings});
       if(result===false){setCompletionError('This child could not be saved on this device. Please try again. Your setup is still here.');return;}
       onClose();
-    } catch {
-      setCompletionError('This child could not be saved on this device. Please try again. Your setup is still here.');
-    } finally {
-      setCompleting(false);
-    }
+    }catch {setCompletionError('This child could not be saved on this device. Please try again. Your setup is still here.');}
+    finally {setCompleting(false);}
   }
-  function apply(){setApplied(true);}
-  async function install(){
-    if(!installPrompt||installPending)return;
-    setInstallPending(true);
-    try {
-      await installPrompt.prompt();
-      const result=await installPrompt.userChoice;
-      setInstallStatus(result.outcome==='accepted'?'Installation requested. Once it finishes, open FarmJam. Installation does not prevent exiting; set up device restrictions separately.':'Installation was not selected. You can keep playing in the browser or use the steps below later.');
-    } catch {
-      setInstallStatus('The browser could not open installation. Use its menu and the steps below instead.');
-    } finally {
-      setInstallPrompt(null);setInstallPending(false);
-    }
-  }
-  const parentNote=profile.parent==='new'
-    ?'We’ll use everyday language and point out each control as it appears.'
-    :profile.parent==='confident'
-      ?'We’ll include the musical terms behind the settings so you can explore them together.'
-      :'We’ll keep the guidance practical, with a little music vocabulary where it helps.';
-  const helpTopic=step===7?'instruments':step===8?'landscape':step===9?'practice':step===6?'settings':'menu';
-  const choice=(field,items,label)=><fieldset className="parent-choices"><legend>{label}</legend><div>{items.map(([value,text])=><label key={value} className={profile[field]===value?'is-selected':''}><input type="radio" name={field} value={value} checked={profile[field]===value} onChange={()=>update(field,value)}/><span>{text}</span></label>)}</div></fieldset>;
   return <div className="parent-guide-backdrop">
     <section ref={dialog} className="parent-guide" role="dialog" aria-modal="true" aria-labelledby="parent-guide-title">
-      <header className="parent-guide-head"><HelpButton onOpen={()=>setHelp(true)}/><div><span className="parent-guide-kicker"><Heart size={15}/> A guide for grown-ups</span><h2 id="parent-guide-title">Add a child</h2></div><button className="parent-guide-close" aria-label="Cancel child setup" title="Cancel child setup" onClick={onClose}><X size={21}/></button></header>
-      <div className="parent-guide-progress" aria-label={`Step ${step+1} of ${STEPS.length}`}><div style={{'--guide-progress':`${(step+1)/STEPS.length*100}%`}}/><span>{step+1} / {STEPS.length}</span></div>
-      <main className="parent-guide-content" key={step}>
-        {step===0&&<section><span className="parent-guide-icon"><Users size={27}/></span><p className="parent-guide-eyebrow">A short orientation for parents and caregivers</p><h3>Make room for curiosity, not a perfect performance.</h3><p>FarmJam is a playful way to listen, explore sounds and try musical ideas together. This guide can suggest a gentle starting point and show where the app’s tools live.</p><p className="parent-guide-note"><Info size={17}/> Your child’s name, avatar and setup answers are stored only in this browser on this device when you finish. A nickname is fine. We ask for an age band, never a birthday; nothing is sent to a server.</p></section>}
-        {step===1&&<section>
-          <span className="parent-guide-icon"><Download size={27}/></span><p className="parent-guide-eyebrow">{installation.label} setup · optional</p><h3>Give FarmJam a place beside your apps.</h3>
-          <h4>Install FarmJam</h4><p>Installing adds an app icon and, where supported, a separate app window. Installation does not prevent your child from leaving the app. It is optional; playing in the browser still works.</p>
-          {installed&&<p className="parent-guide-note"><Check size={17}/> FarmJam is already running as an installed app. No need to install again. You can still set up restricted play below.</p>}
-          <ol className="parent-install-steps">{installation.steps.map(text=><li key={text}>{text}</li>)}</ol>
-          {!installed&&installPrompt&&<button className="parent-apply" onClick={install} disabled={installPending}><Download size={18}/>{installPending?'Opening installation…':'Install FarmJam'}</button>}
-          <p role="status" className="parent-install-status">{installStatus}</p>
-          <p><a href={installation.installUrl} target="_blank" rel="noopener noreferrer">Official installation help for {installation.label}</a></p>
-          <p><a href={installation.installSearchUrl} target="_blank" rel="noopener noreferrer">Search Google for installation on {installation.label} and your browser</a></p>
-          <p className="parent-guide-note"><Info size={17}/> Menus vary by browser and device version. If these steps do not match, use the search link with your device model and browser version. Use this same website address when switching browsers. Setup answers stay local to each browser or app; they may not carry over when you switch. If installation is unavailable, save a bookmark instead.</p>
-          <h4>Keep your child in the app</h4><p>Use your device’s restrictions to keep your child from switching to other apps during play. FarmJam cannot enable these restrictions. A parent must set them up on the device; installing an app or using fullscreen is not a lock.</p>
-          <h4>{installation.restriction.title}</h4>
-          <ol className="parent-install-steps parent-restriction-steps">{installation.restriction.steps.map(text=><li key={text}>{text}</li>)}</ol>
-          {installation.restriction.url&&<p><a href={installation.restriction.url} target="_blank" rel="noopener noreferrer">Official help: {installation.restriction.title}</a></p>}
-          <p><a href={installation.restriction.searchUrl} target="_blank" rel="noopener noreferrer">Search Google for {installation.restriction.title}</a></p>
-        </section>}
-        {step===2&&<section><span className="parent-guide-icon"><Compass size={27}/></span><p className="parent-guide-eyebrow">Your comfort level</p><h3>How familiar are you with music?</h3>{familiarityEstablished&&<p>Your saved caregiver music familiarity is prefilled. Is this still correct?</p>}{choice('parent',FAMILIARITY,'Parent or caregiver familiarity')}<p>This is shared by all children on this device. Any change is saved when you finish setup; you can also change it in Settings.</p><p className="parent-guide-note">{parentNote}</p></section>}
-        {step===3&&<section><span className="parent-guide-icon"><Users size={27}/></span><p className="parent-guide-eyebrow">A name and age band</p><h3>Who is joining the band?</h3><label className="parent-child-name" htmlFor="parent-child-name">Child name or nickname<input id="parent-child-name" name="childName" type="text" value={name} onChange={event=>setName(event.target.value)} maxLength={40} required autoComplete="off" aria-describedby="parent-child-name-note"/></label><p id="parent-child-name-note" className="parent-child-name-note">A nickname is fine. Up to 40 characters, stored only on this device.</p><p>Choose the closest age range. This is only used to suggest a starting complexity, not to judge readiness.</p>{choice('age',AGE_OPTIONS,'Child age range')}</section>}
-        {step===4&&<section><p className="parent-guide-eyebrow">Their musical companion</p><h3>A look of their own.</h3><AvatarDesigner avatar={avatar} age={profile.age} name={name.trim()} onChange={setAvatar}/></section>}
-        {step===5&&<section><span className="parent-guide-icon"><Music size={27}/></span><p className="parent-guide-eyebrow">Their experience</p><h3>How familiar are they with music?</h3>{choice('music',EXPERIENCE,'Music experience')}{['some','familiar'].includes(profile.music)&&<fieldset className="parent-choices parent-instrument-choices"><legend>Which instruments have they tried?</legend><div>{GUIDE_INSTRUMENTS.map(([id,label])=><label key={id} className={profile.instruments.includes(id)?'is-selected':''}><input type="checkbox" checked={profile.instruments.includes(id)} onChange={event=>update('instruments',event.target.checked?[...profile.instruments,id]:profile.instruments.filter(value=>value!==id))}/><span>{label}</span></label>)}</div><p>Choose any that fit, or leave them unchecked. Singing and other instruments count too.</p></fieldset>}<p className="parent-guide-note">Singing, dancing, tapping along or watching someone play all count as musical experience.</p></section>}
-        {step===6&&<section><span className="parent-guide-icon"><Settings2 size={27}/></span><p className="parent-guide-eyebrow">A suggested starting setup</p><h3>{recommendation.level} is a good place to begin.</h3><p>{recommendation.explanation}</p><fieldset className="parent-choices"><legend>Starting difficulty for all instruments</legend><div>{Object.keys(GUIDE_LEVELS).map(level=><label key={level} className={recommendation.appliedLevel===level?'is-selected':''}><input type="radio" name="difficulty" checked={recommendation.appliedLevel===level} onChange={()=>{setSelectedLevel(level);setApplied(false);}}/><span>{level}</span></label>)}</div></fieldset><div className="parent-recommendation"><strong>{recommendation.appliedLevel} for all instruments</strong><span>{recommendation.appliedLevel==='Simple'?'Fewer notes and choices, with roomy rhythms.':recommendation.appliedLevel==='Advanced'?'Fuller phrases and more varied note and rhythm choices.':'A little more melodic and rhythmic variety while using the same controls.'}</span><strong>Keep the current six instruments</strong><span>Your selected set stays unchanged; other instruments remain available in Settings.</span><strong>Show note and playback names</strong><span>These labels give you shared words for the sounds without adding extra controls.</span></div><button className="parent-apply" onClick={apply}>{applied?<><Check size={18}/> {recommendation.appliedLevel} settings selected</>:<><Check size={18}/>Use these settings</>}</button><p role="status" className="parent-apply-status">{applied?`${recommendation.appliedLevel} selected for this child. Nothing is saved until you add the child.`:''}</p><p className="parent-guide-note"><Settings2 size={17}/> You can choose a different level now. Later, double-tap the top-right Settings button to change difficulty for each instrument, instrument choices, labels and sound levels.</p><p>{caregiverHelp('settings',profile.parent).note}</p></section>}
-        {step===7&&<GuideTopic topic="instruments" familiarity={profile.parent}/>}
-        {step===8&&<GuideTopic topic="landscape" familiarity={profile.parent}/>}
-        {step===9&&<GuideTopic topic="practice" familiarity={profile.parent}/>}
-        {step===10&&<section><span className="parent-guide-icon"><Heart size={27}/></span><p className="parent-guide-eyebrow">Keep it human-sized</p><h3>Share the play, then take it off-screen.</h3><ul className="parent-care-list"><li>Sit together when possible. Let your child choose what to hear; copy a rhythm, name a sound, or take turns leading.</li><li>Keep sessions short and responsive. Pause for movement, conversation, outdoor play and rest; stop when attention or enjoyment fades.</li><li>There is no single screen-time amount that fits every family. Follow your pediatrician and local guidance, and be especially selective with screen use for children under 2.</li><li>If enthusiasm sticks, invite them to try a real instrument, borrow one, or meet a patient music teacher. The app is a doorway to musical play, not a replacement for making music together.</li></ul><p className="parent-guide-note"><Info size={17}/> FarmJam has no account or online profile. Adding this child saves their name, avatar and setup locally in this browser, not on a server.</p></section>}
+      <header className="parent-guide-head"><HelpButton onOpen={()=>setHelp(true)}/><div><span className="parent-guide-kicker"><Heart size={15}/>For caregivers</span><h2 id="parent-guide-title">Add a child</h2></div><button className="parent-guide-close" aria-label="Cancel child setup" onClick={onClose}><X size={21}/></button></header>
+      <div className="parent-guide-progress" aria-label={`Step ${step+1} of ${steps.length}`}><div style={{'--guide-progress':`${(step+1)/steps.length*100}%`}}/><span>{step+1} / {steps.length}</span></div>
+      <main className="parent-guide-content" key={current}>
+        {current==='familiarity'&&<section><h3>How familiar are you with music?</h3><p>We'll use this to make explanations comfortable for you. You can change it anytime in Settings → Caregiver.</p><fieldset className="parent-choices"><legend>Caregiver music familiarity</legend><div>{CAREGIVER_FAMILIARITY.map(([value,label])=><label key={value} className={profile.parent===value?'is-selected':''}><input type="radio" name="parent" checked={profile.parent===value} onChange={()=>setProfile({...profile,parent:value})}/><span>{label}</span></label>)}</div></fieldset><p className="parent-guide-note">Shared by all children on this device. Saved when you finish setup; it changes the explanations, not the music.</p></section>}
+        {current==='child'&&<section><h3>Who is joining the band?</h3><label className="parent-child-name" htmlFor="parent-child-name">Child name or nickname<input id="parent-child-name" value={name} onChange={event=>setName(event.target.value)} maxLength={40} required autoComplete="off" aria-describedby="parent-child-name-note"/></label><p id="parent-child-name-note" className="parent-child-name-note">A nickname is fine. Up to 40 characters.</p><fieldset className="parent-choices"><legend>Child age range</legend><div>{CHILD_AGE_OPTIONS.map(([value,label])=><label key={value} className={profile.age===value?'is-selected':''}><input type="radio" name="age" checked={profile.age===value} onChange={()=>setProfile({...profile,age:value})}/><span>{label}</span></label>)}</div></fieldset><p>Age suggests a starting complexity and when to offer optional hints. Every feature stays available.</p><p className="parent-guide-note"><Info size={17}/>Name, age band, avatar and choices stay in this browser on this device. No birthday or account is needed. Cancel discards this draft.</p></section>}
+        {current==='avatar'&&<section><h3>A look of their own</h3><p>Keep this look or choose another. You can edit it later.</p><AvatarDesigner avatar={avatar} age={profile.age} name={name.trim()} onChange={setAvatar}/></section>}
+        {current==='setup'&&<section><h3>{recommendation.level} is a good place to begin.</h3><p>{recommendation.explanation}</p><fieldset className="parent-choices"><legend>Starting complexity for all instruments</legend><div>{Object.keys(GUIDE_LEVELS).map(level=><label key={level} className={recommendation.appliedLevel===level?'is-selected':''}><input type="radio" name="difficulty" checked={recommendation.appliedLevel===level} onChange={()=>setSelectedLevel(level)}/><span>{level}</span></label>)}</div></fieldset><p>Simple offers fewer notes and controls. Standard adds choices. Advanced opens the full range. You can change each instrument later in Settings.</p><p className="parent-guide-note">Your selected six instruments stay available. Note labels and playing highlights help you explore together. These choices are saved only when you add the child.</p></section>}
+        {current==='guides'&&<section><h3>Ready to explore</h3><p>Read a guide now, or add your child and play. All guides stay in Settings → Guides, with Unread or New badges when there is something to explore.</p><p className="parent-guide-note">The <strong>?</strong> button is always available for hints about the screen you are using. Optional learning symbols offer a short picture and explanation when your child is ready; choose them whenever you like.</p><GuideLibrary learning={learning} onOpen={onGuide}/></section>}
       </main>
       {completionError&&<p className="parent-completion-error" role="alert">{completionError}</p>}
-      <footer className="parent-guide-footer"><button className="parent-skip" onClick={onClose}>Cancel setup</button><div>{step>0&&<button className="parent-step-button" aria-label="Previous step" disabled={completing} onClick={()=>setStep(value=>value-1)}><ArrowLeft size={18}/>Back</button>}{step<STEPS.length-1?<button className="parent-step-button is-next" aria-label="Next step" disabled={step===3&&!name.trim()} onClick={()=>setStep(value=>value+1)}>Next<ArrowRight size={18}/></button>:<button className="parent-step-button is-next" disabled={completing} onClick={finish}><Check size={18}/>{completing?'Adding child…':'Add child'}</button>}</div></footer>
+      <footer className="parent-guide-footer"><button className="parent-skip" onClick={onClose}>Cancel setup</button><div>{step>0&&<button aria-label="Previous step" disabled={completing} onClick={()=>setStep(value=>value-1)}><ArrowLeft size={18}/>Back</button>}{step<steps.length-1?<button className="is-next" aria-label="Next step" disabled={current==='child'&&!name.trim()} onClick={()=>setStep(value=>value+1)}>Next<ArrowRight size={18}/></button>:<button className="is-next" disabled={completing} onClick={finish}><Check size={18}/>{completing?'Adding child…':'Add child'}</button>}</div></footer>
     </section>
-    {help&&<CaregiverHelp topic={helpTopic} familiarity={profile.parent} onClose={()=>setHelp(false)}/>}
+    {help&&<CaregiverHelp topic={current==='setup'?'settings':'menu'} familiarity={profile.parent} onGuides={onGuide} onClose={()=>setHelp(false)}/>}
   </div>;
 }

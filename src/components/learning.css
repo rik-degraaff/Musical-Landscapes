@@ -1,0 +1,55 @@
+.gesture-demo { margin: 14px 0; padding: 12px; border: 1px solid #a5c9b7; border-radius: 10px; background: #f1faf4; color: #245d52; }
+.gesture-stage { position: relative; height: 125px; max-width: 360px; margin: auto; overflow: hidden; border-radius: 8px; background: #dceddf; }
+.gesture-source,.gesture-destination { position: absolute; left: 32%; top: 8px; width: 105px; height: 105px; display: grid; place-items: center; }
+.gesture-source > svg,.gesture-destination > svg { width: 100%; height: 100%; max-height: 105px; }
+.gesture-source > .lucide { width: 72px; height: 72px; }
+.gesture-drag .gesture-source { left: 8%; width: 90px; }
+.gesture-destination { left: 65%; width: 72px; }
+.gesture-pointer { position: absolute; left: 49%; top: 45px; width: 54px; height: 65px; transform-origin: 20% 10%; }
+.gesture-hand { width: 54px; height: 65px; fill: #f5d7b4; stroke: #5b4736; stroke-width: 3; stroke-linejoin: round; }
+.hand-crease { fill: none; stroke-width: 2; }
+.gesture-tap-ring { position: absolute; left: 6px; top: -8px; width: 23px; height: 23px; border: 3px solid #9b4937; border-radius: 50%; opacity: .65; }
+.gesture-route { position: absolute; left: 47%; top: 20px; font-size: 32px; }
+.gesture-wind .gesture-source { left: 15%; width: 240px; }
+.gesture-wind .gesture-pointer { left: 22%; }
+.gesture-second-pointer { position: absolute; left: 65%; top: 44px; }
+.gesture-register { position: absolute; left: 8%; top: 5px; font-size: 12px; font-weight: 800; }
+.gesture-drag .gesture-pointer { left: 22%; }
+.gesture-strings { position: absolute; left: 25%; right: 20%; top: 25px; display: grid; gap: 12px; }
+.gesture-strings i { height: 2px; background: #78563f; }
+.gesture-demo figcaption { font-weight: 800; margin: 8px 0; text-align: center; }
+.gesture-demo button,.guide-card button,.learning-action { display: inline-flex; gap: 6px; align-items: center; min-height: 42px; padding: 8px 12px; border: 1px solid #578676; border-radius: 6px; color: #245d52; background: #fff; cursor: pointer; }
+.gesture-static-note { font-size: 12px; margin-bottom: 0; }
+.is-demonstrating.gesture-tap .gesture-pointer { animation: gestureTap 1.2s 2; }
+.is-demonstrating.gesture-double-tap .gesture-pointer { animation: gestureTap .55s 4; }
+.is-demonstrating.gesture-drag .gesture-pointer { animation: gestureDrag 2.8s 2; }
+.is-demonstrating.gesture-drag .gesture-source { animation: gestureDrag 2.8s 2; }
+.is-demonstrating.gesture-swipe .gesture-pointer { animation: gestureSwipe 2s 2; }
+.is-demonstrating.gesture-hold .gesture-pointer { animation: gestureHold 2.5s 2; }
+.is-demonstrating.gesture-tempo .gesture-pointer { animation: gestureTempo 2.6s 2; }
+@keyframes gestureTap { 0%,100% { transform: translateY(7px); } 40%,60% { transform: translateY(-9px) scale(.92); } }
+@keyframes gestureDrag { 0%,15%,100% { transform: translateX(0); } 70%,85% { transform: translateX(150px); } }
+@keyframes gestureSwipe { 0%,100% { transform: translate(-65px,-15px); } 60% { transform: translate(65px,5px); } }
+@keyframes gestureHold { 15%,85% { transform: scale(.88); } }
+@keyframes gestureTempo { 0%,100% { transform: translateY(5px); } 45% { transform: translateY(-38px); } }
+.guide-library { display: grid; gap: 12px; }
+.guide-card { padding: 12px; border: 1px solid #a5c9b7; border-radius: 8px; background: #f8fff9; }
+.guide-card h3 { font-size: 18px; margin: 0 0 6px; }
+.guide-card p { margin: 6px 0 10px; }
+.guide-status { display: inline-block; margin-left: 8px; padding: 2px 7px; border-radius: 12px; font-size: 12px; font-weight: 800; background: #f9e5ad; color: #664522; }
+.guide-status.is-read { background: #d6ecde; color: #245d52; }
+.learning-beacon { position: fixed; z-index: 204; left: max(64px,calc(var(--safe-left) + 64px)); top: max(12px,var(--safe-top)); display: grid; place-items: center; width: 44px; height: 44px; padding: 8px; border: 2px solid #765516; border-radius: 24px; background: #fff0bd; color: #554019; box-shadow: 0 2px 8px #294b4230; cursor: pointer; animation: learningPulse 1.2s 3; }
+.learning-beacon span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+@keyframes learningPulse { 50% { transform: scale(1.07); box-shadow: 0 0 0 6px #e4b64d40; } }
+.hint-controls { display: grid; gap: 10px; }
+.hint-control { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid #bdd6c4; }
+.learning-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+.learning-actions select { min-height: 42px; max-width: 100%; }
+.guide-index-button { margin-top: 14px; }
+@media (max-height: 550px) { .gesture-stage { height: 105px; } .learning-beacon { top: max(6px,var(--safe-top)); left: max(50px,calc(var(--safe-left) + 50px)); } }
+.start-empty { max-width: 32em; text-align: center; }
+.start-settings { margin-top: 12px; }
+.settings-tabs { overflow-x: auto; }
+.settings-tabs button { flex-shrink: 0; }
+.settings-tabs .guide-status { margin-left: 0; }
+@media (prefers-reduced-motion: reduce) { .gesture-demo *, .learning-beacon { animation: none!important; transition: none!important; } }
