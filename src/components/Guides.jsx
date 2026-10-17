@@ -45,10 +45,19 @@ export function TopicDemonstration({topic,child}) {
 }
 
 function GuidePageArt({illustration,child,instrument}) {
+  const visual=useRef(null);
   const [replay,setReplay]=useState(0);
-  return <figure className="guide-task-visual">
-    <GuideIllustration key={replay} {...illustration} instrument={instrument} child={child} demonstrating={replay>0}/>
-    {illustration.gesture&&<button className="guide-replay" onClick={()=>setReplay(value=>value+1)}>{replay?<RotateCcw size={16}/>:<Play size={16}/>}<span>{replay?'Replay gesture':'Show gesture'}</span></button>}
+  const [detail,setDetail]=useState('simple');
+  const [speed,setSpeed]=useState(1);
+  const animated=illustration.gesture||['practice-room','practice-stage'].includes(illustration.kind);
+  const replayGesture=()=>{
+    setReplay(value=>value+1);
+    requestAnimationFrame(()=>visual.current?.querySelector('.guide-illustration')?.scrollIntoView({block:'start'}));
+  };
+  return <figure ref={visual} className="guide-task-visual">
+    <GuideIllustration key={replay} {...illustration} instrument={instrument} child={child} detail={detail} speed={speed} demonstrating={replay>0}/>
+    {animated&&<div className="guide-demo-controls"><button className="guide-replay" onClick={replayGesture}>{replay?<RotateCcw size={16}/>:<Play size={16}/>}<span>{replay?'Replay gesture':'Show gesture'}</span></button><label>Speed <select aria-label="Demonstration speed" value={speed} onChange={event=>setSpeed(Number(event.target.value))}><option value={1}>Gentle</option><option value={.75}>Slower</option></select></label></div>}
+    {['surface','practice-stage'].includes(illustration.kind)&&<label className="guide-demo-detail">Controls <select aria-label="Demonstration controls" value={detail} onChange={event=>setDetail(event.target.value)}><option value="simple">Simple</option>{child&&<option value="child">{child.name}'s controls</option>}</select></label>}
   </figure>;
 }
 

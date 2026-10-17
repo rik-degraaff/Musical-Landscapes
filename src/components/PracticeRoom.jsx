@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Music,Check,CircleAlert} from 'lucide-react';
+import {Music} from 'lucide-react';
 import {INSTRUMENTS} from '../utils/music';
 import {practiceProfile} from '../utils/practiceComposition';
 import {noteMidi} from '../utils/autoplay';
@@ -11,7 +11,7 @@ import {YoungMusicianArt} from './YoungMusician';
 import {Metronome} from './Metronome';
 import {PracticeFeedback} from './PracticeFeedback';
 import {HelpButton} from './CaregiverHelp';
-import {PracticeStageTabs,PracticeSelectors,PracticeProgress,PracticeTransport,PracticeExit} from './PracticeRoomControls';
+import {PracticeStageTabs,PracticeSelectors,PracticeProgress,PracticeTransport,PracticeExit,PracticeReadout,PracticePhraseTrack,PracticeDuration} from './PracticeRoomControls';
 import './practice.css';
 
 export function PracticeRoom({child,audio,initialInstrument,settings,root,onClose,onHelp}) {
@@ -216,13 +216,10 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
     </header>
     <PracticeStageTabs stage={stage} onChange={index=>{cancel();setStage(index);}}/>
     <main className="practice-main">
-      <div className="practice-guide"><div className="practice-target"><strong>{stage===1&&complete?'Finished':countingIn?`Count ${beat+1}`:targetNotes.join(' + ')||'Ready'}</strong></div>
-        <div key={`${feedback.tone}:${feedback.text}`} className="practice-feedback-display" data-tone={feedback.tone} role="status" aria-live="polite">{feedback.tone==='correct'?<Check size={28}/>:feedback.tone==='wrong'?<CircleAlert size={28}/>:<Music size={24}/>}<strong>{feedback.text}</strong></div>
-        <PracticeProgress beat={beat} progress={progress} max={steps.length} summary={summary}/>
-      </div>
+      <PracticeReadout target={stage===1&&complete?'Finished':countingIn?`Count ${beat+1}`:targetNotes.join(' + ')||'Ready'} feedback={feedback}><PracticeProgress beat={beat} progress={progress} max={steps.length} summary={summary}/></PracticeReadout>
       <PracticeTransport stage={stage} running={running} summary={summary} complete={complete} onToggle={()=>running?stopAttempt():startAttempt()} onRestart={reset} onNext={()=>{if(stage===3){onClose();return;}cancel();setStage(stage+1);}}/>
-      <div className="practice-phrase-track" aria-label="Phrase actions">{(stage===1?steps:phrase.events).map((value,index)=><span key={index} className={`${stage===1&&index<step?'is-complete':''} ${(stage===1&&index===step&&!complete)||(stage!==1&&cue?.eventIndex===index)?'is-current':''} ${stage>1&&results[index]==='correct'?'is-complete':''} ${results[index]==='missed'?'is-missed':''}`}>{stage===1?value.notes.join('+'):(value.notes??[value.note]).join('+')}</span>)}</div>
-      <div className="practice-surface-host" data-timed-cue={stage!==1&&Boolean(cue)}><div className="practice-duration-track" role="progressbar" aria-label="Note hold duration" aria-valuemin={0} aria-valuemax={100} aria-valuenow={cue?100:0}><i/></div><InstrumentSurface key={`${name}:${phraseIndex}:${stage}`} name={name} audio={audio} root={root} options={options} profile={profile} cue={target} practice/></div>
+      <PracticePhraseTrack events={stage===1?steps:phrase.events} current={stage===1?(complete?-1:step):(cue?.eventIndex??-1)} completed={stage===1?step:0} results={stage>1?results:[]}/>
+      <div className="practice-surface-host" data-timed-cue={stage!==1&&Boolean(cue)}><PracticeDuration remaining={cue?1:0}/><InstrumentSurface key={`${name}:${phraseIndex}:${stage}`} name={name} audio={audio} root={root} options={options} profile={profile} cue={target} practice/></div>
     </main>
     <PracticeFeedback items={feedbackItems} onExpire={expireFeedback}/>
   </section>;

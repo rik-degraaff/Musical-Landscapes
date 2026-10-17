@@ -12,8 +12,8 @@ html,body,#root { overscroll-behavior:none;touch-action:pan-y pinch-zoom;-webkit
 
 .app-shell { --control-size:48px;--control-margin:12px; }
 .app-shell .top-bar { position:absolute;top:calc(var(--safe-top) + var(--control-margin));right:calc(var(--safe-right) + var(--control-margin));left:auto;width:auto;height:auto;padding:0;display:block;pointer-events:none;z-index:70; }
-.app-shell .mixer-button { box-sizing:border-box;width:var(--control-size);height:var(--control-size);min-width:var(--control-size);min-height:var(--control-size);padding:0;margin:0;display:grid;place-items:center;border-radius:50%;border:2px solid #ffffff;background:#fff9e9ee;color:#4e685c;box-shadow:0 4px 16px #27445a26;font-size:0;line-height:0;cursor:pointer;transform:none;pointer-events:auto;touch-action:none; }
-.app-shell .mixer-button svg { display:block;width:24px;height:24px;flex:none;margin:0; }
+.app-shell .mixer-button,.game-settings-button { box-sizing:border-box;width:var(--control-size);height:var(--control-size);min-width:var(--control-size);min-height:var(--control-size);padding:0;margin:0;display:grid;place-items:center;border-radius:50%;border:2px solid #ffffff;background:#fff9e9ee;color:#4e685c;box-shadow:0 4px 16px #27445a26;font-size:0;line-height:0;cursor:pointer;transform:none;pointer-events:auto;touch-action:none; }
+.app-shell .mixer-button svg,.game-settings-button svg { display:block;width:24px;height:24px;flex:none;margin:0; }
 .celestial-control { position:absolute;width:64px;height:64px;padding:0;border:0;border-radius:50%;background:transparent;transform:translate(-50%,-50%);z-index:60;cursor:pointer;touch-action:none; }
 .celestial-art { pointer-events:none;filter:drop-shadow(0 0 8px #fff2bd55); }
 .celestial-pulse { transform-box:fill-box;transform-origin:center;animation:celestialPulse 3.2s ease-in-out infinite; }

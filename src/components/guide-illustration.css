@@ -1,7 +1,7 @@
 .guide-illustration { position:relative; isolation:isolate; width:100%; height:180px; min-height:120px; overflow:hidden; border:1px solid #a7c8b6; border-radius:10px; background:linear-gradient(#e1f4eb 0 72%,#d0e4be 72%); color:#245d52; }
 .guide-illustration,.guide-illustration * { box-sizing:border-box; }
 .guide-illustration > svg { width:100%;height:100%;display:block; }
-.guide-illustration .instrument-illustration { display:block;width:100%;height:100%; }
+.guide-illustration :is(.guide-band-instrument,.guide-equip-source,.guide-together-instrument) > .instrument-illustration { display:block;width:100%;height:100%; }
 .guide-avatar { position:absolute;left:calc(50% - 40px);top:10%;width:80px;height:85%; }
 .guide-avatar > svg { width:100%;height:100%; }
 .guide-band-instrument { position:absolute;width:76px;height:65px; }
@@ -22,7 +22,7 @@
 .guide-art-surface > .guide-surface { position:absolute;left:4%;top:19%;width:92%;height:60%; }
 .guide-surface-toolbar { position:absolute;left:4%;right:4%;bottom:3%;height:27px;border-top:1px solid #bdcabc;display:flex;align-items:center;gap:5px;font-size:11px; }
 .guide-surface-toolbar strong { margin-right:auto; }.guide-surface-toolbar .next-phrase,.guide-surface-toolbar .return-instrument { min-height:22px;height:24px;width:27px; }.guide-surface-toolbar button svg { width:18px;height:18px; }.guide-surface-focus-exit .return-instrument,.guide-surface-focus-transport .next-phrase { outline:2px solid #b5692b;background:#fff0c7; }
-.guide-surface > .performance-surface { width:200%;height:200%;max-width:none;margin:0;padding:6px 8px;transform:scale(.5);transform-origin:0 0; }
+.guide-surface > .performance-surface { width:100%;height:100%;max-width:none;margin:0;padding:4px; }
 .guide-surface button { font-family:inherit; }
 .guide-surface .manual-keyboard { min-height:0; }
 .guide-surface .note-key { min-height:0;min-width:0; }
@@ -61,18 +61,74 @@
 .guide-room-detail .practice-stages { display:grid;grid-template-columns:1fr 1fr;height:auto;gap:4px;padding:8px 0;border:0;background:transparent; }.guide-room-detail .practice-stages button { min-height:36px;font-size:12px;background:#e9faed; }.guide-room-detail .practice-stages button svg { width:16px;height:16px; }
 .guide-room-detail .guide-detail-exit { display:flex;justify-content:center;align-items:center;gap:8px;flex:1; }.guide-room-detail .guide-detail-exit .practice-exit { width:auto;min-width:115px;height:48px;max-height:none;gap:10px;padding:8px 15px;font-size:16px; }.guide-room-detail .guide-detail-exit .practice-exit svg { width:27px;height:27px; }.guide-room-detail .guide-detail-exit > span { font-size:12px;font-weight:700; }
 .guide-settings-preview { position:absolute;inset:10px 12px;padding:0 10px 8px;background:#f7fff6;border:1px solid #92b6a2;border-radius:5px;font-size:10px; }
-.guide-settings-tabs { display:flex;gap:10px;border-bottom:1px solid #aec8b6;padding:5px 0; }.guide-settings-tabs span { padding:4px; }.guide-settings-tabs .is-selected { background:#d6ead7;border-bottom:2px solid #95582e;font-weight:800; }
 .guide-setting-instrument { height:36px;display:flex;align-items:center;gap:6px; }.guide-setting-instrument > svg { width:42px!important;height:36px!important; }
-.guide-setting-legend { display:block;margin:4px 0 8px; }.guide-setting-levels { display:flex;gap:4px; }.guide-setting-levels > span { flex:1;padding:7px 3px;border:1px solid #a2b99b;border-radius:4px;text-align:center; }.guide-setting-levels .is-selected { background:#d7e8c3;border:2px solid #5c8b5c; }
-.guide-setting-detail { display:block;margin-top:10px; }.guide-display-options { display:grid;gap:8px;padding-top:7px; }
-.guide-slot-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;margin-top:5px; }.guide-slot { height:52px;display:grid;grid-template-rows:35px auto;justify-items:center;align-items:center;border:1px solid #9fbea8;border-radius:4px;background:#ecf7e9;font-size:8px; }.guide-slot > svg { width:52px!important;height:35px!important; }.guide-caregiver-settings { display:grid;gap:8px;margin-top:10px;font-size:10px; }
-.guide-settings-preview > label { display:flex;align-items:center;justify-content:space-between;gap:8px;margin:11px 0; }.guide-setting-slider { position:relative;display:block;width:45%;height:5px;background:#8aa891;border-radius:5px; }.guide-setting-slider i { position:absolute;top:-4px;left:65%;width:12px;height:12px;border:2px solid #376249;border-radius:50%;background:#e7f1cf; }
-.guide-art-settings.guide-gesture-double-tap .guide-settings-preview { opacity:.4; }.guide-settings-open { position:absolute;top:28%;left:29%; }.guide-settings-open button { display:flex;align-items:center;gap:8px;min-height:42px;border:1px solid #578676;border-radius:6px;padding:8px 12px;background:#fffdf0;color:#245d52;font:inherit;font-size:14px;font-weight:700; }.guide-art-settings.guide-gesture-double-tap .guide-contact-label { left:60%;top:43%; }
+.guide-art-settings.guide-gesture-double-tap .guide-settings-preview { opacity:.2; }
+.guide-settings-open { position:absolute;top:30%;left:calc(50% - 24px); }
+.guide-settings-open .game-settings-button { --control-size:48px; }
 .guide-motion-route { position:absolute;inset:0;z-index:5;pointer-events:none; }
 .guide-motion-route path { fill:none;stroke:#9b4937;stroke-width:1.5;stroke-linecap:round;stroke-dasharray:3 3;vector-effect:non-scaling-stroke; }
 .guide-motion-cue { position:absolute;display:grid;place-items:center;width:19px;height:19px;border-radius:50%;background:#fff8df;border:1px solid #94552c;font-size:11px;font-weight:900;z-index:6;transform:translate(-130%,-120%); }
 .guide-contact-label { position:absolute;left:calc(49% - 18px);top:25%;padding:2px 5px;background:#fff5d5;border-radius:4px;font-size:12px;font-weight:900;z-index:7; }
 .guide-art-profile .guide-contact-label { left:13%;top:22%; }
-.guide-wind-label { position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:10px;font-weight:800; }
 @media(max-height:550px) { .guide-illustration { height:150px; }.guide-illustration .guide-metronome-art { top:2px;width:88px;height:142px;left:calc(50% - 44px); }.guide-illustration .guide-room-metronome .guide-metronome-art { inset:0;width:100%;height:100%; } }
 @media(prefers-reduced-motion:reduce) { .guide-illustration * { animation:none!important;transition:none!important; }.guide-motion-cue { border-width:2px; } }
+
+.guide-action-caption { position:absolute;inset:auto 6px 3px;text-align:center;font-size:11px;font-weight:800;background:#f3fff0df;border-radius:3px;z-index:9;pointer-events:none; }
+.guide-art-surface { height:230px; }
+.guide-art-surface > .guide-surface { top:16%;height:60%; }
+.guide-surface-toolbar { bottom:10%; }
+.guide-art-practice-stage { height:290px; }
+.guide-room-detail .practice-stages { display:flex;padding:0;gap:3px;min-height:28px; }
+.guide-room-detail .practice-stages button { min-height:26px;padding:3px;font-size:10px;gap:3px; }
+.guide-room-detail .practice-stages button svg { width:13px;height:13px; }
+.guide-room-detail .practice-guide { display:flex;align-items:center;gap:6px;min-height:32px;padding:2px 4px; }
+.guide-room-detail .practice-target { flex:none;font-size:12px; }
+.guide-room-detail .practice-feedback-display { flex:1;min-height:26px;font-size:11px;gap:3px; }
+.guide-room-detail .practice-feedback-display svg { width:16px;height:16px; }
+.guide-room-detail .practice-guide .practice-tools { width:30%;min-width:50px;flex:none;display:grid;gap:2px;padding:2px;border:0;background:transparent; }
+.guide-room-detail .practice-guide .practice-progress progress { width:100%;min-width:0; }
+.guide-room-detail .practice-guide .practice-progress { min-width:0; }
+.guide-room-detail .guide-surface > .performance-surface { width:100%;height:100%;transform:none;padding:0; }
+.guide-room-detail > .guide-practice-hand { position:absolute;z-index:12; }
+.guide-companions { position:absolute!important;right:10px;bottom:5px;z-index:10; }
+.guide-companions button { width:28px;height:28px; }
+.guide-companions .instrument-illustration { width:25px;height:24px; }
+.guide-illustration .guide-metronome-art .metronome-menu { width:100%;height:100%; }
+.guide-illustration .guide-metronome-art .metronome-tempo { font-size:8px; }
+.guide-illustration .guide-metronome-art .metronome-weight { width:25px;height:18px; }
+.guide-illustration .guide-metronome-art .metronome-sound { min-height:14px;gap:2px; }
+.guide-illustration .guide-metronome-art .metronome-sound svg { width:10px;height:10px; }
+.guide-illustration .guide-metronome-art .metronome-switch-track { height:9px;width:20px; }
+.guide-illustration .guide-metronome-art .metronome-switch-track i { height:5px;width:7px; }
+.guide-illustration .guide-metronome-art .metronome-sound[aria-checked=true] .metronome-switch-track i { left:10px; }
+.guide-settings-preview { display:flex;flex-direction:column;justify-content:center;gap:8px;font-size:12px; }
+.guide-settings-preview .settings-art { width:32px;height:28px;flex:none; }
+.guide-settings-preview .instrument-slots { gap:3px 8px; }
+.guide-settings-preview .settings-instrument { margin:0;gap:4px;font-size:10px; }
+.guide-settings-preview .settings-instrument select { font-size:10px;padding:3px; }
+.guide-settings-preview .sound-settings { grid-template-columns:1fr;gap:14px; }
+@media(max-height:550px) { .guide-art-surface { height:205px; }.guide-art-practice-stage { height:250px; } }
+
+.guide-illustration .guide-metronome-art { z-index:2; }
+
+@media(max-height:350px) and (orientation:landscape) {
+  .guide-art-surface,.guide-art-practice-stage { height:132px;min-height:132px; }
+  .guide-art-surface > .guide-surface { top:18%;height:57%; }
+  .guide-surface-label { top:4px;font-size:10px; }
+  .guide-surface-toolbar { bottom:9%;height:21px;font-size:9px; }
+  .guide-action-caption { font-size:9px;bottom:0; }
+  .guide-room-detail.practice-room { padding:3px 5px!important;gap:2px!important; }
+  .guide-room-detail .guide-detail-heading { min-height:13px;font-size:9px; }
+  .guide-room-detail .guide-detail-heading strong { font-size:11px; }
+  .guide-room-detail > .practice-stages { display:none; }
+  .guide-room-detail .practice-guide { min-height:23px;height:23px;padding:0; }
+  .guide-room-detail .practice-target { font-size:10px; }
+  .guide-room-detail .practice-feedback-display { min-height:20px;font-size:9px; }
+  .guide-room-detail .practice-control-dock { min-height:25px;height:25px;padding:0; }
+  .guide-room-detail .practice-control-dock button { min-height:23px;font-size:10px; }
+  .guide-room-detail .practice-phrase-track { min-height:15px;height:15px; }
+  .guide-room-detail .practice-phrase-track span { padding:1px 4px;font-size:8px; }
+  .guide-room-detail .gesture-pointer { width:26px;height:27.444px; }
+  .guide-room-detail .practice-duration-track { height:3px;margin-bottom:1px; }
+  .guide-room-detail .practice-beat-strip i { width:6px;height:6px; }
+}

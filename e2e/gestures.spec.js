@@ -15,21 +15,22 @@ test('gesture family shares artwork and maintains contact throughout dragging',a
     const cases=[['Tap','band','tap','piano'],['Double tap','profile','double-tap','piano'],['Drag','equip','drag','piano'],['Strum','surface','swipe','guitar'],['Pipes','surface','swipe','panflute'],['Hold','surface','hold','flute'],['Breath + valves','surface','hold','melody'],['Tempo','metronome','tempo','piano']];
     ReactDOM.createRoot(document.getElementById('gesture-review')).render(React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:16,padding:20,background:'#f4f3e8'}},cases.map(([label,kind,gesture,instrument])=>React.createElement('section',{key:label},React.createElement('h3',null,label),React.createElement(GuideIllustration,{kind,gesture,instrument,demonstrating:true})))));
   });
-  await expect(page.locator('.gesture-pointer')).toHaveCount(10);
+  await expect(page.locator('.gesture-pointer')).toHaveCount(11);
   await page.clock.runFor(100);
   await expect(page.locator('.guide-art-equip .gesture-pointer')).toHaveAttribute('data-pressed','false');
   await page.clock.runFor(600);
+  await expect(page.locator('.guide-gesture-double-tap .gesture-pointer')).toHaveAttribute('data-pressed','true');
+  await page.clock.runFor(200);
+  await expect(page.locator('.guide-gesture-double-tap .gesture-pointer')).toHaveAttribute('data-pressed','false');
+  await page.clock.runFor(150);
+  await expect(page.locator('.guide-gesture-double-tap .gesture-pointer')).toHaveAttribute('data-pressed','true');
+  await page.clock.runFor(250);
   await expect(page.locator('.guide-art-equip .gesture-pointer')).toHaveAttribute('data-pressed','true');
   await expect(page.locator('.guide-art-equip .gesture-burst')).toBeVisible();
   await page.screenshot({path:`artifacts.local/gestures/contact-${testInfo.project.name}.png`,fullPage:true});
   const carried=page.locator('.guide-equip-source');
   const before=await carried.boundingBox();
-  await page.clock.runFor(200);
-  await expect(page.locator('.guide-gesture-double-tap .gesture-pointer')).toHaveAttribute('data-pressed','false');
-  await page.clock.runFor(150);
-  await expect(page.locator('.guide-gesture-double-tap .gesture-pointer')).toHaveAttribute('data-pressed','true');
-  await expect(page.locator('.guide-gesture-tap .gesture-pointer')).toHaveAttribute('data-pressed','false');
-  await page.clock.runFor(450);
+  await page.clock.runFor(1500);
   await expect(page.locator('.guide-art-equip .gesture-pointer')).toHaveAttribute('data-pressed','true');
   expect((await carried.boundingBox()).x).toBeGreaterThan(before.x+30);
   const tip=await page.locator('.guide-art-equip .gesture-pointer').evaluate(element=>{
@@ -40,7 +41,7 @@ test('gesture family shares artwork and maintains contact throughout dragging',a
   expect(Math.abs(tip.y-box.y-box.height/2)).toBeLessThan(2);
   await expect(page.locator('.guide-art-equip .gesture-burst')).toHaveCount(0);
   await page.screenshot({path:`artifacts.local/gestures/move-${testInfo.project.name}.png`,fullPage:true});
-  await page.clock.runFor(1000);
+  await page.clock.runFor(1900);
   await expect(page.locator('.guide-art-equip .gesture-pointer')).toHaveAttribute('data-pressed','false');
   await expect(page.locator('.hand-open,.hand-grip')).toHaveCount(0);
   await page.emulateMedia({reducedMotion:'reduce'});await page.clock.runFor(100);

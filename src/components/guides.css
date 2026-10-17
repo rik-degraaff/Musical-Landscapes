@@ -68,3 +68,8 @@
   .caregiver-dialog .guide-reader-footer { flex-wrap: wrap; }
   .guide-page-buttons { margin-left: auto; }
 }
+
+.guide-demo-controls { display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:7px; }
+.guide-demo-controls label,.guide-demo-detail { font-size:11px;display:flex;align-items:center;justify-content:center;gap:5px; }
+.guide-demo-detail { margin-top:6px; }
+.guide-demo-controls select,.guide-demo-detail select { font:inherit;color:inherit;border:1px solid #a7c8b6;border-radius:4px;background:#f7fff1;padding:4px; }

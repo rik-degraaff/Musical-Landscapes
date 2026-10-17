@@ -5,7 +5,7 @@ import { Mixer } from './components/Mixer';
 import { StartScreen } from './components/StartScreen';
 import { Scene, SCENES } from './scenes/Scene';
 import { AudioEngine } from './audio/AudioEngine';
-import { Menu, X } from 'lucide-react';
+import {SettingsButton} from './components/GameButtons';
 import { YoungMusician } from './components/YoungMusician';
 import { PerformancePanel } from './components/PerformancePanel';
 import { slidePosition } from './utils/performance';
@@ -424,7 +424,7 @@ export default function App({developmentPreview}={}) {
     </div>
 
     <div className="top-bar" inert={mixer||Boolean(practice)} aria-hidden={mixer||Boolean(practice)}>
-      {started && <button className="mixer-button" onClick={activateMixer} aria-expanded={mixer} aria-controls="landscape-mixer" aria-label={mixer?'Close settings':'Open settings'} title={mixer?'Close settings':'Double-click or double-tap to open settings'}>{mixer?<X size={22}/>:<Menu size={22}/>}</button>}
+      {started && <SettingsButton open={mixer} onClick={activateMixer}/>}
     </div>
 
     {mixer && <Mixer playing={started} child={selectedChild} learning={learning.state} onLearning={learning.change} onGuide={setGuideView} familiarity={familiarity} onFamiliarity={updateFamiliarity} onHelp={()=>setHelp({topic:'settings',instrument:equipped})} saveError={saveWarning} onRetrySave={retrySave} instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} onRestoreSound={restoreSound} settings={settings} onSettings={updateSettings} onMenu={returnToMenu} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}

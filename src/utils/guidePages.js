@@ -15,11 +15,11 @@ export const GUIDE_PAGES={
     page('phrase','Choose another phrase',[
       'Use the next-phrase arrow beside the equipped instrument to choose a different repeating part.',
       'Listen to the new idea and try answering it with your own sounds. The rest of the band keeps playing.'
-    ],{kind:'surface',focus:'transport'}),
+    ],{kind:'surface',focus:'transport',gesture:'tap'}),
     page('return','Put the instrument down',[
       'Drag the equipped instrument away from your child’s avatar, or use its return control.',
       'Its playable controls close and the instrument returns to the landscape. Tap landscape instruments whenever you want to change the band.'
-    ],{kind:'surface',focus:'exit'})
+    ],{kind:'surface',focus:'exit',gesture:'tap'})
   ],
   landscape:[
     page('scenes','Visit another landscape',[
@@ -73,23 +73,23 @@ export const GUIDE_PAGES={
     page('choose','Choose six instruments',[
       'Open the Instruments tab and choose the six instruments you want in this child’s landscape.',
       'Each child keeps their own instrument choices. You can change the selection again whenever their interests change.'
-    ],{kind:'settings',focus:'selectors'}),
+    ],{kind:'settings',focus:'selectors',gesture:'tap'}),
     page('complexity','Choose a comfortable starting point',[
       'In Instruments, choose an instrument and set its complexity to Simple, Standard or Advanced. Simple offers fewer choices; the other levels add more.',
       'This changes the controls and musical choices when that instrument is played by hand. Try a level, then adjust it to suit the child.'
-    ],{kind:'settings',focus:'complexity'},{new:'An age range only suggests a starting point. It does not measure musical ability.',some:'Complexity changes musical choices, rather than volume or tempo.',confident:'Unequipped instruments keep their usual accompaniment parts.'}),
+    ],{kind:'settings',focus:'complexity',gesture:'tap'},{new:'An age range only suggests a starting point. It does not measure musical ability.',some:'Complexity changes musical choices, rather than volume or tempo.',confident:'Unequipped instruments keep their usual accompaniment parts.'}),
     page('display','Choose useful labels',[
       'Use the display options in Instruments to show note and control labels, sounding note names or finger placement diagrams for guitar and ukulele.',
       'These are optional clues. Choose what helps this child and leave out details they do not need.'
-    ],{kind:'settings',focus:'display'},{new:'A note is one musical sound. A chord is several notes together.',some:'Finger placement diagrams show where fingers go to make a chord.',confident:'Display choices are saved separately for each child and instrument.'}),
+    ],{kind:'settings',focus:'display',gesture:'tap'},{new:'A note is one musical sound. A chord is several notes together.',some:'Finger placement diagrams show where fingers go to make a chord.',confident:'Display choices are saved separately for each child and instrument.'}),
     page('sound','Balance the sound',[
       'During play, open the Sound tab to adjust each instrument and the shared Scenery sounds level. Changes take effect as you move the sliders.',
       'Restore defaults resets the sound levels. Sound levels last for this play session; instrument and display choices are saved for this child.'
-    ],{kind:'settings',focus:'sound'}),
+    ],{kind:'settings',focus:'sound',gesture:'drag'}),
     page('hints','Choose learning hints',[
       'Open Caregiver to change the shared music familiarity setting and to turn learning hints on or off for this child. Familiarity changes explanations; it does not change the music.',
       'Hints offer optional things to try during landscape play. Select the learning symbol to see a hand demonstration. Suggest a hint again here whenever you want to revisit it.'
-    ],{kind:'settings',focus:'caregiver'})
+    ],{kind:'settings',focus:'caregiver',gesture:'tap'})
   ],
   profiles:[
     page('add','Add a child',[

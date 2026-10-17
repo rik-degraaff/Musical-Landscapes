@@ -25,6 +25,8 @@ Instrument and display preferences are saved for each child. Caregiver familiari
 
 Guides are optional reference material, organized into short task pages. Use Back, Next or the page selector to jump freely. The practice guide covers the room controls and all four stages. Opening or paging through a guide does not mark it as read; **Mark as read** is an explicit choice on the final page. New or unread guides have badges in the menu. Guide revisions can make previously read material appear new again.
 
+Choose **Show gesture** to watch an example and **Replay gesture** to see it again. Examples use the game's own controls, start with Simple layouts, and offer a Slower speed. Instrument and practice examples can also preview the selected child's saved controls without changing their preferences. Guitar and ukulele examples show holding a chord before sweeping the strings. The practice pages demonstrate each stage separately, including count-in, highlighted actions, progress, accompanying instruments, and the stop/repeat/restart/leave controls. All examples are silent and cannot operate the game.
+
 The **?** button opens contextual help with one tap. Help returns to the screen where it was opened. During play, gameplay Settings still opens with a double-tap of its button. In help and guides, explanations adapt to the caregiver familiarity setting.
 
 ## Learning hints

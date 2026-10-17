@@ -1,6 +1,5 @@
 import React,{useEffect,useState} from 'react';
 import {GestureHand} from './GestureHand';
-import {gestureFrame} from '../utils/gestures';
 
 /** Passive visual only: never dispatches input or acquires audio. */
 export function GesturePointer({frame,className='',percent=false}) {
@@ -14,7 +13,7 @@ export function GesturePointer({frame,className='',percent=false}) {
   </div>;
 }
 
-export function useGestureTimeline({active,gesture,speed=1,iterations=2}) {
+export function useGestureTimeline({active,gesture,speed=1,iterations=2,duration=3000,resetKey}) {
   const [elapsed,setElapsed]=useState(0),[reduced,setReduced]=useState(false);
   useEffect(()=>{
     const media=matchMedia('(prefers-reduced-motion: reduce)');
@@ -27,9 +26,9 @@ export function useGestureTimeline({active,gesture,speed=1,iterations=2}) {
     let request;const began=performance.now();
     const animate=()=>{
       const next=performance.now()-began;setElapsed(next);
-      if(!gestureFrame({gesture,elapsed:next,speed,iterations}).finished)request=requestAnimationFrame(animate);
+      if(next*speed<duration*iterations)request=requestAnimationFrame(animate);
     };
     request=requestAnimationFrame(animate);return ()=>cancelAnimationFrame(request);
-  },[active,gesture,speed,iterations,reduced]);
+  },[active,gesture,speed,iterations,reduced,duration,resetKey]);
   return {elapsed,reduced,speed,iterations};
 }

@@ -1,10 +1,23 @@
 import React from 'react';
-import {Headphones,Footprints,Timer,Users,Play,Pause,RotateCcw,DoorOpen,ArrowRight} from 'lucide-react';
+import {Headphones,Footprints,Timer,Users,Play,Pause,RotateCcw,DoorOpen,ArrowRight,Music,Check,CircleAlert} from 'lucide-react';
 import {INSTRUMENTS} from '../utils/music';
 import {PRACTICE_STAGES} from '../utils/practice';
 import {InstrumentArt} from './InstrumentArt';
 
 const stageIcons=[Headphones,Footprints,Timer,Users];
+
+export function PracticeReadout({target,feedback,children}) {
+  const Icon=feedback.tone==='correct'?Check:feedback.tone==='wrong'?CircleAlert:Music;
+  return <div className="practice-guide"><div className="practice-target"><strong>{target}</strong></div><div key={`${feedback.tone}:${feedback.text}`} className="practice-feedback-display" data-tone={feedback.tone} role="status" aria-live="polite"><Icon size={feedback.tone==='pending'?24:28}/><strong>{feedback.text}</strong></div>{children}</div>;
+}
+
+export function PracticePhraseTrack({events,current=-1,completed=0,results=[]}) {
+  return <div className="practice-phrase-track" aria-label="Phrase actions">{events.map((value,index)=><span key={index} className={`${index<completed||results[index]==='correct'?'is-complete':''} ${index===current?'is-current':''} ${results[index]==='missed'?'is-missed':''}`}>{(value.notes??[value.note]).join('+')}</span>)}</div>;
+}
+
+export function PracticeDuration({remaining=0}) {
+  return <div className="practice-duration-track" role="progressbar" aria-label="Note hold duration" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(remaining*100)}><i/></div>;
+}
 
 export function PracticeStageTabs({stage,onChange}) {
   return <nav className="practice-stages" aria-label="Practice stages">{PRACTICE_STAGES.map((label,index)=>{const Icon=stageIcons[index];return <button key={label} aria-pressed={stage===index} onClick={()=>onChange(index)}><Icon size={18}/>{index+1}. {label}</button>;})}</nav>;

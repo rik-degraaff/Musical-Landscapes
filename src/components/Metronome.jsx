@@ -1,8 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Volume2,VolumeX} from 'lucide-react';
 import {useDismissible} from './useDismissible';
 import './metronome.css';
-import {MetronomeBody as BodyArt} from './MetronomeArtwork';
+import {MetronomeBody as BodyArt,MetronomeMechanism,MetronomeSoundButton} from './MetronomeArtwork';
 
 
 export function Metronome({audio,open,onOpen,onClose,disabled}) {
@@ -35,17 +34,15 @@ export function Metronome({audio,open,onOpen,onClose,disabled}) {
   }
   return <div ref={container} inert={disabled} aria-hidden={disabled} className={`metronome-widget ${open?'is-open':''} ${holding?'is-held':''}`} style={{'--beat-period':`${60/tempo}s`}}>
     {!open?<button className="metronome-mini" aria-label="Open metronome" title="Metronome" onClick={onOpen}><BodyArt/><svg className="mini-mechanism" viewBox="0 0 100 140" aria-hidden="true"><g className="mini-pendulum" style={{rotate:`${holding?0:swing*16}deg`}}><path d="M50 17V112" stroke="#526d58" strokeWidth="4"/><rect x="40" y={22.4+(tempo-40)/168*64.4-7} width="20" height="14" rx="2" fill="#b78842" stroke="#624d40" strokeWidth="2"/></g></svg><span>{tempo}</span></button>:<section className="metronome-menu" role="dialog" aria-label="Metronome">
-      <div className="metronome-mechanism"><BodyArt/><div ref={rail} className="metronome-rail" style={{rotate:`${holding?0:swing*12}deg`}}>
-        <i className="metronome-needle" aria-hidden="true"/>
-        <button className="metronome-weight" role="slider" aria-label="Metronome tempo weight" aria-orientation="vertical" aria-valuemin={40} aria-valuemax={208} aria-valuenow={tempo} aria-valuetext={`${tempo} beats per minute`} style={{top:`${(tempo-40)/168*100}%`}}
-          onPointerDown={event=>{if(event.button!==0||pointer.current!==null)return;event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);pointer.current=event.pointerId;setHolding(true);audio.holdTempo(true);}}
-          onPointerMove={event=>{if(pointer.current===event.pointerId)update(event);}}
-          onPointerUp={event=>{if(pointer.current===event.pointerId)finish();}} onPointerCancel={event=>{if(pointer.current===event.pointerId)finish();}} onLostPointerCapture={event=>{if(pointer.current===event.pointerId)finish();}}
-          onKeyDown={event=>{if(['ArrowUp','ArrowDown','Home','End'].includes(event.key)){event.preventDefault();audio.holdTempo(true);setHolding(true);setTempo(audio.setTempo(event.key==='Home'?40:event.key==='End'?208:audio.tempo+(event.key==='ArrowDown'?1:-1)));}}}
-          onKeyUp={event=>{if(['ArrowUp','ArrowDown','Home','End'].includes(event.key))finish();}} onBlur={finish}><span aria-hidden="true"/></button>
-      </div></div>
+      <MetronomeMechanism tempo={tempo} angle={holding?0:swing*12} railRef={rail} weightProps={{
+        onPointerDown:event=>{if(event.button!==0||pointer.current!==null)return;event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);pointer.current=event.pointerId;setHolding(true);audio.holdTempo(true);},
+        onPointerMove:event=>{if(pointer.current===event.pointerId)update(event);},
+        onPointerUp:event=>{if(pointer.current===event.pointerId)finish();},onPointerCancel:event=>{if(pointer.current===event.pointerId)finish();},onLostPointerCapture:event=>{if(pointer.current===event.pointerId)finish();},
+        onKeyDown:event=>{if(['ArrowUp','ArrowDown','Home','End'].includes(event.key)){event.preventDefault();audio.holdTempo(true);setHolding(true);setTempo(audio.setTempo(event.key==='Home'?40:event.key==='End'?208:audio.tempo+(event.key==='ArrowDown'?1:-1)));}},
+        onKeyUp:event=>{if(['ArrowUp','ArrowDown','Home','End'].includes(event.key))finish();},onBlur:finish
+      }}/>
       <output className="metronome-tempo" aria-label="Tempo">{tempo} BPM</output>
-      <button className="metronome-sound" role="switch" aria-label="Metronome sound" aria-checked={sound} title="Metronome sound" onClick={()=>{audio.setMetronomeSound(!sound);setSound(!sound);}}>{sound?<Volume2 size={16}/>:<VolumeX size={16}/>}<span className="metronome-switch-track" aria-hidden="true"><i/></span></button>
+      <MetronomeSoundButton sound={sound} onClick={()=>{audio.setMetronomeSound(!sound);setSound(!sound);}}/>
     </section>}
   </div>;
 }
