@@ -1,18 +1,12 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Music} from 'lucide-react';
-import {INSTRUMENTS} from '../utils/music';
 import {practiceProfile} from '../utils/practiceComposition';
 import {noteMidi} from '../utils/autoplay';
-import {PRACTICE_TIMING_TOLERANCE,learningSteps,createTimingAttempt,scoreTimedInput,expireSteps,attemptSummary} from '../utils/practice';
+import {PRACTICE_TIMING_TOLERANCE,practiceDisplayOptions,learningSteps,createTimingAttempt,scoreTimedInput,expireSteps,attemptSummary} from '../utils/practice';
 import {InstrumentSurface} from './PerformancePanel';
-import {InstrumentArt} from './InstrumentArt';
-import {PracticeRoomArt} from './PracticeRoomArt';
-import {YoungMusicianArt} from './YoungMusician';
 import {Metronome} from './Metronome';
 import {PracticeFeedback} from './PracticeFeedback';
-import {HelpButton} from './CaregiverHelp';
-import {PracticeStageTabs,PracticeSelectors,PracticeProgress,PracticeTransport,PracticeExit,PracticeReadout,PracticePhraseTrack,PracticeDuration} from './PracticeRoomControls';
-import './practice.css';
+import {PracticeProgress,PracticeTransport,PracticeReadout,PracticePhraseTrack,PracticeDuration} from './PracticeRoomControls';
+import {PracticeRoomHeader,PracticeRoomLayout} from './PracticeRoomLayout';
 
 export function PracticeRoom({child,audio,initialInstrument,settings,root,onClose,onHelp}) {
   const [name,setName]=useState(initialInstrument);
@@ -43,7 +37,7 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
   const frame=useRef(null);
   const cueTimer=useRef(null);
   const room=useRef(null);
-  const options={...settings.instruments[name],noteLabels:true,playbackNotes:true,fingeringCharts:true};
+  const options=practiceDisplayOptions(settings.instruments[name]);
   const profile=practiceProfile(name,root,{...options,genre:audio?.genre??'folk'});
   const phrase=profile.phrases[Math.min(phraseIndex,profile.phrases.length-1)];
   const steps=learningSteps(phrase);
@@ -203,24 +197,15 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
   }
   const targetNotes=target?.notes??(target?.note?[target.note]:[]);
   const progress=stage===1?Math.min(step,steps.length):stage===0?(complete?steps.length:0):attempt.current.reduce((sum,value)=>sum+value.hits,0);
-  return <section ref={room} className="practice-room" role="dialog" aria-modal="true" aria-label="Farm practice room" onPointerDownCapture={captureInput} onKeyDownCapture={captureInput}>
-    <PracticeRoomArt/>
-    <header className="practice-topbar"><HelpButton onOpen={()=>onHelp(name,stage)}/><h1 className="practice-room-title"><Music size={22}/>Farm Practice</h1>
-      <div className="practice-lineup" role="group" aria-label="Musician and instruments">
-        <div className="practice-musician" data-child-name={child?.name}><YoungMusicianArt child={child}/><InstrumentArt type={name}/><span>{INSTRUMENTS[name].label}</span></div>
-        <div className="practice-neighbors" aria-label="Other landscape instruments">{settings.selected.filter(instrument=>instrument!==name).map(instrument=><button key={instrument} className={companions[instrument]!==undefined?'is-accompanying':''} aria-label={`Switch to ${INSTRUMENTS[instrument].label}`} title={companions[instrument]!==undefined?`${INSTRUMENTS[instrument].label}, phrase ${companions[instrument]+1}`:`Practice ${INSTRUMENTS[instrument].label}`} onClick={()=>{cancel();setPhraseIndex(0);setName(instrument);}}><InstrumentArt type={instrument}/></button>)}</div>
-      </div>
-      <PracticeSelectors name={name} onInstrument={instrument=>{cancel();setPhraseIndex(0);setName(instrument);}} phraseIndex={phraseIndex} onPhrase={index=>{cancel();setPhraseIndex(index);}} phrases={profile.phrases}/>
-      <Metronome audio={audio} open={metronomeOpen} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>
-      <PracticeExit onClose={onClose}/>
-    </header>
-    <PracticeStageTabs stage={stage} onChange={index=>{cancel();setStage(index);}}/>
-    <main className="practice-main">
-      <PracticeReadout target={stage===1&&complete?'Finished':countingIn?`Count ${beat+1}`:targetNotes.join(' + ')||'Ready'} feedback={feedback}><PracticeProgress beat={beat} progress={progress} max={steps.length} summary={summary}/></PracticeReadout>
-      <PracticeTransport stage={stage} running={running} summary={summary} complete={complete} onToggle={()=>running?stopAttempt():startAttempt()} onRestart={reset} onNext={()=>{if(stage===3){onClose();return;}cancel();setStage(stage+1);}}/>
-      <PracticePhraseTrack events={stage===1?steps:phrase.events} current={stage===1?(complete?-1:step):(cue?.eventIndex??-1)} completed={stage===1?step:0} results={stage>1?results:[]}/>
-      <div className="practice-surface-host" data-timed-cue={stage!==1&&Boolean(cue)}><PracticeDuration remaining={cue?1:0}/><InstrumentSurface key={`${name}:${phraseIndex}:${stage}`} name={name} audio={audio} root={root} options={options} profile={profile} cue={target} practice/></div>
-    </main>
-    <PracticeFeedback items={feedbackItems} onExpire={expireFeedback}/>
-  </section>;
+  return <PracticeRoomLayout roomRef={room} roomProps={{role:'dialog','aria-modal':true,'aria-label':'Farm practice room',onPointerDownCapture:captureInput,onKeyDownCapture:captureInput}}
+    header={<PracticeRoomHeader child={child} name={name} selected={settings.selected} companions={companions} phrases={profile.phrases} phraseIndex={phraseIndex}
+      onInstrument={instrument=>{cancel();setPhraseIndex(0);setName(instrument);}} onPhrase={index=>{cancel();setPhraseIndex(index);}} onHelp={()=>onHelp(name,stage)} onClose={onClose}
+      metronome={<Metronome audio={audio} open={metronomeOpen} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}/>}
+    stage={stage} onStage={index=>{cancel();setStage(index);}}
+    readout={<PracticeReadout target={stage===1&&complete?'Finished':countingIn?`Count ${beat+1}`:targetNotes.join(' + ')||'Ready'} feedback={feedback}><PracticeProgress beat={beat} progress={progress} max={steps.length} summary={summary}/></PracticeReadout>}
+    transport={<PracticeTransport stage={stage} running={running} summary={summary} complete={complete} onToggle={()=>running?stopAttempt():startAttempt()} onRestart={reset} onNext={()=>{if(stage===3){onClose();return;}cancel();setStage(stage+1);}}/>}
+    phraseTrack={<PracticePhraseTrack events={stage===1?steps:phrase.events} current={stage===1?(complete?-1:step):(cue?.eventIndex??-1)} completed={stage===1?step:0} results={stage>1?results:[]}/>}
+    surface={<div className="practice-surface-host" data-timed-cue={stage!==1&&Boolean(cue)}><PracticeDuration remaining={cue?1:0}/><InstrumentSurface key={`${name}:${phraseIndex}:${stage}`} name={name} audio={audio} root={root} options={options} profile={profile} cue={target} practice/></div>}
+    feedback={<PracticeFeedback items={feedbackItems} onExpire={expireFeedback}/>}
+  />;
 }

@@ -77,7 +77,7 @@ test('practice pages explain the actual room controls and show inert shared artw
   const preview=reader.locator('.guide-room-canvas');await expect(preview).toHaveAttribute('inert','');
   await page.screenshot({path:`artifacts.local/guide-overhaul/practice-guide-${testInfo.project.name}.png`});
   await expect(preview.locator('.practice-select select')).toHaveCount(2);await expect(preview.locator('.practice-stages button')).toHaveCount(4);
-  await expect(preview.locator('.practice-progress progress')).toHaveCount(1);await expect(preview.locator('.guide-metronome-art')).toHaveCount(1);await expect(preview.locator('.practice-exit')).toHaveCount(1);
+  await expect(preview.locator('.practice-progress progress')).toHaveCount(1);await expect(preview.locator('.metronome-mini')).toHaveCount(1);await expect(preview.locator('.practice-exit')).toHaveCount(1);
   for(const [index,phrases] of [[2,['Ready','count-in','Stop','Next']],[3,['no Ready button','waits for you','every highlighted note']],[4,['Rhythm','hold duration is not scored']],[5,['Together','Two quieter partner instruments','Finish']],[6,['Stop','Repeat','Restart','progress display','open door or Escape']]]) {
     await jump(page,index);for(const phrase of phrases)await expect(reader.locator('.guide-task-copy')).toContainText(phrase);
   }

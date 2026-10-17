@@ -17,6 +17,50 @@ async function openGuide(page,name) {
 async function jump(page,index) {await page.getByRole('combobox',{name:'Choose a guide page',exact:true}).selectOption(String(index));}
 async function show(page) {await page.getByRole('button',{name:/^(Show|Replay) gesture$/,exact:true}).click();await page.clock.runFor(100);}
 
+async function roomGeometry(room) {
+  return room.evaluate(element=>{
+    const outer=element.getBoundingClientRect();
+    return Object.fromEntries(['.practice-topbar','.practice-stages','.practice-guide','.practice-control-dock','.practice-phrase-track','.practice-surface-host','.metronome-widget','.practice-exit'].map(selector=>{
+      const box=element.querySelector(selector).getBoundingClientRect();
+      return [selector,[(box.x-outer.x)/outer.width,(box.y-outer.y)/outer.height,box.width/outer.width,box.height/outer.height]];
+    }));
+  });
+}
+
+test('every practice guide preserves the real room layout and keeps the compact metronome in its header',async({page},testInfo)=>{
+  await page.addInitScript(()=>localStorage.setItem('farmjam-children-v1',JSON.stringify({children:[{id:'alex',name:'Alex',age:'under3',settings:{instruments:{piano:{complexity:.35}}}}],selectedId:'alex'})));
+  await page.goto('/');await page.getByRole('button',{name:'Tap to play',exact:true}).click();
+  await expect(page.locator('#young-musician')).toBeVisible({timeout:30000});
+  await page.locator('#young-musician').focus();await page.keyboard.press('Enter');
+  const live=page.getByRole('dialog',{name:'Farm practice room',exact:true});await expect(live).toBeVisible();
+  const layouts=[];
+  for(let stage=0;stage<4;stage++) {
+    await live.locator('.practice-stages button').nth(stage).click();
+    await expect(live.locator('.practice-stages button').nth(stage)).toHaveAttribute('aria-pressed','true');
+    layouts.push(await roomGeometry(live));
+  }
+  await live.locator('.practice-exit').click();
+  await page.getByRole('button',{name:'Open settings',exact:true}).dblclick();
+  await page.getByRole('tab',{name:/^Guides/}).click();await page.getByRole('button',{name:'Read use the practice room',exact:true}).click();
+  const reader=page.getByRole('dialog',{name:'Use the practice room',exact:true});
+  await expect(reader.locator('.metronome-widget')).toHaveCount(0);
+  for(const [index,stage] of [[1,0],[2,0],[3,1],[4,2],[5,3],[6,2]]) {
+    await jump(page,index);const preview=reader.locator('.practice-room');await expect(preview).toHaveAttribute('inert','');
+    await expect(preview.locator('.metronome-mini')).toHaveCount(1);await expect(preview.locator('.metronome-widget.is-open')).toHaveCount(0);
+    await expect.poll(async()=>{
+      const actual=await roomGeometry(preview);
+      return Math.max(...Object.keys(actual).flatMap(key=>actual[key].map((value,i)=>Math.abs(value-layouts[stage][key][i]))));
+    },{message:`Guide page ${index+1} must preserve the game's spatial arrangement`}).toBeLessThan(.004);
+    const bounds=await preview.boundingBox(),art=await reader.locator('.guide-illustration').boundingBox();
+    expect(bounds.x).toBeGreaterThanOrEqual(art.x-1);expect(bounds.y).toBeGreaterThanOrEqual(art.y-1);
+    expect(bounds.x+bounds.width).toBeLessThanOrEqual(art.x+art.width+1);expect(bounds.y+bounds.height).toBeLessThanOrEqual(art.y+art.height+1);
+    if(index===1||index===4)await reader.locator('.guide-illustration').screenshot({path:`artifacts.local/guide-demonstrations/layout-${index}-${testInfo.project.name}.png`});
+  }
+  await page.setViewportSize(testInfo.project.name==='desktop'?{width:1280,height:720}:{width:844,height:390});
+  const preview=reader.locator('.practice-room'),header=await preview.locator('.practice-topbar').boundingBox(),mini=await preview.locator('.metronome-mini').boundingBox();
+  expect(mini.y).toBeGreaterThanOrEqual(header.y-1);expect(mini.y+mini.height).toBeLessThanOrEqual(header.y+header.height+1);
+});
+
 test('string guides teach chord ownership before strumming, default to simple, and stay silent',async({page},testInfo)=>{
   await openGuide(page,'play an instrument');await jump(page,2);
   const art=page.locator('.guide-art-surface');
@@ -62,7 +106,7 @@ test('practice guides animate each stage with shared controls and changing autho
   }
   await jump(page,6);await show(page);const room=page.locator('.guide-room-detail');
   for(const [time,label] of [[0,'Stop'],[2000,'Repeat'],[2000,'Restart'],[2000,'Leave']]) {
-    await page.clock.runFor(time);await expect(room.locator('.guide-detail-heading')).toContainText(label);
+    await page.clock.runFor(time);await expect(room).toHaveAttribute('data-demo-action',label);
   }
   expect(errors).toEqual([]);expect(await page.evaluate(()=>window.guideAudioStarts-window.guideAudioBaseline)).toBe(0);
 });
