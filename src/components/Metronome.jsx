@@ -34,7 +34,7 @@ export function Metronome({audio,open,onOpen,onClose,disabled}) {
     setTempo(audio.setTempo(value));
   }
   return <div ref={container} inert={disabled} aria-hidden={disabled} className={`metronome-widget ${open?'is-open':''} ${holding?'is-held':''}`} style={{'--beat-period':`${60/tempo}s`}}>
-    {!open?<button className="metronome-mini" aria-label="Open metronome" title="Metronome" onClick={onOpen}><BodyArt/><i className="mini-pendulum" style={{rotate:`${holding?0:swing*16}deg`}}/><span>{tempo}</span></button>:<section className="metronome-menu" role="dialog" aria-label="Metronome">
+    {!open?<button className="metronome-mini" aria-label="Open metronome" title="Metronome" onClick={onOpen}><BodyArt/><svg className="mini-mechanism" viewBox="0 0 100 140" aria-hidden="true"><g className="mini-pendulum" style={{rotate:`${holding?0:swing*16}deg`}}><path d="M50 17V112" stroke="#526d58" strokeWidth="4"/><rect x="40" y={22.4+(tempo-40)/168*64.4-7} width="20" height="14" rx="2" fill="#b78842" stroke="#624d40" strokeWidth="2"/></g></svg><span>{tempo}</span></button>:<section className="metronome-menu" role="dialog" aria-label="Metronome">
       <div className="metronome-mechanism"><BodyArt/><div ref={rail} className="metronome-rail" style={{rotate:`${holding?0:swing*12}deg`}}>
         <i className="metronome-needle" aria-hidden="true"/>
         <button className="metronome-weight" role="slider" aria-label="Metronome tempo weight" aria-orientation="vertical" aria-valuemin={40} aria-valuemax={208} aria-valuenow={tempo} aria-valuetext={`${tempo} beats per minute`} style={{top:`${(tempo-40)/168*100}%`}}

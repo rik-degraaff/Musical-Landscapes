@@ -107,6 +107,47 @@ test('touch cancel releases the tempo hold without disabling active instruments'
   await expect.poll(()=>page.evaluate(()=>window.testTone.Transport.state)).toBe('started');
 });
 
+test('repeated tempo holds preserve every instrument phrase within the transport bar',async({page})=>{
+  await start(page);
+  await page.evaluate(()=>{
+    const engine=window.audioEngine;
+    window.phraseNotes=[];
+    const play=engine.playEvent;
+    engine.playEvent=function(name,event,time,root,scheduled){
+      if(scheduled)window.phraseNotes.push({name,bar:scheduled.bar,event,time,start:scheduled.time,tempo:this.tempo});
+      return play.call(this,name,event,time,root,scheduled);
+    };
+    for(const name of ['piano','drums','guitar'])engine.setInstrumentActive(name,true);
+  });
+  await page.getByRole('button',{name:'Open metronome'}).click();
+  const weight=page.getByRole('slider',{name:'Metronome tempo weight'});
+  await weight.focus();
+  for(let change=0;change<20;change++){
+    await page.keyboard.down(change%2?'Home':'End');
+    await page.waitForTimeout(130);
+    await page.keyboard.up(change%2?'Home':'End');
+    await page.waitForTimeout(110);
+  }
+  await page.keyboard.press('End');
+  // Enter a hold just before a downbeat, inside Tone's scheduling lookahead.
+  // The transport can pass that boundary while the engine suppresses its callback.
+  await page.evaluate(()=>{
+    const {Transport}=window.testTone;
+    const nextBar=Math.ceil((Transport.ticks+Transport.PPQ)/(Transport.PPQ*4));
+    Transport.scheduleOnce(()=>{
+      window.audioEngine.holdTempo(true);
+      setTimeout(()=>window.audioEngine.holdTempo(false),180);
+    },`${nextBar*Transport.PPQ*4-1}i`);
+  });
+  await page.waitForTimeout(1600);
+  await page.evaluate(()=>{window.phraseNotes=[];});
+  await expect.poll(()=>page.evaluate(()=>new Set(window.phraseNotes.filter(note=>note.event.time!=='0:0:0').map(note=>note.bar)).size),{timeout:10000}).toBeGreaterThanOrEqual(3);
+  const notes=await page.evaluate(()=>window.phraseNotes);
+  for(const name of ['piano','drums','guitar']){
+    expect(notes.some(note=>note.name===name&&note.event.time!=='0:0:0')).toBe(true);
+  }
+});
+
 test('silent metronome keeps swinging compact and enlarged and sound is a switch mounted on its base',async({page},testInfo)=>{
   await start(page);
   expect(await page.evaluate(()=>Object.values(window.audioEngine.active).some(Boolean))).toBe(false);

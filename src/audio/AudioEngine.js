@@ -495,7 +495,14 @@ export class AudioEngine {
     if (this.transportEvent === null) {
       // Initialization generations fence off callbacks left behind by a disposed audio graph.
       const generation = this.audioGeneration;
-      this.transportEvent = Tone.Transport.scheduleRepeat(time => { if(this.ready&&generation===this.audioGeneration)this.scheduleBar(time); }, BAR);
+      this.transportEvent = Tone.Transport.scheduleRepeat(time => {
+        if(this.ready&&generation===this.audioGeneration){
+          // A tempo hold can suppress a downbeat within Tone's lookahead. Count
+          // transport bars, not callbacks, so later notes never land in the past.
+          const bar=Math.round(Tone.Transport.getTicksAtTime(time)/(Tone.Transport.PPQ*4));
+          this.scheduleBar(time,bar);
+        }
+      }, BAR);
     }
     if (Tone.Transport.state !== 'started') Tone.Transport.start('+0.04');
   }
@@ -753,9 +760,10 @@ export class AudioEngine {
     }
   }
 
-  scheduleBar(time) {
+  scheduleBar(time,bar=this.barIndex) {
     if(this.backgrounded||this.tempoHeld)return;
-    this.scheduleBarEvents(time,this.barIndex++);
+    this.barIndex=bar+1;
+    this.scheduleBarEvents(time,bar);
   }
 
   scheduleBarEvents(time,bar) {

@@ -32,7 +32,7 @@ function deferred() {
 function setup() {
   globalThis.document = Object.assign(new EventTarget(), { hidden: false });
   globalThis.window = new EventTarget();
-  const runtime = { nodes: [], starts: 0, startGate: null, onLoad: null, loads: 0, cancellations: 0, schedules: new Map(), cleared: [], ticks: 0, draws: [] };
+  const runtime = { nodes: [], starts: 0, startGate: null, onLoad: null, loads: 0, cancellations: 0, schedules: new Map(), schedulePositions: new Map(), cleared: [], ticks: 0, draws: [] };
   const parameter = () => ({ value: 0, rampTo(value) { this.value=value; }, setValueAtTime() {}, linearRampToValueAtTime() {}, setTargetAtTime() {}, cancelAndHoldAtTime() {} });
   const context = Object.assign(new EventTarget(), {
     state: 'running', currentTime: 1,
@@ -68,7 +68,7 @@ function setup() {
   class Reverb extends Node { constructor() { super(); this.ready = Promise.resolve(); } }
   class Sampler extends Node { constructor(options) { super(); queueMicrotask(options.onload); } }
   let scheduleId = 0;
-  const schedule = callback => { const id = scheduleId++; runtime.schedules.set(id, callback); return id; };
+  const schedule = (callback,position) => { const id = scheduleId++; runtime.schedules.set(id, callback); runtime.schedulePositions.set(id,position); return id; };
   const Tone = {
     start() { runtime.starts++; return runtime.startGate?.promise ?? Promise.resolve(); },
     getContext: () => ({ rawContext: context }), immediate: () => 1, now: () => 1,
@@ -92,6 +92,26 @@ function setup() {
   engine.composition = new composition.Composition({random:()=>.9});
   return { engine, runtime, Tone };
 }
+
+test('transport bar positions survive tempo holds that skip downbeat callbacks', async () => {
+  const {engine,runtime,Tone}=setup();
+  await engine.init();
+  engine.active.piano=true;engine.active.drums=true;engine.playEvent=()=>{};
+  const callback=runtime.schedules.get(engine.transportEvent);
+  callback(1);
+  engine.holdTempo(true);
+  runtime.ticks=Tone.Transport.PPQ*4;
+  callback(1);
+  assert.equal(engine.barIndex,1);
+  engine.setTempo(208);engine.holdTempo(false);
+  runtime.ticks=Tone.Transport.PPQ*8;
+  callback(1);
+  assert.equal(engine.barIndex,3);
+  assert.ok(engine.scheduledBars.has(2));
+  const pending=[...engine.pendingEventBars].filter(([,bar])=>bar===2);
+  assert.ok(pending.length>0);
+  for(const [id] of pending)assert.ok(Number(runtime.schedulePositions.get(id).slice(0,-1))>runtime.ticks);
+});
 
 test('scene changes finish captured old-key events and next bar uses the latest key on the same transport', async () => {
   const { engine, runtime, Tone } = setup();

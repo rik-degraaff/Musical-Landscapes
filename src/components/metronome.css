@@ -7,8 +7,8 @@
 .metronome-mini { position:relative;width:46px;height:62px;background:transparent;border:0;padding:0;filter:drop-shadow(0 3px 3px #27445a33); }
 .metronome-body { width:100%;height:100%;display:block;pointer-events:none; }
 .metronome-mini span { position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:9px;line-height:10px;color:#493e30; }
-.mini-pendulum { position:absolute;left:50%;top:8px;width:2px;height:39px;background:#526d58;transform-origin:50% 100%;pointer-events:none; }
-.mini-pendulum::before { content:"";position:absolute;top:8px;left:-3px;width:8px;height:6px;background:#b78842;border:1px solid #624d40; }
+.mini-mechanism { position:absolute;inset:0;width:100%;height:100%;pointer-events:none; }
+.mini-pendulum { transform-box:view-box;transform-origin:50px 112px; }
 .metronome-menu { position:relative;width:min(180px,calc((100dvh - 24px) * .714));height:min(252px,calc(100dvh - 24px));padding:0;background:transparent;border:0;filter:drop-shadow(0 5px 7px #16382b55); }
 .metronome-mechanism { position:absolute;inset:0; }
 .metronome-rail { position:absolute;left:50%;top:16%;height:46%;width:32px;translate:-50% 0;transform-origin:50% 138%; }
