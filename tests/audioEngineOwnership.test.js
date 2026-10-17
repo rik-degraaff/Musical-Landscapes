@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as music from '../src/utils/music.js';
 import * as composition from '../src/utils/composition.js';
-import {compositionStyle} from '../src/data/compositionStyles.js';
+import {compositionStyle,blendCompositionStyles} from '../src/data/compositionStyles.js';
 import { SCENE_SOUNDS } from '../src/audio/sceneSounds.js';
 import * as samples from '../src/audio/sampleLibrary.js';
 import * as envelopes from '../src/audio/envelopes.js';
@@ -33,7 +33,7 @@ function setup() {
   globalThis.document = Object.assign(new EventTarget(), { hidden: false });
   globalThis.window = new EventTarget();
   const runtime = { nodes: [], starts: 0, startGate: null, onLoad: null, loads: 0, cancellations: 0, schedules: new Map(), schedulePositions: new Map(), cleared: [], ticks: 0, draws: [] };
-  const parameter = () => ({ value: 0, rampTo(value) { this.value=value; }, setValueAtTime() {}, linearRampToValueAtTime() {}, setTargetAtTime() {}, cancelAndHoldAtTime() {} });
+  const parameter = () => ({ value: 0, automation:[], rampTo(value) { this.value=value; }, setValueAtTime() {}, linearRampToValueAtTime(value,time) { this.automation.push(['ramp',value,time]); }, setTargetAtTime() {}, cancelAndHoldAtTime(time) { this.automation.push(['cancel',time]); } });
   const context = Object.assign(new EventTarget(), {
     state: 'running', currentTime: 1,
     createBuffer(channels, length, sampleRate) {
@@ -49,7 +49,7 @@ function setup() {
   });
   class Node {
     constructor() { this.disposals = 0; this.volume = parameter(); runtime.nodes.push(this); }
-    connect() { return this; }
+    connect(target) { this.output=target;return this; }
     toDestination() { return this; }
     dispose() { this.disposals++; }
     triggerRelease() {}
@@ -66,14 +66,15 @@ function setup() {
     dispose() { super.dispose(); this.buffer = undefined; }
   }
   class Reverb extends Node { constructor() { super(); this.ready = Promise.resolve(); } }
+  class Filter extends Node { constructor() { super(); this.frequency=parameter(); } }
   class Sampler extends Node { constructor(options) { super(); queueMicrotask(options.onload); } }
   let scheduleId = 0;
   const schedule = (callback,position) => { const id = scheduleId++; runtime.schedules.set(id, callback); runtime.schedulePositions.set(id,position); return id; };
   const Tone = {
     start() { runtime.starts++; return runtime.startGate?.promise ?? Promise.resolve(); },
     getContext: () => ({ rawContext: context }), immediate: () => 1, now: () => 1,
-    connect() {}, dbToGain: value => 10 ** (value / 20),
-    Limiter: Node, Gain: Node, Volume: Node, Synth: Node, Player: Node,
+    connect(source,target) { source.output=target; }, dbToGain: value => 10 ** (value / 20),
+    Limiter: Node, Gain: Node, Volume: Node, Synth: Node, Player: Node, Filter,
     Time: value => ({ toTicks: () => beatOffset(value) * 192, toSeconds: () => typeof value==='number'?value:1 }),
     Frequency: note => ({ toMidi: () => selection.parseMidi(note) }),
     Reverb, Sampler, ToneAudioBuffer: Buffer, Draw: { schedule(callback,time) { runtime.draws.push({callback,time}); } },
@@ -86,7 +87,7 @@ function setup() {
       start() { this.state = 'started'; }, stop() { this.state = 'stopped'; }, pause() { this.state = 'paused'; },
     },
   };
-  const dependencies = { Tone, ...music, ...composition, compositionStyle, SCENE_SOUNDS, audioLevels, ...samples, ...envelopes, STRING_INSTRUMENTS, equippedProfile, beatOffset, releaseManualVoice, AudioResources, ...selection, ...voices, ...session, attachOwnedSamplerVoices };
+  const dependencies = { Tone, ...music, ...composition, compositionStyle, blendCompositionStyles, SCENE_SOUNDS, audioLevels, ...samples, ...envelopes, STRING_INSTRUMENTS, equippedProfile, beatOffset, releaseManualVoice, AudioResources, ...selection, ...voices, ...session, attachOwnedSamplerVoices };
   const AudioEngine = new Function(...Object.keys(dependencies), `${source}\nreturn AudioEngine;`)(...Object.values(dependencies));
   const engine = new AudioEngine();
   engine.composition = new composition.Composition({random:()=>.9});
@@ -680,4 +681,36 @@ test('genre changes retain the captured current bar and interpolate only from th
   assert.equal(engine.scheduledBars.get(2).plan.genreBlend,.125);
   assert.equal(engine.setGenre('jazz'),false);
   assert.throws(()=>engine.setGenre('unknown'),/Unknown composition genre/);
+});
+
+test('shared owned tone routing applies gated events and replaces future automation before cleanup',async()=>{
+  const {engine}=setup();
+  await engine.init();
+  const node=engine.nodes.melody;
+  assert.equal(node.synth.output,node.tone);assert.equal(node.tone.output,node.gain);
+  assert.equal(engine.nodes.drums.tone,null);assert.equal(engine.nodes.drums.synth.output,engine.nodes.drums.gain);
+  engine.setManualInstrument('melody');engine.manualNoteOn('C4','brass');
+  assert.equal(engine.manualVoices.get('brass').envelope.output,node.tone);
+  const played=[];node.synth.triggerAttackRelease=(...args)=>played.push(args);
+  engine.playEvent('melody',{note:'C4',dur:'8n',gate:.7,velocity:.55},2);
+  assert.equal(played[0][1],.7); // The test clock resolves Tone durations to one second.
+  engine.scheduleBar(3,0);
+  const frequency=node.tone.frequency;
+  assert.deepEqual(frequency.automation.slice(-2),[['cancel',3],['ramp',engine.scheduledBars.get(0).plan.movement.performance.melody.cutoff,3.12]]);
+  engine.applyPerformance({movement:{performance:{melody:{cutoff:8500}}}},3);
+  assert.deepEqual(frequency.automation.slice(-2),[['cancel',3],['ramp',8500,3.12]]);
+  engine.clearPendingEvents();assert.deepEqual(frequency.automation.at(-1),['cancel',1]);
+  engine.dispose();assert.equal(node.tone.disposals,1);
+});
+
+test('reversing genre during a blend starts tone and articulation from the current intermediate style',async()=>{
+  const {engine,runtime}=setup();await engine.init();engine.playEvent=()=>{};
+  engine.scheduleBar(1);engine.setGenre('jazz');
+  runtime.ticks=5*192*4;engine.barIndex=6;
+  const halfway=blendCompositionStyles('folk','jazz',.5).performance;
+  engine.setGenre('folk');assert.deepEqual(engine.genreTransition.fromPerformance,halfway);
+  engine.setGenre('jazz');assert.deepEqual(engine.genreTransition.fromPerformance,halfway);
+  const plan=engine.composition.planBar(6,'C',engine.compositionOptions());
+  assert.equal(plan.genreBlend,0);
+  assert.ok(Math.abs(plan.movement.performance.melody.cutoff/halfway.melody.cutoff-1)<.035);
 });

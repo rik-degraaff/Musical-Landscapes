@@ -40,6 +40,52 @@ async function equip(page,name) {
   await expect(page.locator(`.performance-${name}`)).toBeVisible();
 }
 
+test('genre tone reaches the shared live graph and sampled brass stays gently bounded',async({page})=>{
+  await start(page);
+  await page.evaluate(()=>{
+    const engine=window.audioEngine;
+    for(const name of ['melody','piano','drums'])engine.setInstrumentActive(name,true);
+    engine.setGenre('jazz');
+  });
+  await expect.poll(()=>page.evaluate(()=>{
+    const plan=window.audioEngine.harmonyPlan;
+    return plan?.genre==='jazz'&&plan.genreBlend===1;
+  }),{timeout:20000}).toBe(true);
+  await expect.poll(()=>page.evaluate(()=>{
+    const engine=window.audioEngine;
+    return Math.abs(engine.nodes.melody.tone.frequency.value-engine.harmonyPlan.movement.performance.melody.cutoff);
+  })).toBeLessThan(1);
+  const result=await page.evaluate(async()=>{
+    const engine=window.audioEngine;
+    const {COMPOSITION_STYLES}=await import('/src/data/compositionStyles.js');
+    const buffer=engine.nodes.melody.buffers.C4.get();
+    const measurements={};
+    for(const genre of ['folk','jazz']){
+      const context=new OfflineAudioContext(1,buffer.sampleRate,buffer.sampleRate);
+      const source=context.createBufferSource();source.buffer=buffer;
+      const tone=context.createBiquadFilter();tone.type=engine.nodes.melody.tone.type;
+      tone.Q.value=engine.nodes.melody.tone.Q.value;
+      tone.gain.value=engine.nodes.melody.tone.gain.value;
+      tone.frequency.value=COMPOSITION_STYLES[genre].performance.melody.cutoff;
+      source.connect(tone);tone.connect(context.destination);source.start();
+      const samples=(await context.startRendering()).getChannelData(0);
+      let energy=0,edge=0,peak=0;
+      for(let index=1;index<samples.length;index++){
+        energy+=samples[index]**2;edge+=(samples[index]-samples[index-1])**2;peak=Math.max(peak,Math.abs(samples[index]));
+      }
+      measurements[genre]={rms:Math.sqrt(energy/samples.length),edge:edge/energy,peak};
+    }
+    return {measurements,gate:engine.harmonyPlan.movement.performance.melody.gate,drumsDry:engine.nodes.drums.tone===null};
+  });
+  const {folk,jazz}=result.measurements;
+  expect(folk.rms).toBeGreaterThan(.001);expect(jazz.rms).toBeGreaterThan(.001);
+  expect(jazz.edge).toBeGreaterThan(folk.edge);
+  expect(jazz.rms/folk.rms).toBeLessThan(1.35);
+  expect(jazz.peak).toBeLessThan(.8);
+  expect(result.gate).toBeGreaterThan(.68);expect(result.gate).toBeLessThan(.72);
+  expect(result.drumsDry).toBe(true);
+});
+
 async function simple(page,name) {
   await page.getByRole('button',{name:'Open settings',exact:true}).dblclick();
   await page.getByRole('tab',{name:'Instruments',exact:true}).click();

@@ -18,7 +18,11 @@ The UI sends active instrument, key, tempo, and equipped-instrument preferences 
 
 Landscape changes update the requested key. The current bar completes in its captured key; the latest requested key takes effect on the next downbeat. The transport is shared and is not restarted for scene changes.
 
+Composition styles also own per-instrument tone cutoff, articulation gate and accent depth. The movement planner derives a small, fixed colour from each movement seed and blends it at movement handoffs; genre interpolation supplies the larger change. Immutable bar plans carry the resulting performance settings and gated events. The engine schedules gentle high-frequency shelf automation at the bar's audio timestamp and routes both sampler and manual voices through the same resource-owned filter before the existing mixer/reverb. The shelf only attenuates (up to 4 dB); it never boosts. Replanning replaces future automation, and playback cleanup cancels it.
+
 ## State ownership
+
+If a genre blend is reversed before finishing, the new tone/articulation transition starts from the current intermediate style settings rather than jumping to a genre endpoint. This transient snapshot lives only in the engine's genre transition and participates in composition cache identity.
 
 - Family profile records own child identity, appearance, age range, and child-specific settings.
 - One caregiver preference record owns familiarity shared across children in this browser.

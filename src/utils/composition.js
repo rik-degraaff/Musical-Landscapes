@@ -6,7 +6,7 @@ import {fluteInput} from './wind.js';
 import {midiNote,PIANO_NOTES,MARIMBA_NOTES,PANFLUTE_NOTES} from './performance.js';
 import {COMPOSITION_PHRASES,PHRASE_TRANSITIONS,COMPOSITION_PROGRESSIONS} from '../data/compositionPhrases.js';
 import {blendCompositionStyles,compositionStyle} from '../data/compositionStyles.js';
-import {blendMovementFrames,distributeTension,ideaScheduleWeights,movementFrame,planIdeaSchedule,smoothNoise,varyMovementShape} from './movementPlanner.js';
+import {blendMovementFrames,distributeTension,ideaScheduleWeights,movementFrame,movementPerformance,planIdeaSchedule,smoothNoise,varyMovementShape} from './movementPlanner.js';
 
 const chordInstruments=['piano','guitar','ukulele'];
 const levels=['Simple','Standard','Advanced'];
@@ -54,7 +54,7 @@ function motifs(role,profile,style) {
   return [...COMPOSITION_PHRASES[role],...(style.phrases[role]??[])].filter(value=>value.tier<=levels.indexOf(profile.level));
 }
 
-function render(name,root,role,motif,chord,nextChord,profile,previous,{tension=motif.energy,style,bar=0,seed=0}={}) {
+function render(name,root,role,motif,chord,nextChord,profile,previous,{tension=motif.energy,style,bar=0,seed=0,performance=style.performance[name]}={}) {
   const available=bank(name,profile,chord);
   const chordBank=available.filter(note=>chord.tones.includes(noteMidi(note)%12));
   const nextBank=name==='drums'?[]:bank(name,profile,nextChord).filter(note=>nextChord.tones.includes(noteMidi(note)%12));
@@ -63,13 +63,14 @@ function render(name,root,role,motif,chord,nextChord,profile,previous,{tension=m
   let anchor=name==='drums'?0:last?noteMidi((last.notes??[last.note])[0]):center;
   const interval=toneIndex=>Math.floor(toneIndex/3)*12+(chord.tones[toneIndex%3]-chord.tones[0]+12)%12;
   const steps=motif.instrumentSteps[name]??motif.steps;
+  let previousNotes;
   const events=steps.map(([beat,contour,length],index)=>{
     const sustained={2:'2n',1:'4n',.5:'8n',.25:'16n'};
     const breath={2:'4n.',1:'8n.',.5:'16n.',.25:'32n.'};
     const plucked={2:'4n',1:'8n',.5:'16n',.25:'32n'};
     const durations=['flute','melody','panflute'].includes(name)?breath:name==='marimba'||STRING_INSTRUMENTS[name]?plucked:sustained;
     // Event time is bars:beats:sixteenths; duration is a Tone note value, and pitches are note names.
-    const event={time:`0:${Math.floor(beat)}:${Math.round((beat%1)*4)}`,dur:durations[length],velocity:Math.min(.85,.35+motif.energy*.25+(motif.dynamics[index]??0)),swingOffset:style.swing&&Math.abs(beat%1-.5)<.001?style.swing:0};
+    const event={time:`0:${Math.floor(beat)}:${Math.round((beat%1)*4)}`,dur:durations[length],gate:performance?.gate??1,velocity:Math.min(.72,.35+motif.energy*.25+(motif.dynamics[index]??0)*(performance?.accent??1)),swingOffset:style.swing&&Math.abs(beat%1-.5)<.001?style.swing:0};
     if(name==='drums')return {...event,note:contour};
     const maxNotes=name==='piano'?(profile.level==='Simple'?2:3):STRING_INSTRUMENTS[name]?4:1;
     const shape=role==='accompaniment'?contour.slice(0,maxNotes):contour.slice(0,1);
@@ -90,6 +91,9 @@ function render(name,root,role,motif,chord,nextChord,profile,previous,{tension=m
       if(!candidates.length)throw new Error(`Unplayable composition tone: ${name} ${root} ${chord.name}`);
       notes.push(candidates[0]);
     }
+    // Repeated authored contours really repeat, even at a cadence or with local variation.
+    if(motif.repeatContour&&previousNotes&&JSON.stringify(contour)===JSON.stringify(steps[index-1][1]))notes.splice(0,notes.length,...previousNotes);
+    previousNotes=[...notes];
     anchor=noteMidi(notes[0]);
     const voiced={...event,...(role==='accompaniment'?{notes}:{note:notes[0]})};
     if(!STRING_INSTRUMENTS[name])return voiced;
@@ -167,7 +171,7 @@ export class Composition {
     if(!Number.isSafeInteger(bar)||bar<0)throw new RangeError('bar must be a nonnegative safe integer');
     musicalKey(root);
     const mix=genreTransition&&genreTransition.from!==genre?Math.max(0,Math.min(1,(bar-genreTransition.startBar)/Math.max(1,genreTransition.durationBars))):1;
-    const style=genreTransition&&genreTransition.from!==genre?blendCompositionStyles(genreTransition.from,genre,mix):compositionStyle(genre);
+    const style=genreTransition&&genreTransition.from!==genre?blendCompositionStyles(genreTransition.from,genre,mix,genreTransition.fromPerformance):compositionStyle(genre);
     if(manualInstrument&&!INSTRUMENTS[manualInstrument])throw new Error(`Unknown instrument: ${manualInstrument}`);
     const activeNames=Object.keys(INSTRUMENTS).filter(name=>Array.isArray(active)?active.includes(name):active instanceof Set?active.has(name):active[name]);
     const names=Object.keys(INSTRUMENTS).filter(name=>activeNames.includes(name)||name===manualInstrument);
@@ -185,7 +189,7 @@ export class Composition {
       overrides[name]={motif,role:selectedRole};
     }
     // A cached plan is reusable only when every input that shapes its events still matches.
-    const signature=JSON.stringify([root,genre,mix,activeNames,manualInstrument,names.map(name=>[name,profiles[name].level,overrides[name]?.motif.name,overrides[name]?.role])]);
+    const signature=JSON.stringify([root,genre,mix,genreTransition?.fromPerformance,activeNames,manualInstrument,names.map(name=>[name,profiles[name].level,overrides[name]?.motif.name,overrides[name]?.role])]);
     const cached=this.plans.get(bar);
     if(cached?.signature===signature)return cached.plan;
     if(cached)this.invalidateFrom(bar);
@@ -281,6 +285,7 @@ export class Composition {
     const nextFrame=movementFrame(transitionTo,transitionTo===state.movement?bar:transitionTo.startBar,style);
     const movement=transitionFrom===transitionTo?currentFrame:blendMovementFrames(currentFrame,nextFrame,transitionProgress);
     const melodicSimilarity=transitionFrom.melodicSimilarity+(transitionTo.melodicSimilarity-transitionFrom.melodicSimilarity)*transitionProgress;
+    const performance=movementPerformance(style,transitionFrom.seed,transitionTo.seed,transitionProgress);
     const familyEntries=new Map();
     const fromSchedule=ideaScheduleWeights(transitionFrom.ideaSchedule,currentFrame.position);
     const toSchedule=ideaScheduleWeights(transitionTo.ideaSchedule,nextFrame.position);
@@ -330,15 +335,15 @@ export class Composition {
         const anchorAffinity=Math.max(fromAnchor,toAnchor);
         const coordination=(sharesIdea?1+style.coordination.sharedIdeaBias:1)*(answersAccompaniment?1+style.coordination.callResponseBias:1)*(sameMelodicThread?1+melodicSimilarity:1)*(continuesIdea?1+style.movementControls.ideaContinuity:1)*(role==='melody'?1+anchorAffinity*melodicSimilarity*2:1);
         const familyAffinity=motifFamilies.reduce((maximum,family)=>Math.max(maximum,movementIdeaWeight(family)),0);
-        return [motif.name,(transitionWeights[motif.name]??1)*(style.motifWeights?.[motif.name]??1)*Math.max(.001,familyAffinity)*Math.exp(-Math.abs(motif.energy-tensions[name])*2.2)*coordination];
+        return [motif.name,(motif.instrumentWeights?.[name]??1)*(transitionWeights[motif.name]??1)*(style.motifWeights?.[motif.name]??1)*Math.max(.001,familyAffinity)*Math.exp(-Math.abs(motif.energy-tensions[name])*2.2)*coordination];
       }));
       const motif=overrides[name]?.motif??this.choose(candidates,weights);
       const motifFamilies=movementIdeas.filter(family=>style.ideas[family]?.[role]?.includes(motif.name));
       const idea=previous?.idea&&motifFamilies.includes(previous.idea)&&movementIdeaWeight(previous.idea)>0?previous.idea:motifFamilies.sort((first,second)=>movementIdeaWeight(second)-movementIdeaWeight(first))[0]??null;
-      phrases[name]=render(name,root,role,{...motif,idea},currentChord,nextChord,profiles[name],previous,{tension:tensions[name]??movement.tension,style,bar,seed:state.movement.seed});
+      phrases[name]=render(name,root,role,{...motif,idea},currentChord,nextChord,profiles[name],previous,{tension:tensions[name]??movement.tension,style,bar,seed:state.movement.seed,performance:performance[name]});
     }
     const movementPlan={
-      name:state.movement.shape.name,startBar:state.movement.startBar,index:bar-state.movement.startBar,length:state.movement.shape.length,
+      name:state.movement.shape.name,startBar:state.movement.startBar,index:bar-state.movement.startBar,length:state.movement.shape.length,performance,
       section:movement.section,position:movement.position,targetTension:movement.targetTension,tension:movement.tension,noise:movement.noise,
       ideas:movementIdeas,currentIdeas:[...state.movement.ideas],nextIdeas:state.queuedMovement?[...state.queuedMovement.ideas]:[],
       ideaSchedule:[...state.movement.ideaSchedule],handoffFromIdeaSchedule:state.previousMovement?[...state.previousMovement.ideaSchedule]:[],nextIdeaSchedule:state.queuedMovement?[...state.queuedMovement.ideaSchedule]:[],

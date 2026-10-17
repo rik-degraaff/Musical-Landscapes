@@ -1,7 +1,7 @@
 import * as Tone from 'tone';
 import { BPM, BAR, INSTRUMENTS } from '../utils/music';
 import { Composition, compositionProfile } from '../utils/composition';
-import {compositionStyle} from '../data/compositionStyles.js';
+import {compositionStyle,blendCompositionStyles} from '../data/compositionStyles.js';
 import { SCENE_SOUNDS } from './sceneSounds';
 import audioLevels from './audioLevels.json';
 import { DRUM_NOTES, DRUM_SAMPLES, SAMPLE_LIBRARY, sampleUrls } from './sampleLibrary';
@@ -111,7 +111,8 @@ export class AudioEngine {
     const loads = [resources.load(attempt.reverb, () => attempt.reverb.ready)];
     for (const name of instrumentNames) {
       const gain = resources.own(new Tone.Volume(MIN_GAIN)).connect(name === 'drums' ? attempt.master : attempt.reverb);
-      attempt.nodes[name] = { gain };
+      const tone = name==='drums'?null:resources.own(new Tone.Filter({type:'highshelf',frequency:compositionStyle(this.genre).performance[name].cutoff,gain:-4,rolloff:-12})).connect(gain);
+      attempt.nodes[name] = { gain, tone };
       loads.push(this.createSampledInstrument(name, attempt));
     }
     await Promise.all(loads);
@@ -250,7 +251,7 @@ export class AudioEngine {
         curve: 'exponential',
         onload: resolve,
         onerror: error => reject(new Error(`Could not load ${INSTRUMENTS[name].label} recordings`, { cause: error })),
-      })).connect(nodes[name].gain);
+      })).connect(nodes[name].tone??nodes[name].gain);
       nodes[name].synth = sampler;
       nodes[name].samplerVoices=attachOwnedSamplerVoices({Frequency:Tone.Frequency,Time:Tone.Time,ToneBufferSource:Tone.ToneBufferSource,immediate:Tone.immediate},sampler,buffers);
     });
@@ -309,8 +310,11 @@ export class AudioEngine {
     const from=this.genre;
     const currentBar=Math.max(0,Math.floor(Tone.Transport.getTicksAtTime(Tone.immediate())/(Tone.Transport.PPQ*4)));
     const startBar=this.barIndex>0?currentBar+1:0;
+    const previous=this.genreTransition;
+    const amount=previous?Math.max(0,Math.min(1,(currentBar-previous.startBar)/previous.durationBars)):1;
+    const fromPerformance=previous?blendCompositionStyles(previous.from,from,amount,previous.fromPerformance).performance:compositionStyle(from).performance;
     this.genre=genre;
-    this.genreTransition={from,to:genre,startBar,durationBars:8};
+    this.genreTransition={from,to:genre,startBar,durationBars:8,fromPerformance};
     this.refreshFutureBars();
     return true;
   }
@@ -425,7 +429,7 @@ export class AudioEngine {
       source.loopEnd = loop.loopEnd;
     }
     source.connect(envelope);
-    Tone.connect(envelope, this.nodes[name].gain);
+    Tone.connect(envelope, this.nodes[name].tone??this.nodes[name].gain);
     const when = context.currentTime + 0.015;
     envelope.gain.setValueAtTime(0, when);
     envelope.gain.linearRampToValueAtTime(velocity, when + (['flute','panflute'].includes(name) ? 0.035 : 0.006));
@@ -514,7 +518,10 @@ export class AudioEngine {
       this.pendingEvents.delete(id);
       this.pendingEventBars.delete(id);
     }
-    if(!instrumentName)this.scheduledBars.clear();
+    if(!instrumentName){
+      this.scheduledBars.clear();
+      for(const node of Object.values(this.nodes))node.tone?.frequency.cancelAndHoldAtTime(Tone.immediate());
+    }
   }
 
   refreshFutureBars() {
@@ -651,7 +658,7 @@ export class AudioEngine {
       repeat(time=>{
         const current=eventCycle++;
         if(demo)this.playEvent(this.manualInstrument,event,time);
-        draw(()=>onStep?.({...event,eventIndex,cycle:current,duration:Tone.Time(event.dur??'16n').toSeconds()}),time);
+        draw(()=>onStep?.({...event,eventIndex,cycle:current,duration:Tone.Time(event.dur??'16n').toSeconds()*(event.gate??1)}),time);
       },'1m',`${startTick}i`);
     }
     if(accompaniment){
@@ -772,6 +779,7 @@ export class AudioEngine {
     const plan=this.composition.planBar(bar,root,this.compositionOptions());
     if(this.genreTransition&&bar>=this.genreTransition.startBar+this.genreTransition.durationBars)this.genreTransition=null;
     const scheduled={time,root,bar,plan};
+    this.applyPerformance(plan,time);
     this.scheduledBars.set(bar,scheduled);
     for(const index of this.scheduledBars.keys())if(index<bar-1)this.scheduledBars.delete(index);
     const version=this.playbackVersion;
@@ -813,7 +821,7 @@ export class AudioEngine {
     if (name === this.manualInstrument && this.manualAutoplay) {
       const version = this.manualAutoplayVersion;
       Tone.Draw.schedule(() => {
-        if ((!scheduled||this.scheduledBars.get(scheduled.bar)===scheduled)&&root===this.playbackRoot && this.manualAutoplay && version === this.manualAutoplayVersion && name === this.manualInstrument) this.onManualAutoplayEvent?.({...event, duration:Tone.Time(event.dur??'16n').toSeconds()});
+        if ((!scheduled||this.scheduledBars.get(scheduled.bar)===scheduled)&&root===this.playbackRoot && this.manualAutoplay && version === this.manualAutoplayVersion && name === this.manualInstrument) this.onManualAutoplayEvent?.({...event, duration:Tone.Time(event.dur??'16n').toSeconds()*(event.gate??1)});
       }, time+(Tone.Draw.anticipation??.008)+.001);
     }
     const velocity = event.velocity ?? 0.55;
@@ -831,8 +839,18 @@ export class AudioEngine {
     }
     notes.forEach((note, index) => {
       const strumOffset = STRING_INSTRUMENTS[name] ? index * (name==='ukulele'?.012:.016) : 0;
-      sampler.triggerAttackRelease(note, event.dur, time + strumOffset, velocity * (1 - index * 0.04));
+      sampler.triggerAttackRelease(note, Tone.Time(event.dur).toSeconds()*(event.gate??1), time + strumOffset, velocity * (1 - index * 0.04));
     });
+  }
+
+  applyPerformance(plan,time) {
+    for(const [name,settings] of Object.entries(plan.movement.performance)){
+      const frequency=this.nodes[name]?.tone?.frequency;
+      if(!frequency)continue;
+      // Replanning replaces automation at the same boundary, including manual voices.
+      frequency.cancelAndHoldAtTime(time);
+      frequency.linearRampToValueAtTime(settings.cutoff,time+.12);
+    }
   }
 
   playSceneSound(type) {

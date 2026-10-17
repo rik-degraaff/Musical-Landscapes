@@ -1,5 +1,18 @@
 const clamp=(value,min=0,max=1)=>Math.max(min,Math.min(max,value));
 
+// One bounded colour per instrument per movement, independent of per-note noise.
+export function movementPerformance(style,fromSeed,toSeed=fromSeed,mix=0) {
+  return Object.fromEntries(Object.entries(style.performance).map(([name,settings],index)=>{
+    const shade=seed=>(smoothNoise(index+.5,seed^0x71e3)-.5)*2;
+    const colour=shade(fromSeed)+(shade(toSeed)-shade(fromSeed))*mix;
+    return [name,{
+      cutoff:settings.cutoff*(1+colour*.035),
+      gate:Math.min(1,settings.gate*(1+colour*.025)),
+      accent:settings.accent*(1+colour*.025),
+    }];
+  }));
+}
+
 function lattice(seed,index) {
   let value=(seed|0)^Math.imul(index|0,0x45d9f3b);
   value=Math.imul(value^(value>>>16),0x45d9f3b);

@@ -15,4 +15,5 @@ Start with [README.md](README.md) for setup and [docs/architecture.md](docs/arch
 - Keep audio resource ownership and scheduling in the existing engine and shared transport. Release/cancel paths must not leave held notes or let stale sessions dispose newer resources.
 - Keep optional hints user-controlled and non-blocking. Time counts only in visible, focused landscape play outside dialogs; no hint opens itself.
 - Preserve authored, deterministic music behavior and the current scene-change downbeat boundary.
+- Keep genre tone and articulation in composition style data and movement plans. Bound within-genre colour below genre differences, blend at existing transitions, and route manual and sampled voices through the same owned tone path. Keep accents gentle for young children; do not add distortion or unbounded gain.
 - Select the smallest relevant checks from `docs/contributing.md`. Do not report historical gate results as current verification.

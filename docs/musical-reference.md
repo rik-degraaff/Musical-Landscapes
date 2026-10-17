@@ -14,6 +14,12 @@ Changing the landscape changes both the tonic and mode: Morning (Sunny Farm) **A
 
 ## Instrument sounds
 
+Jazz adds `brassCall` (Simple and above) and `brassRiff` (Standard and above): authored repeated chord tones, modest alternating accents, short gaps and a resolving answer. Trumpet is more likely to select them than the softer winds. Repeated contours retain their exact pitch through deterministic voicing; they do not gain random chromatic dissonance. Jazz eighth-note offbeats are delayed by .16 beats. Folk retains its straight pulse, open strums and lyrical phrases.
+
+Style data supplies per-instrument tone cutoff, note gate and accent depth. A gentle high-frequency shelf attenuates by up to 4 dB above its cutoff; it never boosts frequencies. Jazz gives trumpet a gently brighter edge and shorter articulation, with rounder piano/string comping and slightly more defined marimba/wind phrases. Folk stays close to the original open acoustic sound, with a softer trumpet. No distortion, resonance boost or extra mixer gain is added; authored velocities remain capped at .72. These are gentle phrasing/colour choices for young children, not harsh brass effects.
+
+The movement planner derives a stable per-instrument colour from its seed: cutoff varies by at most 3.5%, gate/accent by at most 2.5%, well below the genre differences. Colours crossfade at movement handoffs, and style settings interpolate throughout the existing eight-bar genre transition. `plan.movement.performance` exposes the applied settings; each event carries its gate so playback, autoplay cues and composition-derived practice durations agree. Tone filters affect both manual and sampled voices, while manual hold/release ownership stays unchanged. Bar-time automation ramps for 120 ms, is replaced on lookahead replans, and is canceled with pending playback. Drums retain their dry sampled signal path.
+
 All eight instruments play recorded samples through Tone.js Sampler:
 
 - **Piano**: sampled acoustic grand piano with natural hammer attacks and resonant decays.

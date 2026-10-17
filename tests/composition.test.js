@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Composition,compositionProfile,phraseMotifs} from '../src/utils/composition.js';
 import {COMPOSITION_PHRASES,COMPOSITION_PROGRESSIONS,PHRASE_TRANSITIONS} from '../src/data/compositionPhrases.js';
-import {COMPOSITION_STYLES} from '../src/data/compositionStyles.js';
+import {COMPOSITION_STYLES,blendCompositionStyles} from '../src/data/compositionStyles.js';
+import {movementPerformance} from '../src/utils/movementPlanner.js';
 import {INSTRUMENTS} from '../src/utils/music.js';
 import {equippedProfile} from '../src/utils/difficulty.js';
 import {STRING_INSTRUMENTS} from '../src/utils/guitar.js';
@@ -12,6 +13,66 @@ import {PIANO_NOTES,MARIMBA_NOTES,PANFLUTE_NOTES} from '../src/utils/performance
 
 const roots=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B','C#m','Am','Fm','Db'];
 const names=Object.keys(INSTRUMENTS);
+
+test('Jazz brass repeats exact playable pitches with gentle accents at every supported tier and key',()=>{
+  for(const root of roots)for(const complexity of [.35,1,1.5]){
+    const pool=compositionProfile('melody',root,{genre:'jazz',complexity});
+    for(const phrase of pool.filter(value=>['brassCall','brassRiff'].includes(value.name))){
+      assertPlayable('melody',root,complexity,phrase);
+      assert.equal(phrase.events[0].note,phrase.events[1].note);
+      assert.ok(phrase.events[0].velocity>phrase.events[1].velocity);
+      assert.ok(phrase.events.every(event=>event.velocity<=.72&&event.gate===.7));
+    }
+    assert.ok(pool.some(phrase=>phrase.name==='brassCall'));
+    assert.equal(pool.some(phrase=>phrase.name==='brassRiff'),complexity>.5);
+  }
+  const composer=new Composition({random:random(31)});
+  const seen=new Set();
+  for(let bar=0;bar<120;bar++)seen.add(composer.planBar(bar,'C',{genre:'jazz',active:['melody','piano','drums']}).phrases.melody.name);
+  assert.ok(seen.has('brassCall'));assert.ok(seen.has('brassRiff'));
+});
+
+test('movement colour is stable inside movements, bounded below genre contrast and replayable at handoffs',()=>{
+  for(const genre of ['folk','jazz']){
+    const style=COMPOSITION_STYLES[genre];
+    const composer=new Composition({random:random(21)});
+    let previous;
+    const colours=new Set();
+    for(let bar=0;bar<100;bar++){
+      const plan=composer.planBar(bar,'Am',{genre,active:names});
+      colours.add(plan.movement.performance.melody.cutoff);
+      if(previous&&previous.movement.startBar===plan.movement.startBar&&!previous.movement.transitionFrom&&!plan.movement.transitionFrom)assert.deepEqual(plan.movement.performance,previous.movement.performance);
+      for(const [name,settings] of Object.entries(plan.movement.performance)){
+        const base=style.performance[name];
+        assert.ok(Math.abs(settings.cutoff/base.cutoff-1)<=.035001);
+        assert.ok(Math.abs(settings.gate/base.gate-1)<=.025001);
+        assert.ok(Math.abs(settings.accent/base.accent-1)<=.025001);
+        assert.ok(plan.phrases[name].events.every(event=>event.gate===settings.gate&&event.velocity<=.72));
+      }
+      if(plan.movement.transitionFrom){
+        composer.invalidateFrom(bar);
+        assert.deepEqual(composer.planBar(bar,'Am',{genre,active:names}),plan);
+      }
+      previous=plan;
+    }
+    assert.ok(colours.size>2);
+  }
+});
+
+test('tone, gate and accents interpolate through genre and movement transitions',()=>{
+  for(const [from,to] of [['folk','jazz'],['jazz','folk']]){
+    for(const mix of [0,.125,.5,.875,1]){
+      const blended=blendCompositionStyles(from,to,mix);
+      for(const name of Object.keys(blended.performance))for(const key of ['cutoff','gate','accent']){
+        const first=COMPOSITION_STYLES[from].performance[name][key],last=COMPOSITION_STYLES[to].performance[name][key];
+        assert.ok(Math.abs(blended.performance[name][key]-(first+(last-first)*mix))<1e-9);
+      }
+    }
+  }
+  const first=movementPerformance(COMPOSITION_STYLES.jazz,7919),last=movementPerformance(COMPOSITION_STYLES.jazz,15838);
+  const halfway=movementPerformance(COMPOSITION_STYLES.jazz,7919,15838,.5);
+  for(const name of Object.keys(first))for(const key of ['cutoff','gate','accent'])assert.ok(Math.abs(halfway[name][key]-(first[name][key]+last[name][key])/2)<1e-9);
+});
 function random(seed=13) {return ()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};}
 function assertPlayable(name,root,complexity,phrase,chord) {
   const profile=equippedProfile(name,root,{complexity});

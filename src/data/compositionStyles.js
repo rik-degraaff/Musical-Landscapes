@@ -9,6 +9,8 @@ const jazzPhrases={
     authoredMotif('lockedHands',2,.82,.88,[[0,[0,2],.5],[.5,[1,2],.5],[1.5,[0,2],.5],[2,[1,2],.5],[3,[0,2],.5],[3.5,[1,2],.5]],[.05,-.04,.03,-.05,.04,-.06]),
   ],
   melody:[
+    {...authoredMotif('brassCall',0,.48,.3,[[0,[0],1],[1,[0],1],[2,[0],1],[3,[2],1]],[.1,-.07,.08,-.06]),repeatContour:true,instrumentWeights:{melody:4,flute:.5,panflute:.5}},
+    {...authoredMotif('brassRiff',1,.72,.64,[[0,[1],.5],[.5,[1],.5],[1.5,[1],.5],[2,[2],.5],[2.5,[2],.5],[3.5,[0],.5]],[.1,-.08,.08,.06,-.07,-.04]),repeatContour:true,instrumentWeights:{melody:5,flute:.5,panflute:.5}},
     authoredMotif('blueAnswer',0,.28,.22,[[0,[2],2],[2,[1],2]],[.02,-.04]),
     authoredMotif('blueQuestion',1,.58,.54,[[0,[0],1],[1,[2],.5],[1.5,[3],.5],[2,[2],1],[3,[0],1]],[.04,-.02,.03,-.04,.01]),
     authoredMotif('bluesTurn',1,.65,.64,[[0,[2],.5],[.5,[1],.5],[1,[0],1],[2,[2],.5],[2.5,[3],.5],[3,[1],1]],[.03,-.03,.04,-.04,.02,-.05]),
@@ -51,9 +53,9 @@ const folkIdeas={
 };
 
 const jazzIdeas={
-  blueNote:{accompaniment:['held','shellComp'],melody:['answer','blueAnswer','blueQuestion','octaveEcho','question'],rhythm:['heartbeat','brushPulse','rideSwing']},
-  comp:{accompaniment:['pulse','shellComp','swingComp','latinComp'],melody:['arch','blueAnswer','octaveEcho','question'],rhythm:['walking','brushPulse','rideSwing']},
-  turnaround:{accompaniment:['offbeat','swingComp','latinComp'],melody:['turn','bluesTurn','tagEnding','ornament'],rhythm:['shuffle','brushShuffle','stopTime']},
+  blueNote:{accompaniment:['held','shellComp'],melody:['answer','blueAnswer','blueQuestion','octaveEcho','question','brassCall'],rhythm:['heartbeat','brushPulse','rideSwing']},
+  comp:{accompaniment:['pulse','shellComp','swingComp','latinComp'],melody:['arch','blueAnswer','octaveEcho','question','brassCall','brassRiff'],rhythm:['walking','brushPulse','rideSwing']},
+  turnaround:{accompaniment:['offbeat','swingComp','latinComp'],melody:['turn','bluesTurn','tagEnding','ornament','brassRiff'],rhythm:['shuffle','brushShuffle','stopTime']},
   bebop:{accompaniment:['broken','rolling','lift','stride','lockedHands'],melody:['cascade','ornament','bebopRun','tagEnding'],rhythm:['backbeat','fill','celebrate','jazzRide','stopTime']},
 };
 
@@ -89,6 +91,10 @@ export const COMPOSITION_STYLES={
     coordination:{sharedIdeaBias:.28,callResponseBias:.18,responseMotifs:['answer']},
     movementControls:{shapeVariation:.09,lengthVariation:2,ideaCountVariation:1,melodicSimilarity:[.36,.58,.82],transitionBars:2,ideaOverlap:.16,ideaPhaseVariation:.035,ideaStickiness:2.7,ideaContinuity:3.6,ideaHoldWeight:.12,anchorStickiness:5},accompanimentStickiness:7,
     swing:0,variation:{maxToneStep:.18,registerSemitones:2},
+    performance:{
+      piano:{cutoff:12000,gate:1,accent:1},guitar:{cutoff:12000,gate:1,accent:1},ukulele:{cutoff:12000,gate:1,accent:1},
+      melody:{cutoff:6200,gate:1,accent:1},marimba:{cutoff:12000,gate:1,accent:1},flute:{cutoff:12000,gate:1,accent:1},panflute:{cutoff:12000,gate:1,accent:1},
+    },
   },
   jazz:{
     id:'jazz',label:'Jazz',phrases:jazzPhrases,ideas:jazzIdeas,progressions:jazzProgressions,
@@ -100,6 +106,7 @@ export const COMPOSITION_STYLES={
     ],
     movementNoise:.055,noiseScale:7.5,familyWeights:{blueNote:1.15,comp:1.2,turnaround:1,bebop:.8},
     motifTransitions:{
+      brassCall:{brassCall:5,brassRiff:4,blueAnswer:4,blueQuestion:2},brassRiff:{brassRiff:4,brassCall:3,blueAnswer:4,bluesTurn:3},
       shellComp:{shellComp:5,swingComp:4,stride:1},swingComp:{shellComp:3,swingComp:4,stride:2},stride:{shellComp:5,swingComp:3,stride:1},
       blueAnswer:{blueAnswer:4,blueQuestion:4,bluesTurn:2,bebopRun:1,octaveEcho:3,tagEnding:1},blueQuestion:{blueAnswer:5,blueQuestion:2,bluesTurn:4,bebopRun:2,octaveEcho:2,tagEnding:1},bluesTurn:{blueAnswer:4,blueQuestion:3,bluesTurn:2,bebopRun:3,octaveEcho:1,tagEnding:3},bebopRun:{blueAnswer:5,blueQuestion:2,bluesTurn:3,bebopRun:1,octaveEcho:2,tagEnding:2},
       rideSwing:{rideSwing:5,brushShuffle:3,jazzRide:2},brushShuffle:{rideSwing:4,brushShuffle:4,jazzRide:2},jazzRide:{rideSwing:5,brushShuffle:3,jazzRide:1},
@@ -107,7 +114,11 @@ export const COMPOSITION_STYLES={
     roleTension:{melody:1.2,accompaniment:.82,rhythm:1.05},
     coordination:{sharedIdeaBias:.42,callResponseBias:.56,responseMotifs:['answer','blueAnswer','blueQuestion']},
     movementControls:{shapeVariation:.15,lengthVariation:2,ideaCountVariation:1,melodicSimilarity:[.12,.38,.66],transitionBars:2,ideaOverlap:.24,ideaPhaseVariation:.07,ideaStickiness:1.8,ideaContinuity:2.4,ideaHoldWeight:.1,anchorStickiness:3},accompanimentStickiness:4.8,
-    swing:.12,variation:{maxToneStep:.42,registerSemitones:4},
+    swing:.16,variation:{maxToneStep:.42,registerSemitones:4},
+    performance:{
+      piano:{cutoff:6800,gate:.72,accent:1.3},guitar:{cutoff:7200,gate:.8,accent:1.2},ukulele:{cutoff:7600,gate:.8,accent:1.2},
+      melody:{cutoff:9500,gate:.7,accent:1.25},marimba:{cutoff:8500,gate:.8,accent:1.2},flute:{cutoff:8000,gate:.82,accent:1.15},panflute:{cutoff:8500,gate:.82,accent:1.15},
+    },
   },
 };
 
@@ -122,7 +133,7 @@ export function compositionStyle(genre='folk') {
 const lerp=(from,to,mix)=>from+(to-from)*mix;
 const blendMap=(from={},to={},mix)=>Object.fromEntries(Array.from(new Set([...Object.keys(from),...Object.keys(to)]),key=>[key,lerp(from[key]??0,to[key]??0,mix)]));
 
-export function blendCompositionStyles(fromGenre,toGenre,mix) {
+export function blendCompositionStyles(fromGenre,toGenre,mix,fromPerformance) {
   const from=compositionStyle(fromGenre),to=compositionStyle(toGenre);
   const amount=Math.max(0,Math.min(1,mix));
   if(fromGenre===toGenre)return from;
@@ -149,6 +160,7 @@ export function blendCompositionStyles(fromGenre,toGenre,mix) {
     movementControls:{shapeVariation:lerp(from.movementControls.shapeVariation,to.movementControls.shapeVariation,amount),lengthVariation:Math.round(lerp(from.movementControls.lengthVariation,to.movementControls.lengthVariation,amount)),ideaCountVariation:Math.round(lerp(from.movementControls.ideaCountVariation,to.movementControls.ideaCountVariation,amount)),melodicSimilarity:from.movementControls.melodicSimilarity.map((value,index)=>lerp(value,to.movementControls.melodicSimilarity[index],amount)),transitionBars:Math.max(1,Math.round(lerp(from.movementControls.transitionBars,to.movementControls.transitionBars,amount))),ideaOverlap:lerp(from.movementControls.ideaOverlap,to.movementControls.ideaOverlap,amount),ideaPhaseVariation:lerp(from.movementControls.ideaPhaseVariation,to.movementControls.ideaPhaseVariation,amount),ideaStickiness:lerp(from.movementControls.ideaStickiness,to.movementControls.ideaStickiness,amount),anchorStickiness:lerp(from.movementControls.anchorStickiness,to.movementControls.anchorStickiness,amount)},
     accompanimentStickiness:lerp(from.accompanimentStickiness,to.accompanimentStickiness,amount),
     swing:lerp(from.swing,to.swing,amount),variation:{maxToneStep:lerp(from.variation.maxToneStep,to.variation.maxToneStep,amount),registerSemitones:lerp(from.variation.registerSemitones,to.variation.registerSemitones,amount)},
+    performance:Object.fromEntries(Object.keys(from.performance).map(name=>[name,blendMap((fromPerformance??from.performance)[name],to.performance[name],amount)])),
   };
   style.movementControls.ideaContinuity=lerp(from.movementControls.ideaContinuity,to.movementControls.ideaContinuity,amount);
   style.movementControls.ideaHoldWeight=lerp(from.movementControls.ideaHoldWeight,to.movementControls.ideaHoldWeight,amount);
