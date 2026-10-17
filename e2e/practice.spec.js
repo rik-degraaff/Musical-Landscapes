@@ -158,7 +158,7 @@ test('all eight instruments guide playable notes and fit the practice surface',a
 
 test('outside taps interrupt the entry gesture and keyboard entry contains focus until Escape',async({page})=>{
   await start(page);const box=await page.locator('#young-musician').boundingBox();const point={x:box.x+box.width/2,y:box.y+box.height*.2};
-  await page.mouse.click(point.x,point.y);await page.mouse.click(40,40);await page.mouse.click(point.x,point.y);
+  await page.mouse.click(point.x,point.y);await page.locator('.instrument:not(.equipped-instrument)').first().click();await page.mouse.click(point.x,point.y);
   await expect(page.locator('.practice-room')).toHaveCount(0);
   await page.locator('#young-musician').focus();await page.keyboard.press('Enter');await expect(page.locator('.practice-room')).toBeVisible();
   await expect(page.getByRole('combobox',{name:'Practice instrument'})).toBeFocused();await page.keyboard.press('Shift+Tab');

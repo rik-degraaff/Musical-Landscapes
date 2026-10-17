@@ -6,6 +6,7 @@ async function savedChildren(page){return page.evaluate(()=>JSON.parse(localStor
 async function expectNoChild(page){expect((await savedChildren(page)).children).toEqual([]);expect(await page.evaluate(()=>localStorage.getItem('farmjam-parent-guide-v1'))).toBe(null);}
 async function nameStep(page){await page.getByRole('button',{name:'Add child',exact:true}).click();await next(page);}
 async function openInstallation(page){await page.getByRole('button',{name:/^Settings/}).click();await page.getByRole('tab',{name:/^Guides/}).click();await page.getByRole('button',{name:'Read install and prepare your device',exact:true}).click();await expect(page.getByRole('dialog',{name:'Install and prepare your device',exact:true})).toBeVisible();}
+async function guidePage(page,index){await page.getByRole('combobox',{name:'Choose a guide page',exact:true}).selectOption(String(index));}
 
 test('short setup saves age-aware settings only when the child is added',async({page})=>{
   await start(page);const play=page.getByRole('button',{name:'Tap to play'});await expect(play).toBeDisabled();
@@ -56,13 +57,13 @@ for(const [level,complexity] of [['Standard',1],['Advanced',1.5]])test(`parent s
 
 test('optional guides preserve feature, practice and shared-play explanations without saving a child',async({page})=>{
   await start(page);await nameStep(page);await page.getByRole('textbox',{name:'Child name'}).fill('Draft');await next(page);await next(page);await next(page);
-  for(const [title,phrases] of [
-    ['Play an instrument',['Tap a landscape instrument','Drag an instrument','Choose another phrase']],
-    ['Explore the landscape',['Tap the sun or moon','metronome','Double-tap the top-right']],
-    ['Visit the practice room',['Listen','Learn','Rhythm','Together','duration is not scored']],
-    ['Play together',['take turns leading','Pause when attention or enjoyment fades','off screen']]
+  for(const [title,pages] of [
+    ['Play an instrument',[[0,['Tap an instrument in the landscape']],[1,['Drag an instrument']],[3,['Choose another phrase']]]],
+    ['Explore the landscape',[[0,['Tap the sun or moon','current bar']],[2,['metronome','weight up to slow']]]],
+    ['Use the practice room',[[1,['instrument and phrase selectors','Listen, Learn, Rhythm or Together']],[4,['hold duration is not scored']]]],
+    ['Play together',[[0,['take turns leading','Pause when attention or enjoyment fades','off screen']]]]
   ]){
-    await page.getByRole('button',{name:`Read ${title.toLowerCase()}`,exact:true}).click();const reader=page.getByRole('dialog',{name:title,exact:true});await expect(reader).toBeVisible();for(const phrase of phrases)await expect(reader).toContainText(phrase);await page.keyboard.press('Escape');await expect(page.getByRole('heading',{name:'Ready to explore',exact:true})).toBeVisible();await expectNoChild(page);
+    await page.getByRole('button',{name:`Read ${title.toLowerCase()}`,exact:true}).click();const reader=page.getByRole('dialog',{name:title,exact:true});await expect(reader).toBeVisible();for(const [index,phrases] of pages){await guidePage(page,index);for(const phrase of phrases)await expect(reader).toContainText(phrase);}await page.keyboard.press('Escape');await expect(page.getByRole('heading',{name:'Ready to explore',exact:true})).toBeVisible();await expectNoChild(page);
   }
 });
 
@@ -74,9 +75,10 @@ test('installed display mode suppresses reinstallation and keeps restriction gui
   await start(page);await openInstallation(page);
   await expect(page.getByText(/already running as an installed app/)).toBeVisible();
   await expect(page.getByRole('button',{name:'Install FarmJam',exact:true})).toHaveCount(0);
+  await guidePage(page,2);
   await expect(page.locator('.parent-restriction-steps')).not.toBeEmpty();
-  await expect(page.getByRole('heading',{name:'Keep your child in the app',exact:true})).toBeVisible();
-  await expect(page.getByText(/FarmJam cannot enable device restrictions/)).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Set up device restrictions',exact:true})).toBeVisible();
+  await expect(page.getByText(/caregiver must set up device restrictions/)).toBeVisible();
 });
 
 test('optional browser install prompt handles dismissal, failure and completion',async({page})=>{
@@ -89,15 +91,15 @@ test('optional browser install prompt handles dismissal, failure and completion'
       window.dispatchEvent(event);
     },outcome);
     await page.getByRole('button',{name:'Install FarmJam',exact:true}).click();
-    await expect(page.getByRole('dialog',{name:'Install and prepare your device',exact:true}).getByRole('status')).toContainText(outcome==='dismissed'?'keep playing in the browser':outcome==='failure'?'Use the browser menu':'Installation requested');
-    await expect(page.getByRole('dialog',{name:'Install and prepare your device',exact:true})).toContainText('Installation and fullscreen do not prevent leaving');
+    await expect(page.locator('.guide-device-instructions').getByRole('status')).toContainText(outcome==='dismissed'?'keep playing in the browser':outcome==='failure'?'Use the browser menu':'Installation requested');
+    await guidePage(page,2);await expect(page.getByRole('dialog',{name:'Install and prepare your device',exact:true})).toContainText('Installation and fullscreen do not prevent leaving');await guidePage(page,0);
     await expect(page.getByRole('button',{name:'Install FarmJam',exact:true})).toHaveCount(0);
   }
   await page.evaluate(()=>window.dispatchEvent(new Event('appinstalled')));
   await expect(page.getByText(/already running as an installed app/)).toBeVisible();
-  await expect(page.getByRole('dialog',{name:'Install and prepare your device',exact:true}).getByRole('status')).toContainText('FarmJam is installed.');
-  await expect(page.getByRole('dialog',{name:'Install and prepare your device',exact:true}).getByRole('status')).not.toContainText('pin its icon');
-  await expect(page.locator('.parent-restriction-steps')).not.toBeEmpty();
+  await expect(page.locator('.guide-device-instructions').getByRole('status')).toContainText('FarmJam is installed.');
+  await expect(page.locator('.guide-device-instructions').getByRole('status')).not.toContainText('pin its icon');
+  await guidePage(page,2);await expect(page.locator('.parent-restriction-steps')).not.toBeEmpty();
 });
 
 for(const [label,userAgent,title,expected] of [
@@ -115,14 +117,16 @@ for(const [label,userAgent,title,expected] of [
   await start(page);await openInstallation(page);
   if(testInfo.project.use.viewport)await page.setViewportSize(testInfo.project.use.viewport);
   const content=page.getByRole('dialog',{name:'Install and prepare your device',exact:true}).locator('.parent-guide-content');
-  await expect(page.getByRole('heading',{name:'Install FarmJam',exact:true})).toBeVisible();
-  await expect(content).toContainText('Installation and fullscreen do not prevent leaving FarmJam');
-  await expect(page.locator('.parent-restriction-steps')).toContainText(expected);
-  await expect(page.getByRole('heading',{name:'Keep your child in the app',exact:true})).toBeVisible();
-  await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Add FarmJam to your device',exact:true})).toBeVisible();
   await expect(page.getByRole('link',{name:`Official installation help for ${label}`,exact:true})).toHaveAttribute('href',/^https:\/\/(support\.|learn\.)/);
-  const links=content.getByRole('link');
-  expect(await links.count()).toBe(['macOS','Linux','Your device'].includes(label)?2:3);
+  const installLink=page.getByRole('link',{name:`Official installation help for ${label}`,exact:true});
+  await expect(installLink).toHaveAttribute('target','_blank');await expect(installLink).toHaveAttribute('rel','noopener noreferrer');
+  await guidePage(page,1);await expect(content).toContainText('check offline readiness');await expect(content).toContainText('not a backup');await expect(content.getByRole('link')).toHaveCount(0);
+  await guidePage(page,2);await expect(content).toContainText('Installation and fullscreen do not prevent leaving FarmJam');
+  await expect(page.locator('.parent-restriction-steps')).toContainText(expected);
+  await expect(page.getByRole('heading',{name:'Set up device restrictions',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();
+  const links=content.getByRole('link');expect(await links.count()).toBe(['macOS','Linux','Your device'].includes(label)?1:2);
   for(const link of await links.all()){
     await expect(link).toHaveAttribute('target','_blank');
     await expect(link).toHaveAttribute('rel','noopener noreferrer');

@@ -283,8 +283,9 @@ for (const phase of ['play', 'guide', 'menu-settings', 'menu-guides', 'activatio
         if (menuGuides) {
           const reader = page.getByRole('dialog', { name: 'Play an instrument', exact: true });
           await expect(reader).toBeVisible();
-          await reader.getByRole('button', { name: 'Show me', exact: true }).click();
-          await expect(reader.locator('.is-demonstrating')).toHaveCount(1);
+          await reader.getByRole('button', { name: 'Next', exact: true }).click();
+          await expect(reader.locator('[data-guide-page="equip"]')).toBeVisible();
+          await expect(reader.locator('.guide-art-equip .instrument-illustration')).toHaveCount(1);
         } else {
           await expect(page.getByRole('tab', { name: 'Caregiver', exact: true })).toHaveAttribute('aria-selected','true');
         }

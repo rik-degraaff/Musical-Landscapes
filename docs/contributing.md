@@ -6,7 +6,7 @@ Use Node.js 22 and the committed npm lockfile. From the repository root, install
 
 - Source changes: run the relevant Node tests with `npm test` (or `node --test tests/<area>.test.js`) and `npm run build` as appropriate.
 - Browser behavior: choose the smallest relevant Playwright file first. `npm run test:e2e:smoke` covers core lifecycle, practice, string voicing, children, and settings on desktop and compact landscape touch.
-- Setup, guides and discovery: `node --test tests/learning.test.js tests/caregiverHelp.test.js tests/parentGuide.test.js` and `npx playwright test e2e/learning.spec.js e2e/parent-guide.spec.js --project=desktop --project=phone-landscape`. Use `page.clock` for active-time rules instead of waiting several real minutes.
+- Setup, guides and discovery: `node --test tests/learning.test.js tests/caregiverHelp.test.js tests/parentGuide.test.js` and `npx playwright test e2e/learning.spec.js e2e/parent-guide.spec.js e2e/guide-overhaul.spec.js --project=desktop --project=phone-landscape`. Use `page.clock` for active-time rules instead of waiting several real minutes.
 - Visual editor: use `npm run test:editor`.
 - Release gate: `npm run test:e2e:release` runs desktop and compact landscape touch. `npm run test:production` builds and checks the production service worker and offline behavior. `npm run test:e2e` additionally includes portrait emulation.
 

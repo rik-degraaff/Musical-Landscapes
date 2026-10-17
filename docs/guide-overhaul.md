@@ -19,3 +19,17 @@ Both identified missing practice-room orientation, duplicated help/guide paragra
 ## Validation
 
 Check guide navigation and explicit read revisions, early close without completion, parent hint controls and migration, live target geometry after resize, multiple-stage progression, uninterrupted input/audio, reduced motion, keyboard focus and short-screen containment. Re-run affected profile/help/practice/editor checks and build. Record actual results here; previous validation is not evidence for this revision.
+
+
+### Run evidence, 16–17 October 2026
+
+- `npm test`: 329 passed. Production build passed; the existing large JavaScript chunk warning remains.
+- Guide/setup/help/coaching browser batch: 82 passed across desktop and compact landscape touch. Final focused sky-position, reduced-motion, practice Ready and practice-entry/Learn checks: 12 passed after the last caption-placement change.
+- Production offline/update suite: 14 passed. After the last caption change and rebuild, the offline reload and guide-update slice passed again on both production projects (4 cases).
+- Visual-editor browser checks: 22 passed, 4 intentional skips.
+- Practice/settings/metronome regression batch: 38 passed, 2 failed initially. One fixture clicked fixed coordinates now occupied by Help; it now clicks a visible instrument instead. The other failure was a compact startup timeout during parallel validation. Both affected cases passed on both layouts in the final focused run; the startup timeout did not reproduce.
+- Desktop and compact screenshots were inspected. Local review artifacts are in ignored `artifacts.local/guide-overhaul/`.
+
+Early runs exposed and led to fixes for nested Escape handling, premature coaching completion, practice overlay stacking, caption overlap, string swipe direction, rejected input completing hints, and keyboard access to coach controls. These checks ran against the working tree with the pre-existing audio/metronome edits preserved and excluded from the overhaul commits.
+
+This is Chromium automation and source review, not a family usability study or real iPad/Safari validation. The neutral model comparisons inform the page design but do not establish which presentation children and caregivers will actually prefer.
