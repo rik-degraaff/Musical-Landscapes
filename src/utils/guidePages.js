@@ -27,7 +27,7 @@ export const GUIDE_PAGES={
       'Each landscape changes the musical key. The band finishes the current bar before the change, so its parts stay together.'
     ],{kind:'sun',gesture:'tap'},{new:'A key is a group of notes that gives the music its home sound.',some:'Changing key shifts the notes and can change the mood.',confident:'The scenes change both the tonic and mode at the next downbeat.'}),
     page('weather','Change the musical style',[
-      'Tap a cloud to switch between Folk and Jazz. Pale, sparse clouds show Folk; the denser blue-gray clouds show Jazz.',
+      'Tap a cloud to cycle through Folk, Jazz and Rock. Pale, sparse clouds show Folk; denser blue-gray clouds show Jazz; warm peach clouds show Rock.',
       'Keep listening as the music changes gradually. The band continues playing through the change.'
     ],{kind:'weather',gesture:'tap'}),
     page('tempo','Change the beat',[

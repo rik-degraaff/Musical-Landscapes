@@ -82,6 +82,23 @@ for(const root of roots)for(const complexity of [.35,1,1.5])test(`practice motif
   }
 });
 
+test('practice caches each genre separately and includes its tiered motifs after the original exercises',()=>{
+  for(const name of names)for(const complexity of [.35,1,1.5]){
+    const legacy=equippedProfile(name,'Am',{complexity});
+    const profiles=['folk','jazz','rock'].map(genre=>practiceProfile(name,'Am',{complexity,genre}));
+    assert.equal(new Set(profiles).size,3);
+    for(const [index,genre] of ['folk','jazz','rock'].entries()){
+      const profile=profiles[index];
+      assert.equal(practiceProfile(name,'Am',{complexity,genre}),profile);
+      assert.deepEqual(profile.phrases.slice(0,legacy.phrases.length),legacy.phrases);
+      const expected=compositionProfile(name,'Am',{complexity,genre});
+      assert.deepEqual(profile.phrases.slice(legacy.phrases.length,legacy.phrases.length+expected.length),expected);
+    }
+    assert.ok(profiles[2].phrases.some(phrase=>phrase.name?.startsWith('rock')));
+    assert.ok(!profiles[0].phrases.some(phrase=>phrase.name?.startsWith('rock')));
+  }
+});
+
 test('practice defaults match Standard and role, degree and optional melody pools have separate cache identities',()=>{
   const options={complexity:.75,noteLabels:false,playbackNotes:false};
   const before=structuredClone(options);

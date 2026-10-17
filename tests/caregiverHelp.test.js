@@ -34,7 +34,7 @@ test('each help topic explains its own concepts at all three familiarity levels'
   assert.match(menu.items.find(([title])=>title==='Settings and guides')[1],/Caregiver tab/);
   assert.match(menu.items.find(([title])=>title==='Settings and guides')[1],/separate Guides tab/);
   const landscape=caregiverHelp('landscape','some');
-  assert.match(landscape.items.find(([title])=>title==='Choose a musical style')[1],/clouds.*Folk and Jazz/);
+  assert.match(landscape.items.find(([title])=>title==='Choose a musical style')[1],/clouds.*Folk, Jazz and Rock/);
   assert.match(landscape.items.find(([title])=>title==='Use the metronome')[1],/up to slow.*down to speed.*pause/i);
   assert.match(landscape.items.find(([title])=>title==='Open Settings')[1],/Double-tap/);
   assert.match(caregiverHelp('practice','new').note,/not a duration score/);

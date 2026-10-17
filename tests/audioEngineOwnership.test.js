@@ -710,6 +710,7 @@ test('reversing genre during a blend starts tone and articulation from the curre
   const halfway=blendCompositionStyles('folk','jazz',.5).performance;
   engine.setGenre('folk');assert.deepEqual(engine.genreTransition.fromPerformance,halfway);
   engine.setGenre('jazz');assert.deepEqual(engine.genreTransition.fromPerformance,halfway);
+  engine.setGenre('rock');assert.deepEqual(engine.genreTransition.fromPerformance,halfway);
   const plan=engine.composition.planBar(6,'C',engine.compositionOptions());
   assert.equal(plan.genreBlend,0);
   assert.ok(Math.abs(plan.movement.performance.melody.cutoff/halfway.melody.cutoff-1)<.035);

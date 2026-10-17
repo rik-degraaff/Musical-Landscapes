@@ -60,7 +60,7 @@ test('genre tone reaches the shared live graph and sampled brass stays gently bo
     const {COMPOSITION_STYLES}=await import('/src/data/compositionStyles.js');
     const buffer=engine.nodes.melody.buffers.C4.get();
     const measurements={};
-    for(const genre of ['folk','jazz']){
+    for(const genre of ['folk','jazz','rock']){
       const context=new OfflineAudioContext(1,buffer.sampleRate,buffer.sampleRate);
       const source=context.createBufferSource();source.buffer=buffer;
       const tone=context.createBiquadFilter();tone.type=engine.nodes.melody.tone.type;
@@ -77,13 +77,58 @@ test('genre tone reaches the shared live graph and sampled brass stays gently bo
     }
     return {measurements,gate:engine.harmonyPlan.movement.performance.melody.gate,drumsDry:engine.nodes.drums.tone===null};
   });
-  const {folk,jazz}=result.measurements;
+  const {folk,jazz,rock}=result.measurements;
   expect(folk.rms).toBeGreaterThan(.001);expect(jazz.rms).toBeGreaterThan(.001);
   expect(jazz.edge).toBeGreaterThan(folk.edge);
   expect(jazz.rms/folk.rms).toBeLessThan(1.35);
   expect(jazz.peak).toBeLessThan(.8);
+  expect(rock.rms).toBeGreaterThan(.001);expect(rock.rms/folk.rms).toBeLessThan(1.35);
+  expect(rock.peak).toBeLessThan(.8);
+  expect(rock.edge).toBeGreaterThan(folk.edge);expect(rock.edge).toBeLessThan(jazz.edge);
   expect(result.gate).toBeGreaterThan(.68);expect(result.gate).toBeLessThan(.72);
   expect(result.drumsDry).toBe(true);
+});
+
+test('clouds cycle into gentle Rock, keep it across landscapes, and return to Folk',async({page},testInfo)=>{
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await start(page);
+  await page.evaluate(()=>{for(const name of ['piano','ukulele','drums','melody'])window.audioEngine.setInstrumentActive(name,true);});
+  const clouds=page.getByRole('button',{name:'Change music weather',exact:true});
+  await clouds.focus();await page.keyboard.press('Enter');
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.genre)).toBe('jazz');
+  await page.keyboard.press('Space');
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.genre)).toBe('rock');
+  await expect.poll(()=>page.evaluate(()=>{
+    const plan=window.audioEngine.harmonyPlan;
+    return plan?.genre==='rock'&&plan.genreBlend===1;
+  }),{timeout:20000}).toBe(true);
+  await expect.poll(()=>page.evaluate(()=>{
+    const engine=window.audioEngine;
+    return Math.abs(engine.nodes.ukulele.tone.frequency.value-engine.harmonyPlan.movement.performance.ukulele.cutoff);
+  })).toBeLessThan(1);
+  await expect(clouds).toHaveAttribute('fill','rgb(248 204 166)');
+  await page.screenshot({path:testInfo.outputPath('rock-landscape.png')});
+  await page.locator('#young-musician').focus();await page.keyboard.press('Enter');
+  await expect(page.getByRole('dialog',{name:'Farm practice room'})).toBeVisible();
+  await page.getByRole('combobox',{name:'Practice instrument'}).selectOption('drums');
+  const phrases=page.getByRole('combobox',{name:'Practice phrase'});
+  const rockIndex=await phrases.locator('option').evaluateAll(options=>options.find(option=>option.textContent.startsWith('RockBackbeat'))?.value);
+  expect(rockIndex).toBeDefined();await phrases.selectOption(rockIndex);
+  await page.getByRole('button',{name:'Start repeating',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.practiceRun!==null)).toBe(true);
+  await page.getByRole('button',{name:'Leave practice through the open door',exact:true}).click();
+  await expect(page.locator('.practice-room')).toHaveCount(0);
+  for(const scene of ['garden','pond','dusk','night','late-night','dawn','farm']){
+    await page.getByRole('button',{name:'Change landscape',exact:true}).click();
+    await expect(page.locator(`.scene-${scene}`)).toBeVisible();
+    await expect(clouds).toHaveAttribute('fill','rgb(248 204 166)');
+    expect(await page.evaluate(()=>window.audioEngine.genre)).toBe('rock');
+  }
+  await clouds.focus();await page.keyboard.press('Enter');
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.genre)).toBe('folk');
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.harmonyPlan?.genre),{timeout:10000}).toBe('folk');
+  expect(errors).toEqual([]);
 });
 
 async function simple(page,name) {

@@ -665,7 +665,7 @@ export class AudioEngine {
       const partners=this.manualInstrument==='drums'?['piano','ukulele']:['drums',this.manualInstrument==='piano'?'ukulele':'piano'];
       for(const name of partners){
         this.nodes[name].gain.volume.value=this.volumes[name]-6;
-        const pool=compositionProfile(name,this.root,{role:name==='drums'?'rhythm':'accompaniment',degree:name==='drums'?0:phrase.degree??0});
+        const pool=compositionProfile(name,this.root,{role:name==='drums'?'rhythm':'accompaniment',degree:name==='drums'?0:phrase.degree??0,genre:this.genre});
         let phraseIndex=0;
         repeat(time=>{
           const selected=pool[phraseIndex];

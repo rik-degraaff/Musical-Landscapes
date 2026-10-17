@@ -44,7 +44,7 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
   const cueTimer=useRef(null);
   const room=useRef(null);
   const options={...settings.instruments[name],noteLabels:true,playbackNotes:true,fingeringCharts:true};
-  const profile=practiceProfile(name,root,options);
+  const profile=practiceProfile(name,root,{...options,genre:audio?.genre??'folk'});
   const phrase=profile.phrases[Math.min(phraseIndex,profile.phrases.length-1)];
   const steps=learningSteps(phrase);
   state.current={name,stage,step,steps,phrase,running,complete};

@@ -5,6 +5,7 @@ import {CloudShape,CelestialArtwork} from './SkyArt';
 const cloudWeather={
   folk:{color:[255,253,242],opacity:[.5,.7,0],scale:[.82,.9,.78]},
   jazz:{color:[164,188,202],opacity:[.92,.98,.88],scale:[1,1.08,1.02]},
+  rock:{color:[248,204,166],opacity:[.85,.92,.72],scale:[.94,1,.92]},
 };
 
 function blendColor(from,to,amount) {

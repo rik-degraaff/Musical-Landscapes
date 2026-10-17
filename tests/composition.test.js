@@ -33,7 +33,7 @@ test('Jazz brass repeats exact playable pitches with gentle accents at every sup
 });
 
 test('movement colour is stable inside movements, bounded below genre contrast and replayable at handoffs',()=>{
-  for(const genre of ['folk','jazz']){
+  for(const genre of Object.keys(COMPOSITION_STYLES)){
     const style=COMPOSITION_STYLES[genre];
     const composer=new Composition({random:random(21)});
     let previous;
@@ -60,7 +60,7 @@ test('movement colour is stable inside movements, bounded below genre contrast a
 });
 
 test('tone, gate and accents interpolate through genre and movement transitions',()=>{
-  for(const [from,to] of [['folk','jazz'],['jazz','folk']]){
+  for(const from of Object.keys(COMPOSITION_STYLES))for(const to of Object.keys(COMPOSITION_STYLES).filter(genre=>genre!==from)){
     for(const mix of [0,.125,.5,.875,1]){
       const blended=blendCompositionStyles(from,to,mix);
       for(const name of Object.keys(blended.performance))for(const key of ['cutoff','gate','accent']){
@@ -201,7 +201,7 @@ test('both genres reuse the original phrase vocabulary and add distinct varied m
 });
 
 test('all genre-specific phrase variants remain playable at each instrument tier',()=>{
-  for(const genre of ['folk','jazz'])for(const root of ['C','Am'])for(const complexity of [.35,1,1.5]){
+  for(const genre of Object.keys(COMPOSITION_STYLES))for(const root of roots)for(const complexity of [.35,1,1.5]){
     for(const name of names){
       const roles=name==='drums'?['rhythm']:['melody',...( ['piano','guitar','ukulele'].includes(name)?['accompaniment']:[])];
       for(const role of roles){
@@ -284,6 +284,49 @@ test('Jazz adds its own movement shapes, idea families, progressions, swing and 
   }
   assert.ok(['shellComp','blueAnswer','rideSwing','jazzRide'].some(name=>seen.has(name)));
   assert.ok(COMPOSITION_STYLES.jazz.progressions.some(progression=>progression.name.startsWith('jazz')));
+});
+
+test('Rock supplies straight, gentle hooks and backbeats across scene keys and deterministic movements',()=>{
+  const style=COMPOSITION_STYLES.rock;
+  const strum=compositionProfile('guitar','C',{genre:'rock',complexity:.35}).find(phrase=>phrase.name==='rockStrum');
+  assert.ok(strum);assert.equal(strum.events.length,4);
+  const beat=compositionProfile('drums','C',{genre:'rock',complexity:.35}).find(phrase=>phrase.name==='rockBackbeat');
+  assert.deepEqual(beat.events.map(event=>event.note),['kick','snare','kick','snare']);
+  for(const root of roots){
+    const hook=compositionProfile('melody',root,{genre:'rock',complexity:.35}).find(phrase=>phrase.name==='rockHook');
+    assert.ok(hook);assert.equal(hook.events[0].note,hook.events[1].note);
+  }
+  for(const root of ['A','E','C#m','Am','Fm','Db']){
+    const composer=new Composition({random:random(31)}),replay=new Composition({random:random(31)});
+    const options={genre:'rock',active:names};
+    const seen=new Set(),progressions=new Set(),movements=new Set();
+    for(let bar=0;bar<100;bar++){
+      const plan=composer.planBar(bar,root,options);
+      assert.deepEqual(plan,replay.planBar(bar,root,options));
+      progressions.add(plan.progression);movements.add(plan.movement.startBar);
+      assert.ok(Object.values(plan.roles).filter(role=>role==='accompaniment').length<=2);
+      for(const [name,phrase] of Object.entries(plan.phrases)){
+        seen.add(phrase.name);
+        assertPlayable(name,root,1.5,phrase,name==='drums'?undefined:plan.currentChord);
+        assert.ok(phrase.events.every(event=>event.swingOffset===0&&event.velocity<=.72));
+      }
+    }
+    for(const role of ['accompaniment','melody','rhythm'])assert.ok(style.phrases[role].some(phrase=>seen.has(phrase.name)),`${root} plays Rock ${role}`);
+    assert.ok([...progressions].some(name=>name.startsWith('rock')));
+    assert.ok(movements.size>=3);
+  }
+});
+
+test('Rock transitions blend and replay between every genre without leaving playable harmony',()=>{
+  for(const [from,to] of [['folk','rock'],['jazz','rock'],['rock','folk'],['rock','jazz']]){
+    const composer=new Composition({random:random(41)});
+    const options={active:names,genre:to,genreTransition:{from,to,startBar:2,durationBars:8}};
+    const plans=Array.from({length:16},(_,bar)=>composer.planBar(bar,'Am',options));
+    assert.equal(plans[2].genreBlend,0);assert.equal(plans[6].genreBlend,.5);assert.equal(plans[10].genreBlend,1);
+    for(const plan of plans)for(const [name,phrase] of Object.entries(plan.phrases))assertPlayable(name,'Am',1.5,phrase,name==='drums'?undefined:plan.currentChord);
+    composer.invalidateFrom(10);
+    for(let bar=10;bar<16;bar++)assert.deepEqual(composer.planBar(bar,'Am',options),plans[bar]);
+  }
 });
 
 test('genre constraints blend linearly from the next planned bar and replay from checkpoints',()=>{

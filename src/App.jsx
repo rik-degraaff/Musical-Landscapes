@@ -5,6 +5,7 @@ import { Mixer } from './components/Mixer';
 import { StartScreen } from './components/StartScreen';
 import { Scene, SCENES } from './scenes/Scene';
 import { AudioEngine } from './audio/AudioEngine';
+import {GENRE_OPTIONS} from './data/compositionStyles';
 import {SettingsButton} from './components/GameButtons';
 import { YoungMusician } from './components/YoungMusician';
 import { PerformancePanel } from './components/PerformancePanel';
@@ -415,7 +416,7 @@ export default function App({developmentPreview}={}) {
 
   return <main className={`app-shell ${equipped?'manual-open':''}`}>
     <div className="landscape-world" ref={worldRef} inert={mixer||Boolean(practice)}>
-    <Scene sceneIndex={sceneIndex} playing={started} audio={audioRef.current} genre={audibleGenre} genreTransition={weatherTransition} onGenreChange={()=>changeGenre(genre==='folk'?'jazz':'folk')} onRotate={rotateScene} onCelestialSettled={()=>{if(started)for(const name of Object.keys(INSTRUMENTS))settle(name);}}/>
+    <Scene sceneIndex={sceneIndex} playing={started} audio={audioRef.current} genre={audibleGenre} genreTransition={weatherTransition} onGenreChange={()=>changeGenre(GENRE_OPTIONS[(GENRE_OPTIONS.findIndex(option=>option.id===genre)+1)%GENRE_OPTIONS.length].id)} onRotate={rotateScene} onCelestialSettled={()=>{if(started)for(const name of Object.keys(INSTRUMENTS))settle(name);}}/>
     {started&&<YoungMusician child={selectedChild} equipped={equipped?INSTRUMENTS[equipped].label:null} accepting={nearChild} onPractice={enterPractice}/>}
     <div className="instrument-layer">
       {settings.selected.map(name=>{const i=instruments[name];return <Instrument key={name} name={name} label={i.label} x={i.x} y={i.y} active={i.active} equipped={equipped===name} sliding={dragging!==name} onEquip={()=>equip(name)} onToggle={toggle}

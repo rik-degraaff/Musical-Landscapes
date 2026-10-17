@@ -11,7 +11,7 @@ export function practiceProfile(name,root,options={}) {
   const level=difficultyLevel(options);
   const role=options.role??(name==='drums'?'rhythm':chordInstruments.includes(name)?'accompaniment':'melody');
   const includeMelody=options.includeMelody!==false&&role==='accompaniment'&&chordInstruments.includes(name);
-  const key=JSON.stringify([name,root,level,role,includeMelody,options.degree===undefined?'all':options.degree]);
+  const key=JSON.stringify([name,root,level,role,includeMelody,options.degree===undefined?'all':options.degree,options.genre??'folk']);
   if(profileCache.has(key)){
     const profile=profileCache.get(key);
     profileCache.delete(key);profileCache.set(key,profile);

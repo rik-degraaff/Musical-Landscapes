@@ -23,6 +23,8 @@ Instrument and display preferences are saved for each child. Caregiver familiari
 
 ## Guides and help
 
+Tap a sky cloud during play to cycle through **Folk → Jazz → Rock → Folk**. Pale clouds show Folk, blue-gray clouds show Jazz, and peach clouds show Rock. Rock brings a bouncy acoustic strum, repeating tunes and a steady backbeat with gentle accents. Style changes blend gradually while the band keeps playing.
+
 Guides are optional reference material, organized into short task pages. Use Back, Next or the page selector to jump freely. The practice guide covers the room controls and all four stages. Opening or paging through a guide does not mark it as read; **Mark as read** is an explicit choice on the final page. New or unread guides have badges in the menu. Guide revisions can make previously read material appear new again.
 
 Choose **Show gesture** to watch an example and **Replay gesture** to see it again. Examples use the game's own controls, start with Simple layouts, and offer a Slower speed. Instrument and practice examples can also preview the selected child's saved controls without changing their preferences. Guitar and ukulele examples show holding a chord before sweeping the strings. The practice pages demonstrate each stage separately, including count-in, highlighted actions, progress, accompanying instruments, and the stop/repeat/restart/leave controls. All examples are silent and cannot operate the game.

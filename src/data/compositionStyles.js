@@ -45,6 +45,37 @@ const folkPhrases={
   ],
 };
 
+// Acoustic, straight-ahead rock: clear backbeats and little hooks, without extra gain.
+const rockPhrases={
+  accompaniment:[
+    authoredMotif('rockStrum',0,.48,.28,[[0,[0,2],1],[1,[0,2],1],[2,[0,2],1],[3,[0,2],1]],[.04,-.03,.03,-.03]),
+    authoredMotif('rockBounce',1,.62,.52,[[0,[0,2],.5],[1,[0,2],.5],[1.5,[1,2],.5],[2,[0,2],.5],[3,[0,2],.5],[3.5,[1,2],.5]],[.04,-.03,-.04,.03,-.03,-.04]),
+    authoredMotif('rockLift',2,.72,.72,[[0,[0,2],.5],[.5,[1],.5],[1,[0,2],.5],[1.5,[2],.5],[2,[0,2],.5],[2.5,[1],.5],[3,[0,2],1]],[.04,-.04,-.02,-.04,.03,-.04,-.02]),
+  ],
+  melody:[
+    {...authoredMotif('rockHook',0,.46,.24,[[0,[0],1],[1,[0],1],[2,[2],1],[3,[0],1]],[.04,-.03,.03,-.04]),repeatContour:true},
+    {...authoredMotif('rockEcho',1,.6,.5,[[0,[0],.5],[.5,[0],.5],[1,[2],1],[2,[1],.5],[2.5,[1],.5],[3,[0],1]],[.04,-.04,.02,.03,-.04,-.03]),repeatContour:true},
+    authoredMotif('rockClimb',2,.7,.7,[[0,[0],.5],[.5,[1],.5],[1,[2],1],[2,[2],.5],[2.5,[1],.5],[3,[0],1]],[.03,-.03,.04,-.03,-.04,-.03]),
+  ],
+  rhythm:[
+    authoredMotif('rockBackbeat',0,.48,.25,[[0,'kick',1],[1,'snare',1],[2,'kick',1],[3,'snare',1]],[.03,.01,.02,.01]),
+    authoredMotif('rockHat',1,.6,.5,[[0,'kick',.5],[.5,'hat',.5],[1,'snare',.5],[1.5,'hat',.5],[2,'kick',.5],[2.5,'hat',.5],[3,'snare',.5],[3.5,'hat',.5]],[.03,-.07,.01,-.07,.02,-.07,.01,-.07]),
+    authoredMotif('rockTomTurn',2,.68,.72,[[0,'kick',.5],[.5,'hat',.5],[1,'snare',.5],[1.5,'hat',.5],[2,'kick',.5],[2.5,'tom',.5],[3,'snare',.5],[3.5,'tom',.5]],[.03,-.07,.01,-.07,.02,-.04,.01,-.05]),
+  ],
+};
+
+const rockIdeas={
+  littleVerse:{accompaniment:['rockStrum','pulse'],melody:['rockHook','answer'],rhythm:['rockBackbeat','heartbeat']},
+  bigChorus:{accompaniment:['rockStrum','rockBounce'],melody:['rockHook','rockEcho'],rhythm:['rockBackbeat','rockHat']},
+  playfulBridge:{accompaniment:['rockBounce','rockLift','broken'],melody:['rockEcho','rockClimb','arch'],rhythm:['rockHat','rockTomTurn']},
+};
+
+const rockProgressions=[
+  {name:'rockHome',degrees:[0,4,3,0],modes:['major','minor'],tension:.35,transitions:{rockHome:4,rockSingalong:3,rockReturn:3}},
+  {name:'rockSingalong',degrees:[0,4,5,3],modes:['major','minor'],tension:.5,transitions:{rockHome:4,rockSingalong:3,rockReturn:2}},
+  {name:'rockReturn',degrees:[0,0,3,3,0,4,3,0],modes:['major','minor'],tension:.42,transitions:{rockHome:4,rockSingalong:3,rockReturn:2}},
+];
+
 const folkIdeas={
   openAir:{accompaniment:['held','pulse','drone'],melody:['answer','refrain'],rhythm:['heartbeat','stomp']},
   walking:{accompaniment:['broken','strum'],melody:['arch','skip'],rhythm:['walking','clog']},
@@ -118,6 +149,28 @@ export const COMPOSITION_STYLES={
     performance:{
       piano:{cutoff:6800,gate:.72,accent:1.3},guitar:{cutoff:7200,gate:.8,accent:1.2},ukulele:{cutoff:7600,gate:.8,accent:1.2},
       melody:{cutoff:9500,gate:.7,accent:1.25},marimba:{cutoff:8500,gate:.8,accent:1.2},flute:{cutoff:8000,gate:.82,accent:1.15},panflute:{cutoff:8500,gate:.82,accent:1.15},
+    },
+  },
+  rock:{
+    id:'rock',label:'Rock',phrases:rockPhrases,ideas:rockIdeas,progressions:rockProgressions,
+    progressionWeights:{rockHome:1.4,rockSingalong:1.2,rockReturn:1.1,home:.5,journey:.5,song:.6},harmonyTensionBias:1.15,
+    movementShapes:[
+      {name:'verse-chorus',length:16,points:[.3,.38,.62,.72,.4,.48,.76,.38],ideaCount:2,sections:['verse','chorus','verse','chorus-out']},
+      {name:'singalong',length:24,points:[.26,.38,.58,.72,.42,.54,.76,.64,.32],ideaCount:3,sections:['intro','verse','chorus','bridge','chorus-out']},
+    ],
+    movementNoise:.04,noiseScale:7,familyWeights:{littleVerse:1.1,bigChorus:1.3,playfulBridge:.75},
+    motifTransitions:{
+      rockStrum:{rockStrum:5,rockBounce:3,pulse:1},rockBounce:{rockStrum:4,rockBounce:4,rockLift:2},rockLift:{rockStrum:5,rockBounce:3,rockLift:1},
+      rockHook:{rockHook:5,rockEcho:3,answer:1},rockEcho:{rockHook:5,rockEcho:3,rockClimb:2},rockClimb:{rockHook:5,rockEcho:3,rockClimb:1},
+      rockBackbeat:{rockBackbeat:5,rockHat:3},rockHat:{rockBackbeat:4,rockHat:5,rockTomTurn:1},rockTomTurn:{rockBackbeat:5,rockHat:4,rockTomTurn:1},
+    },
+    roleTension:{melody:1,accompaniment:1,rhythm:1.05},
+    coordination:{sharedIdeaBias:.65,callResponseBias:.25,responseMotifs:['answer','rockEcho']},
+    movementControls:{shapeVariation:.07,lengthVariation:2,ideaCountVariation:1,melodicSimilarity:[.6,.76,.9],transitionBars:2,ideaOverlap:.18,ideaPhaseVariation:.03,ideaStickiness:3.2,ideaContinuity:4,ideaHoldWeight:.15,anchorStickiness:6},accompanimentStickiness:8,
+    swing:0,variation:{maxToneStep:.12,registerSemitones:1.5},
+    performance:{
+      piano:{cutoff:10000,gate:.88,accent:1.12},guitar:{cutoff:10000,gate:.88,accent:1.12},ukulele:{cutoff:10000,gate:.88,accent:1.12},
+      melody:{cutoff:7600,gate:.88,accent:1.12},marimba:{cutoff:10000,gate:.9,accent:1.1},flute:{cutoff:10000,gate:.9,accent:1.08},panflute:{cutoff:10000,gate:.9,accent:1.08},
     },
   },
 };
