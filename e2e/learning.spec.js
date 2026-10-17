@@ -1,6 +1,8 @@
 import {test,expect} from '@playwright/test';
+import {GUIDES} from '../src/utils/learning.js';
 
 const key='farmjam-learning-v1';
+const guideVersions=Object.fromEntries(GUIDES.map(guide=>[guide.id,guide.version]));
 async function seed(page,{age='5to7',progress={enabled:true,seconds:0,hints:{}},guides={}}={}) {
   await page.addInitScript(({age,progress,guides,key})=>{
     if(localStorage.getItem('farmjam-children-v1')!==null)return;
@@ -50,16 +52,16 @@ test('guide opening is not completion and explicit read status survives reload',
   await expect(page.getByRole('button',{name:'Mark as read',exact:true})).toHaveCount(0);
   await lastGuidePage(page);await page.getByRole('button',{name:'Mark as read',exact:true}).click();
   await expect(page.getByRole('dialog',{name:'Play an instrument',exact:true})).toBeVisible();
-  await expect.poll(async()=>((await state(page))?.guides.instruments)).toBe(2);
+  await expect.poll(async()=>((await state(page))?.guides.instruments)).toBe(guideVersions.instruments);
   await page.reload();await settings(page);await page.getByRole('tab',{name:/^Guides/}).click();
   await expect(card).toContainText('Read');await expect(card).not.toContainText('Unread');
 });
 
 test('updated guide revisions show New without changing other read guides',async({page})=>{
-  await seed(page,{guides:{instruments:2,landscape:2}});
+  await seed(page,{guides:{instruments:guideVersions.instruments,landscape:guideVersions.landscape}});
   await page.route('**/src/utils/learning.js*',async route=>{
     const response=await route.fetch();const source=await response.text();
-    const body=source.replace(/(id:\s*["']instruments["'],\s*version:\s*)2/,(_match,prefix)=>`${prefix}3`);
+    const body=source.replace(/(id:\s*["']instruments["'],\s*version:\s*)\d+/,(_match,prefix)=>`${prefix}${guideVersions.instruments+1}`);
     expect(body===source,'guide revision should be changed by the test fixture').toBe(false);await route.fulfill({response,body});
   });
   await visit(page);await settings(page);await page.getByRole('tab',{name:/^Guides/}).click();
@@ -189,5 +191,5 @@ test('failed learning reads preserve sibling progress until retry and save failu
   await expect(page.locator('.save-status')).toBeVisible();
   await page.evaluate(()=>{window.learningWriteBlocked=false;});await page.getByRole('button',{name:'Retry saving',exact:true}).click();
   await expect(page.locator('.save-status')).toHaveCount(0);
-  const saved=await state(page);expect(saved.guides).toMatchObject({instruments:2,landscape:1});
+  const saved=await state(page);expect(saved.guides).toMatchObject({instruments:guideVersions.instruments,landscape:1});
 });

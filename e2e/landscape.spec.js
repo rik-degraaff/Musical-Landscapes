@@ -164,6 +164,8 @@ test('audio resumes after suspension, mixer settings persist and reduced motion 
 test('every object is reachable, audible and animates repeatedly in all seven scenes', async ({ page }, testInfo) => {
   const errors = await startWorld(page);
   for (let sceneIndex = 0; sceneIndex < objects.length; sceneIndex++) {
+    // Scene placement updates throughout the sun/moon transition.
+    await expect(page.locator('.celestial-control')).toHaveAttribute('data-settled', 'true');
     for (const label of objects[sceneIndex]) {
       const object = page.getByRole('button', { name: label, exact: true });
       await tap(object, testInfo);

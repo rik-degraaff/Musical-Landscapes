@@ -204,6 +204,7 @@ test('caregiver menu and unsaved dialog permit zoom events and pinch through eve
   expect(viewport).not.toMatch(/maximum-scale|user-scalable\s*=\s*(no|0)/);
   expect((await zoomEvents(page, '.start-button')).every(event => !event.prevented)).toBe(true);
   await expectPinchAncestry(page, '.start-button');
+  await expectPinchAncestry(page, '.child-choice');
   await page.getByRole('button', { name: 'Add child', exact: true }).click();
   expect((await zoomEvents(page, '.parent-guide-close')).every(event => !event.prevented)).toBe(true);
   await expectPinchAncestry(page, '.parent-guide-close');

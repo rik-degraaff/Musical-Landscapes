@@ -37,7 +37,7 @@ async function publish(page,name,{unavailable=false,root}={}) {
     const profile=equippedProfile(name,root??window.audioEngine.playbackRoot,options);
     const chord=profile.chords[0]??{name:'Next harmony',degree:0,tones:[...new Set(profile.notes.slice(0,3).map(note=>noteMidi(note)%12))]};
     const nextChord=unavailable?{name:'Unavailable',degree:99,tones:chord.tones}:chord;
-    const plan={bar:7,root:root??window.audioEngine.playbackRoot,currentChord:chord,nextChord,roles:{},phrases:{}};
+    const plan={bar:7,root:root??window.audioEngine.playbackRoot,genre:window.audioEngine.genre,currentChord:chord,nextChord,roles:{},phrases:{}};
     window.publishHarmony(plan);
     return plan;
   },{name,unavailable,root});
