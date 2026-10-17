@@ -1,6 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {Lightbulb} from 'lucide-react';
-import {GestureHand} from './GestureHand';
+import {GesturePointer} from './GesturePointer';
+import {gestureFrame} from '../utils/gestures';
 import './live-coach.css';
 import {INSTRUMENTS} from '../utils/music';
 
@@ -22,7 +23,7 @@ export function LearningHint({hint,instruments,equipped,practice,suspended,onCom
   if(hint.id==='equip') {
     if(!equipped){step='drag';selector=`#instrument-${instrument}`;endSelector='#young-musician';}
     else {
-      step=stringed&&phase===0?'chord':'play';gesture=stringed&&phase>0?'swipe':'tap';
+      step=stringed&&phase===0?'chord':'play';gesture=stringed?(phase>0?'swipe':'hold'):['drums','marimba'].includes(instrument)?'tap':'hold';
       selector=stringed?(phase===0?'.performance-panel .chord-control':'.performance-panel .playable-string'):'.performance-panel .natural-key, .performance-panel .drum-pad, .performance-panel .panflute-pipe, .performance-panel .flute-key-Eb, .performance-panel .trumpet-embouchure';
       text=stringed?(phase===0?'Hold a chord here.':'Keep holding the chord and sweep across the strings.'):instrument==='drums'?'Tap this drum.':instrument==='marimba'?'Tap this bar.':instrument==='flute'?'Hold this key to play a note.':instrument==='melody'?'Hold the lip control to blow a note.':'Hold this key or pipe to play a note.';
     }
@@ -44,11 +45,9 @@ export function LearningHint({hint,instruments,equipped,practice,suspended,onCom
       if(!visible||!box||box.width===0||box.height===0){setFrame(null);}
       else {
         const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const cycle=((performance.now()-began)%3000)/3000;
-        const travel=reduced?0:Math.min(1,Math.max(0,(cycle-.2)/.5));
         const x=box.left+box.width*(board?.85:.5),y=board?board.top+8:box.top+box.height/2;
-        const pressed=gesture==='double-tap'?(cycle>.2&&cycle<.3)||(cycle>.4&&cycle<.5):cycle>.2&&cycle<.7;
-        setFrame({x:destination?x+(destination.left+destination.width/2-x)*travel:x,y:destination?y+(destination.top+destination.height/2-y)*travel:y+(board?travel*(board.height-16):0),pressed:reduced||pressed,end:destination?{x:destination.left+destination.width/2,y:destination.top+destination.height/2}:board?{x,y:board.bottom-8}:null,start:{x,y},captionBottom:box.top<100,captionY:practice?Math.min(window.innerHeight-80,document.querySelector('.practice-control-dock')?.getBoundingClientRect().top??80):undefined,reduced});
+        const start={x,y},end=destination?{x:destination.left+destination.width/2,y:destination.top+destination.height/2}:board?{x,y:board.bottom-8}:null;
+        setFrame({...gestureFrame({gesture,elapsed:performance.now()-began,from:start,to:end??start,reduced}),end,start,captionBottom:box.top<100,captionY:practice?Math.min(window.innerHeight-80,document.querySelector('.practice-control-dock')?.getBoundingClientRect().top??80):undefined,reduced});
       }
       request=requestAnimationFrame(animate);
     };request=requestAnimationFrame(animate);
@@ -90,7 +89,7 @@ export function LearningHint({hint,instruments,equipped,practice,suspended,onCom
   },[hint.id,step,suspended,onComplete,stringed]);
   if(suspended)return null;
   return <div className={`live-coach ${practice?'coach-in-practice':''}`} data-hint={hint.id} data-step={step}>
-    {frame&&<><div className="coach-hand" style={{left:frame.x,top:frame.y}}><GestureHand pose={frame.pressed?'pressed':'point'}/></div>{frame.reduced&&frame.end&&<svg className="coach-route" aria-hidden="true"><path d={`M${frame.start.x},${frame.start.y} L${frame.end.x},${frame.end.y}`}/><circle cx={frame.end.x} cy={frame.end.y} r="12"/></svg>}</>}
+    {frame&&<><GesturePointer frame={frame} className="coach-hand"/>{frame.reduced&&frame.end&&<svg className="coach-route" aria-hidden="true"><path d={`M${frame.start.x},${frame.start.y} L${frame.end.x},${frame.end.y}`}/><circle cx={frame.end.x} cy={frame.end.y} r="12"/></svg>}</>}
     <div className="coach-caption" style={practice?{top:frame?.captionY??80}:frame?.captionBottom?{top:'auto',bottom:8}:undefined}><p role="status">{text}</p><button onClick={()=>setReplay(value=>value+1)}>Replay gesture</button><button onClick={onClose}>Stop hint</button></div>
   </div>;
 }

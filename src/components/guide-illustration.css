@@ -13,7 +13,7 @@
 .guide-profile-card { position:absolute;left:40%;right:5%;top:25%;display:grid;gap:8px;font-size:11px; }
 .guide-profile-card strong { font-size:17px; }.guide-profile-instruments { display:flex;height:40px;gap:4px; }
 .guide-profile-instruments > svg { width:44px; }
-.guide-art-profile.guide-gesture-double-tap .guide-pointer { left:16%;top:38%; }
+
 .guide-together-first { left:17%;width:66px; }.guide-together-second { left:65%;width:66px; }
 .guide-together-instrument { position:absolute;left:38%;top:25%;width:80px;height:85px; }
 .guide-together-turn { position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:11px;font-weight:800; }
@@ -67,36 +67,12 @@
 .guide-setting-detail { display:block;margin-top:10px; }.guide-display-options { display:grid;gap:8px;padding-top:7px; }
 .guide-slot-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;margin-top:5px; }.guide-slot { height:52px;display:grid;grid-template-rows:35px auto;justify-items:center;align-items:center;border:1px solid #9fbea8;border-radius:4px;background:#ecf7e9;font-size:8px; }.guide-slot > svg { width:52px!important;height:35px!important; }.guide-caregiver-settings { display:grid;gap:8px;margin-top:10px;font-size:10px; }
 .guide-settings-preview > label { display:flex;align-items:center;justify-content:space-between;gap:8px;margin:11px 0; }.guide-setting-slider { position:relative;display:block;width:45%;height:5px;background:#8aa891;border-radius:5px; }.guide-setting-slider i { position:absolute;top:-4px;left:65%;width:12px;height:12px;border:2px solid #376249;border-radius:50%;background:#e7f1cf; }
-.guide-art-settings.guide-gesture-double-tap .guide-settings-preview { opacity:.4; }.guide-settings-open { position:absolute;top:28%;left:29%; }.guide-settings-open button { display:flex;align-items:center;gap:8px;min-height:42px;border:1px solid #578676;border-radius:6px;padding:8px 12px;background:#fffdf0;color:#245d52;font:inherit;font-size:14px;font-weight:700; }.guide-art-settings.guide-gesture-double-tap .guide-pointer { left:41%;top:43%; }.guide-art-settings.guide-gesture-double-tap .guide-contact-label { left:60%;top:43%; }
-.guide-pointer { position:absolute;left:49%;top:40%;width:56px;height:65px;z-index:8;transform-origin:35% 10%;pointer-events:none; }
-.guide-illustration .gesture-hand { position:absolute;inset:0;width:56px;height:65px;fill:#f5d7b4;stroke:#5b4736;stroke-width:2.7;stroke-linejoin:round;filter:drop-shadow(1px 3px 1px #385a4433); }
-.guide-illustration .hand-crease { fill:none;stroke-width:1.8;stroke-linecap:round; }.guide-illustration .hand-contact { fill:none;stroke:#9b4937;stroke-width:2; }
-.guide-hand-contact { opacity:0; }
-.guide-contact-ring { position:absolute;left:9px;top:-4px;width:25px;height:11px;border:2px solid #9b4937;border-radius:50%;opacity:0; }
-.guide-art-equip .guide-pointer { left:17%;top:40%; }.guide-art-weather .guide-pointer { left:38%;top:43%; }.guide-art-metronome .guide-pointer { left:48%;top:42%; }
-.guide-art-band .guide-pointer { left:calc(5% + 16px);top:28%; }
-.guide-motion-route { position:absolute;inset:0;z-index:5;overflow:visible;pointer-events:none; }.guide-motion-route path { fill:none;stroke:#9b4937;stroke-width:2;stroke-linecap:round;stroke-dasharray:4 5; }.guide-motion-route path+path { stroke-dasharray:none; }
-.guide-motion-cue { position:absolute;display:grid;place-items:center;width:19px;height:19px;border-radius:50%;background:#fff8df;border:1px solid #94552c;font-size:11px;font-weight:900;z-index:6; }.guide-start { left:20%;top:48%; }.guide-end { left:73%;top:45%; }
-.guide-gesture-tempo .guide-start { left:55%;top:72%; }.guide-gesture-tempo .guide-end { left:55%;top:16%; }.guide-gesture-swipe .guide-start { left:22%;top:40%; }.guide-gesture-swipe .guide-end { left:77%;top:40%; }
+.guide-art-settings.guide-gesture-double-tap .guide-settings-preview { opacity:.4; }.guide-settings-open { position:absolute;top:28%;left:29%; }.guide-settings-open button { display:flex;align-items:center;gap:8px;min-height:42px;border:1px solid #578676;border-radius:6px;padding:8px 12px;background:#fffdf0;color:#245d52;font:inherit;font-size:14px;font-weight:700; }.guide-art-settings.guide-gesture-double-tap .guide-contact-label { left:60%;top:43%; }
+.guide-motion-route { position:absolute;inset:0;z-index:5;pointer-events:none; }
+.guide-motion-route path { fill:none;stroke:#9b4937;stroke-width:1.5;stroke-linecap:round;stroke-dasharray:3 3;vector-effect:non-scaling-stroke; }
+.guide-motion-cue { position:absolute;display:grid;place-items:center;width:19px;height:19px;border-radius:50%;background:#fff8df;border:1px solid #94552c;font-size:11px;font-weight:900;z-index:6;transform:translate(-130%,-120%); }
 .guide-contact-label { position:absolute;left:calc(49% - 18px);top:25%;padding:2px 5px;background:#fff5d5;border-radius:4px;font-size:12px;font-weight:900;z-index:7; }
-.guide-art-profile .guide-contact-label { left:13%;top:22%; }.guide-wind .guide-pointer { left:15%;top:45%; }.guide-wind .guide-second-pointer { left:66%;top:50%; }.guide-wind-label { position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:10px;font-weight:800; }
-.guide-illustration.is-demonstrating .guide-hand-ready { animation:guideReady 1.4s steps(1,end) 2; }.guide-illustration.is-demonstrating .guide-hand-contact,.guide-illustration.is-demonstrating .guide-contact-ring { animation:guideContact 1.4s steps(1,end) 2; }
-.guide-illustration.is-demonstrating.guide-gesture-double-tap .guide-hand-ready { animation-duration:.65s;animation-iteration-count:4; }.guide-illustration.is-demonstrating.guide-gesture-double-tap .guide-hand-contact,.guide-illustration.is-demonstrating.guide-gesture-double-tap .guide-contact-ring { animation-duration:.65s;animation-iteration-count:4; }
-.guide-illustration.is-demonstrating.guide-gesture-hold .guide-hand-ready { animation:guideHoldReady 3s steps(1,end) 2; }.guide-illustration.is-demonstrating.guide-gesture-hold .guide-hand-contact,.guide-illustration.is-demonstrating.guide-gesture-hold .guide-contact-ring { animation:guideHoldContact 3s steps(1,end) 2; }
-.guide-illustration.is-demonstrating.guide-gesture-drag .guide-pointer,.guide-illustration.is-demonstrating.guide-gesture-drag .guide-equip-source { animation:guideCarry 3s ease-in-out 2; }.guide-illustration.is-demonstrating.guide-gesture-drag .guide-hand-ready { animation:none; }
-.guide-illustration.is-demonstrating.guide-gesture-swipe .guide-pointer { animation:guideSweep 2.4s ease-in-out 2; }.guide-illustration.is-demonstrating.guide-gesture-tempo .guide-pointer { animation:guideWeightSlide 2.8s ease-in-out 2; }
-.guide-string-swipe .guide-pointer { left:calc(76% - 22px);top:24%; }
-.guide-string-swipe .guide-start { left:81%;top:21%; }.guide-string-swipe .guide-end { left:81%;top:66%; }
-.guide-illustration.is-demonstrating.guide-string-swipe .guide-pointer { animation:guideStrum 2.4s ease-in-out 2; }
-.guide-illustration.is-demonstrating.guide-gesture-tempo .guide-metronome-weight { animation:guideWeight 2.8s ease-in-out 2; }
-@keyframes guideReady { 0%,65%,100% { opacity:1; } 30% { opacity:0; } }
-@keyframes guideContact { 0%,65%,100% { opacity:0; } 30% { opacity:1; } }
-@keyframes guideHoldReady { 0%,90%,100% { opacity:1; } 15% { opacity:0; } }
-@keyframes guideHoldContact { 0%,90%,100% { opacity:0; } 15% { opacity:1; } }
-@keyframes guideCarry { 0%,12%,100% { transform:translateX(0); } 65%,84% { transform:translateX(130px); } }
-@keyframes guideSweep { 0%,10%,100% { transform:translateX(-70px); } 65%,85% { transform:translateX(65px); } }
-@keyframes guideStrum { 0%,10%,100% { transform:translateY(0); } 65%,85% { transform:translateY(65px); } }
-@keyframes guideWeightSlide { 0%,100% { transform:translateY(16px); } 45%,65% { transform:translateY(-30px); } }
-@keyframes guideWeight { 0%,100% { translate:0 10px; } 45%,65% { translate:0 -25px; } }
+.guide-art-profile .guide-contact-label { left:13%;top:22%; }
+.guide-wind-label { position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:10px;font-weight:800; }
 @media(max-height:550px) { .guide-illustration { height:150px; }.guide-illustration .guide-metronome-art { top:2px;width:88px;height:142px;left:calc(50% - 44px); }.guide-illustration .guide-room-metronome .guide-metronome-art { inset:0;width:100%;height:100%; } }
-@media(prefers-reduced-motion:reduce) { .guide-illustration * { animation:none!important;transition:none!important; }.guide-illustration .guide-hand-ready { opacity:0; }.guide-illustration .guide-hand-contact,.guide-illustration .guide-contact-ring { opacity:1; }.guide-gesture-drag .guide-hand-ready { opacity:1; }.guide-motion-cue { border-width:2px; } }
+@media(prefers-reduced-motion:reduce) { .guide-illustration * { animation:none!important;transition:none!important; }.guide-motion-cue { border-width:2px; } }

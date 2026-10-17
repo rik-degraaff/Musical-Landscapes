@@ -30,4 +30,8 @@ Persistence schemas and update safety are documented in [storage and updates](st
 
 ## Development visual editor
 
+## Gesture demonstrations
+
+`src/utils/gestures.js` owns the passive gesture timeline: tap, double tap, hold, drag, swipe, and tempo movement. Call `gestureFrame` with elapsed time, start/end coordinates, optional waypoints, duration, speed, reduced-motion preference, and repeat count. `GesturePointer` renders both hand poses and a brief contact burst with a shared fingertip anchor and shared styling. Guides measure their rendered controls; live hints measure the real play targets. Neither demonstration dispatches input or acquires audio resources. Movement maintains contact until arrival, releases at the destination, and fades before repeating. Reduced motion keeps static contact and route cues.
+
 The local-only visual editor previews real application components and saves validated visual overrides to `src/data/visual-overrides.json`. It does not replace source work for behavioral or audio changes. See [visual-editor.md](visual-editor.md).

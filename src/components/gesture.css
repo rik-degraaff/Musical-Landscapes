@@ -1,0 +1,10 @@
+.gesture-hand { display:block;fill:#f5d7b4;stroke:#5b4736;stroke-width:2.7;stroke-linejoin:round;stroke-linecap:round; }
+.gesture-hand .hand-crease { fill:none;stroke-width:1.8; }
+/* Both poses have their contact tip at (35,6) in the same 90 × 95 viewBox. */
+.gesture-pointer { position:absolute;width:58px;height:61.222px;transform:translate(-38.889%,-6.316%);pointer-events:none;z-index:8; }
+.gesture-pointer .gesture-hand { position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(1px 3px 1px #385a4444); }
+.gesture-pointer .gesture-contact { opacity:0; }
+.gesture-pointer[data-pressed="true"] .gesture-ready { opacity:0; }
+.gesture-pointer[data-pressed="true"] .gesture-contact { opacity:1; }
+.gesture-burst { position:absolute;left:38.889%;top:6.316%;width:42px;height:42px;overflow:visible;fill:none;stroke:#b56b31;stroke-width:2;stroke-linecap:round; }
+@media(prefers-reduced-motion:reduce) { .gesture-burst { display:none; } }
