@@ -17,3 +17,9 @@ Start with [README.md](README.md) for setup and [docs/architecture.md](docs/arch
 - Preserve authored, deterministic music behavior and the current scene-change downbeat boundary.
 - Keep genre tone and articulation in composition style data and movement plans. Bound within-genre colour below genre differences, blend at existing transitions, and route manual and sampled voices through the same owned tone path. Keep accents gentle for young children; do not add distortion or unbounded gain.
 - Select the smallest relevant checks from `docs/contributing.md`. Do not report historical gate results as current verification.
+
+## Efficient validation
+
+- Run each relevant check once. Repeat a passed check only when a later change affects its coverage or new evidence calls its result into question. Investigate failures, then rerun the failed cases before considering a broader gate.
+- When the user authorizes delegation, use a cheaper subagent for routine validation. Give it the exact remaining checks and existing results so it does not repeat completed work; have it report the outcome and evidence.
+- While delegated checks run, do independent work or wait for the report. Do not repeatedly poll logs, duplicate the checks, or launch competing browser runners. Record split runs and targeted retries accurately instead of claiming a clean full run.

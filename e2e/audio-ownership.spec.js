@@ -1,6 +1,8 @@
 import { test, expect } from './fixtures.js';
 
 async function prepare(page, options = {}) {
+  const size=page.viewportSize();
+  if(size.height>size.width)await page.setViewportSize({width:size.height,height:size.width});
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');

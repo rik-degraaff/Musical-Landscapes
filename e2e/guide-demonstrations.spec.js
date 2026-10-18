@@ -1,5 +1,10 @@
 import {test,expect} from '@playwright/test';
 
+test.beforeEach(async({page})=>{
+  const size=page.viewportSize();
+  if(size.height>size.width)await page.setViewportSize({width:size.height,height:size.width});
+});
+
 async function openGuide(page,name) {
   await page.addInitScript(()=>{
     localStorage.setItem('farmjam-children-v1',JSON.stringify({children:[{id:'alex',name:'Alex',age:'under3',settings:{instruments:{guitar:{complexity:1.5,fingeringCharts:true}}}}],selectedId:'alex'}));
@@ -56,9 +61,18 @@ test('every practice guide preserves the real room layout and keeps the compact 
     expect(bounds.x+bounds.width).toBeLessThanOrEqual(art.x+art.width+1);expect(bounds.y+bounds.height).toBeLessThanOrEqual(art.y+art.height+1);
     if(index===1||index===4)await reader.locator('.guide-illustration').screenshot({path:`artifacts.local/guide-demonstrations/layout-${index}-${testInfo.project.name}.png`});
   }
-  await page.setViewportSize(testInfo.project.name==='desktop'?{width:1280,height:720}:{width:844,height:390});
-  const preview=reader.locator('.practice-room'),header=await preview.locator('.practice-topbar').boundingBox(),mini=await preview.locator('.metronome-mini').boundingBox();
-  expect(mini.y).toBeGreaterThanOrEqual(header.y-1);expect(mini.y+mini.height).toBeLessThanOrEqual(header.y+header.height+1);
+  const resized=testInfo.project.name==='desktop'?{width:1280,height:720}:{width:844,height:390};
+  await page.setViewportSize(resized);
+  const canvas=reader.locator('.guide-practice-canvas');
+  await expect(canvas).toHaveCSS('width',`${resized.width}px`);
+  await expect(canvas).toHaveCSS('height',`${resized.height}px`);
+  // ResizeObserver updates the preview transform asynchronously. Read both
+  // bounds in one frame so an old header cannot be compared with a new mini.
+  await expect.poll(()=>reader.locator('.practice-room').evaluate(room=>{
+    const header=room.querySelector('.practice-topbar').getBoundingClientRect();
+    const mini=room.querySelector('.metronome-mini').getBoundingClientRect();
+    return mini.top>=header.top-1&&mini.bottom<=header.bottom+1;
+  }),{message:'The resized preview must keep the metronome inside its header'}).toBe(true);
 });
 
 test('string guides teach chord ownership before strumming, default to simple, and stay silent',async({page},testInfo)=>{

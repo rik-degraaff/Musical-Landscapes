@@ -22,3 +22,13 @@ export const test=base.extend({
 });
 
 export {expect};
+
+export async function waitForInstrumentSettling(page) {
+  await page.locator('.landscape-world .instrument').evaluateAll(async elements=>{
+    // Let React's layout RAF enqueue its transitions before waiting for them.
+    await new Promise(resolve=>requestAnimationFrame(resolve));
+    await new Promise(resolve=>requestAnimationFrame(resolve));
+    const finite=elements.flatMap(element=>element.getAnimations()).filter(animation=>animation.effect?.getTiming().iterations!==Infinity);
+    await Promise.allSettled(finite.map(animation=>animation.finished));
+  });
+}

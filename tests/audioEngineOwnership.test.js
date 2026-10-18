@@ -285,6 +285,31 @@ for(const boundary of ['background','practice','dispose'])test(`${boundary} rest
   assert.equal(publications.at(-1),plan);
 });
 
+test('shared landscape callbacks cannot plan bars while practice owns the transport',async()=>{
+  const {engine,runtime,Tone}=setup();
+  await engine.init();engine.active.piano=true;engine.playEvent=()=>{};
+  const transportId=engine.transportEvent;
+  const callback=runtime.schedules.get(transportId);
+  callback(1);
+  engine.beginPractice('drums');
+  // Practice starts, stops and repeats on the same rewound transport. Landscape
+  // callbacks still exist, but must not advance or publish composition history.
+  for(const bar of [0,1,10,0]){
+    runtime.ticks=Tone.Transport.PPQ*4*bar;
+    assert.doesNotThrow(()=>callback(1));
+    assert.equal(engine.barIndex,0);
+    assert.equal(engine.composition.nextBar,0);
+    assert.equal(engine.scheduledBars.size,0);
+    assert.equal(engine.pendingEvents.size,0);
+  }
+  runtime.ticks=0;
+  engine.endPractice();
+  assert.equal(engine.transportEvent,transportId);
+  assert.doesNotThrow(()=>callback(1));
+  assert.equal(engine.scheduledBars.get(0).plan.bar,0);
+  assert.equal(engine.active.piano,true);
+});
+
 test('init unlocks synchronously, coalesces calls, and supports no-argument wrappers', async () => {
   const { engine, runtime } = setup();
   const entered = deferred();

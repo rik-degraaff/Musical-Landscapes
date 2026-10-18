@@ -14,6 +14,8 @@ Use Node.js 22 and the committed npm lockfile. From the repository root, install
 
 Install Chromium with `npx playwright install chromium`. On Linux, Playwright may require its browser system dependencies; use `npx playwright install --with-deps chromium` in CI or an appropriate Linux environment.
 
+For pitched autoplay, compare sampler durations in seconds with the owned event's articulation gate applied. Movement colour can scale authored accents within the documented bounds; keep rhythm, note count, canonical pitches and event ownership exact. Responsive preview assertions should wait for the resized canvas and read related bounds together in one browser evaluation. Before probing coordinates for native gestures, wait for finite instrument-entry transitions with `waitForInstrumentSettling` from the shared browser fixtures.
+
 The Playwright configs use fixed local ports. Production checks require a fresh build and a free production-preview port; do not run a second runner against the same `test-results/production` output at the same time. Failed browser runs retain traces/screenshots under ignored `test-results/`.
 
 ## Change boundaries

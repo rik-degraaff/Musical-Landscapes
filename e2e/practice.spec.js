@@ -1,6 +1,22 @@
-import {test,expect} from './fixtures.js';
+import {test,expect,waitForInstrumentSettling} from './fixtures.js';
 
-async function start(page){const size=page.viewportSize();if(size.height>size.width)await page.setViewportSize({width:size.height,height:size.width});const errors=[];page.on('pageerror',error=>errors.push(error.message));await page.goto('/');await page.evaluate(async()=>{const text=await(await fetch('/src/App.jsx')).text();const url=/from\s+["']([^"']*\/audio\/AudioEngine[^"']*)["']/.exec(text)[1];const {AudioEngine}=await import(url);const init=AudioEngine.prototype.initialize;AudioEngine.prototype.initialize=async function(){await init.call(this);window.audioEngine=this;};});await page.getByRole('button',{name:'Tap to play'}).click();await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});return errors;}
+async function start(page){
+  const size=page.viewportSize();
+  if(size.height>size.width)await page.setViewportSize({width:size.height,height:size.width});
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.goto('/');
+  await page.evaluate(async()=>{
+    const text=await(await fetch('/src/App.jsx')).text();
+    const url=/from\s+["']([^"']*\/audio\/AudioEngine[^"']*)["']/.exec(text)[1];
+    const {AudioEngine}=await import(url);
+    const init=AudioEngine.prototype.initialize;
+    AudioEngine.prototype.initialize=async function(){await init.call(this);window.audioEngine=this;};
+  });
+  await page.getByRole('button',{name:'Tap to play'}).click();
+  await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});
+  await waitForInstrumentSettling(page);
+  return errors;
+}
 async function enter(page){
   const musician=page.locator('#young-musician');
   let position;

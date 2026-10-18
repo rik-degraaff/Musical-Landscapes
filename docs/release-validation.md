@@ -1,8 +1,18 @@
 # Release validation
 
-## Current revision status — 2026-10-16
+## Persistence and playback ownership — 2026-10-18
 
-The setup/help/learning implementation has passed the focused checks below on Windows, Node 24.14.0, npm 11.9.0 and Playwright 1.63.0 Chromium. CI still targets Node 22. These are current local affected-area results, not a completed full development release gate or a CI result. The unrelated working-tree cloud/artwork edits were present during validation and were not included in these implementation commits. No real Safari/iPad validation or device-performance measurements are recorded here.
+Family/profile persistence now lives in `useFamily`, with one coherent family/settings snapshot; shared caregiver familiarity lives in `useCaregiver`. Recovery merges unchanged fields from readable storage while preserving local edits, including individual instrument options. Retry failures in one record no longer prevent independent records from saving. A landscape scheduler guard also prevents practice transport rewinds from advancing landscape composition history or scheduling its tone automation.
+
+Current local checks ran on Windows, Node 24.14.0, npm 11.9.0 and Playwright 1.63.0 Chromium; CI targets Node 22. The full Node suite passed **349 tests**. The focused persistence browser batch passed **54 checks** on desktop and compact touch, including staggered family/caregiver recovery; the focused playback/practice batch passed **36 checks** after reproducing and fixing the practice scheduler failure. The final production build and real-worker offline/update gate passed **14 checks**. These batches overlap; do not add their counts into a unique total. Browser checks do not establish real Safari/iPad behavior, hardware audio quality or latency, hosting behavior, multi-tab coordination, or compatibility between different releases.
+
+The broader development suite covered all **696 configured cases** in split runs: desktop recorded 226 passes, one intentional skip and five failures; the two mobile projects recorded 453 passes, eight intentional skips and three failures. All eight failed cases subsequently passed focused retries after correcting stale articulation assertions and test setup/geometry timing; one desktop retry recovered a Chromium module-load resource error. The guide resize correction also passed nine focused executions. This gives a passing execution for each of the 687 applicable cases, with nine intentional skips, **not a clean single-run gate**. The compact drop-layout check still failed intermittently in the correction batch before passing its final focused retry, so its timing stability remains a known validation limitation. No additional broad run was performed.
+
+Evidence is retained in ignored `test-results/node-validation.log`, `test-results/persistence-browser.log`, `test-results/audio-browser-validation.log`, `test-results/production-validation.log` and `test-results/production/results.json`. Split development evidence is in `test-results/full-browser-validation.log` and `test-results/mobile-validation.log`; correction evidence is in `test-results/guide-resize-validation.log`, `test-results/compact-corrections.log`, `test-results/compact-drop-correction.log` and `test-results/desktop-corrections.log`. The original reproducible audio failure is retained under `test-results/audio-investigation/`.
+
+## Historical setup/help evidence — 2026-10-16
+
+The setup/help/learning implementation passed the focused checks below on Windows, Node 24.14.0, npm 11.9.0 and Playwright 1.63.0 Chromium. These are historical affected-area results, not verification of the current revision or a CI result. The unrelated working-tree cloud/artwork edits were present during validation and were not included in these implementation commits. No real Safari/iPad validation or device-performance measurements are recorded here.
 
 | Check | Result |
 | --- | --- |

@@ -17,11 +17,11 @@ import {PracticeRoom} from './components/PracticeRoom';
 import {ParentGuide} from './components/ParentGuide';
 import {ChildEditor} from './components/ChildEditor';
 import {CaregiverHelp,HelpButton} from './components/CaregiverHelp';
-import {editChild,normalizeChild,removeChild} from './utils/children';
+import {editChild,removeChild} from './utils/children';
 import {useAppUpdates} from './components/useAppUpdates.js';
-import {createFamilyStorage,recoverFamilySnapshot} from './utils/familyStorage.js';
-import {defaultSettings,resetSoundMix} from './utils/settings.js';
-import {createCaregiverStorage,normalizeFamiliarity} from './utils/caregiverSettings.js';
+import {resetSoundMix} from './utils/settings.js';
+import {useFamily} from './components/useFamily.js';
+import {useCaregiver} from './components/useCaregiver.js';
 import savedVisuals from './data/visual-overrides.json';
 import {instrumentHome} from './utils/responsiveVisuals.js';
 import {GuideReader} from './components/Guides';
@@ -60,20 +60,10 @@ export default function App({developmentPreview}={}) {
   const [hintView,setHintView]=useState(null);
   const learning=useLearning(Boolean(developmentPreview));
   const installation=useInstallation();
-  const [storage]=useState(()=>developmentPreview ? {saveSnapshot:()=>({ok:true}),saveLegacySettings:()=>({ok:true})} : createFamilyStorage());
-  const [initial]=useState(()=>developmentPreview ? { family: { children: [developmentPreview.child], selectedId: developmentPreview.child.id }, settings: developmentPreview.child.settings, saveError: false } : storage.load());
-  const [caregiverStorage]=useState(()=>createCaregiverStorage(developmentPreview?()=>({getItem:()=>null,setItem(){}}):undefined));
-  const [initialCaregiver]=useState(()=>caregiverStorage.load(initial.family.children.find(child=>child.id===initial.family.selectedId)?.profile.parent));
-  const [familiarity,setFamiliarity]=useState(initialCaregiver.familiarity);
-  const [familiarityEstablished,setFamiliarityEstablished]=useState(initialCaregiver.established||initial.family.children.length>0);
-  const [caregiverSaveError,setCaregiverSaveError]=useState(Boolean(initialCaregiver.error));
-  const caregiverEdited=useRef(false);
-  const [saveError,setSaveError]=useState(Boolean(initial.saveError));
-  const saveWarning=saveError||caregiverSaveError||learning.error;
-  const storageReadFailed=useRef(Boolean(initial.saveError));
-  const [family,setFamily]=useState(initial.family);
-  const selectedChild=family.children.find(child=>child.id===family.selectedId)??null;
-  const [settings,setSettings] = useState(initial.settings);
+  const profiles=useFamily(developmentPreview);
+  const {family,settings,selectedChild}=profiles;
+  const caregiver=useCaregiver(profiles.initial,Boolean(developmentPreview));
+  const saveWarning=profiles.error||caregiver.error||learning.error;
   const [sceneVolume,setSceneVolume] = useState(-4);
   const mixerTap = useRef(null);
   const [instruments,setInstruments] = useState(()=>initialInstruments(settings.selected,Boolean(developmentPreview)));
@@ -112,15 +102,6 @@ export default function App({developmentPreview}={}) {
   useLayoutEffect(()=>{startupState.current={settings,sceneIndex,genre};},[settings,sceneIndex,genre]);
   useEffect(()=>{mounted.current=true;return ()=>{mounted.current=false;audioRef.current?.dispose();};},[]);
   useEffect(()=>{if(developmentPreview)setSceneIndex(developmentPreview.sceneIndex);},[developmentPreview?.sceneIndex]);
-  useEffect(()=>{
-    if(!developmentPreview&&!initial.saveError&&!storage.saveLegacySettings(initial.settings).ok)setSaveError(true);
-  },[storage,initial]);
-  useEffect(()=>{
-    if(!initialCaregiver.established&&!initialCaregiver.error&&!initial.saveError&&initial.family.children.length>0){
-      caregiverEdited.current=true;
-      setCaregiverSaveError(!caregiverStorage.save(initialCaregiver.familiarity).ok);
-    }
-  },[caregiverStorage,initialCaregiver,initial]);
   useEffect(()=>{
     if(audioRef.current)audioRef.current.updatePerformanceSettings(settings.instruments);
   },[settings]);
@@ -194,79 +175,44 @@ export default function App({developmentPreview}={}) {
 
   function updateSettings(next) {
     arrangeSelection(next);
-    setSettings(next);
-    const nextFamily={...family,children:family.children.map(child=>child.id===selectedChild?.id?{...child,settings:next}:child)};
-    setSaveError(!storage.saveSnapshot({family:nextFamily,settings:next}).ok);
-    setFamily(nextFamily);
+    profiles.updateSettings(next);
+  }
+
+  function resetInstruments(nextSettings) {
+    const next=initialInstruments(nextSettings.selected,Boolean(developmentPreview));
+    stateRef.current=next;setInstruments(next);
   }
 
   function selectChild(id) {
-    const child=family.children.find(value=>value.id===id);if(!child)return;
-    const nextFamily={...family,selectedId:id};
-    setSaveError(!storage.saveSnapshot({family:nextFamily,settings:child.settings}).ok);
-    setFamily(nextFamily);setSettings(child.settings);
-    const next=initialInstruments(child.settings.selected);stateRef.current=next;setInstruments(next);
+    const next=profiles.selectChild(id);
+    if(next)resetInstruments(next.settings);
   }
 
   function addChild(draft) {
-    const child=normalizeChild({...draft,id:crypto.randomUUID()});if(!child)return false;
-    const nextFamily={children:[...family.children,child],selectedId:child.id};
-    if(!storage.saveSnapshot({family:nextFamily,settings:child.settings}).ok){setSaveError(true);return false;}
-    setSaveError(false);
-    setFamily(nextFamily);setSettings(child.settings);
-    const next=initialInstruments(child.settings.selected);stateRef.current=next;setInstruments(next);
-    updateFamiliarity(child.profile.parent);
+    const next=profiles.addChild(draft);if(!next)return false;
+    const child=next.family.children.find(value=>value.id===next.family.selectedId);
+    resetInstruments(next.settings);
+    caregiver.update(child.profile.parent);
     setParentGuide(false);return true;
-  }
-
-  function updateFamiliarity(value) {
-    const next=normalizeFamiliarity(value);
-    caregiverEdited.current=true;setFamiliarity(next);setFamiliarityEstablished(true);
-    setCaregiverSaveError(!caregiverStorage.save(next).ok);
   }
 
   function retrySave() {
     if(learning.error)learning.retry();
-    if(caregiverSaveError){
-      const recovered=caregiverStorage.load(familiarity);
-      if(recovered.error){setCaregiverSaveError(true);return;}
-      if(caregiverEdited.current)setCaregiverSaveError(!caregiverStorage.save(familiarity).ok);
-      else {setFamiliarity(recovered.familiarity);setFamiliarityEstablished(recovered.established);setCaregiverSaveError(false);}
-    }
-    if(storageReadFailed.current){
-      const recovered=storage.load();
-      if(recovered.saveError){setSaveError(true);return;}
-      const snapshot=recoverFamilySnapshot(initial,{family,settings},recovered);
-      storageReadFailed.current=false;
-      if(!caregiverEdited.current&&!initialCaregiver.established){
-        const legacy=snapshot.family.children.find(child=>child.id===snapshot.family.selectedId)?.profile.parent;
-        const recoveredCaregiver=caregiverStorage.load(legacy);
-        if(!recoveredCaregiver.error){
-          setFamiliarity(recoveredCaregiver.familiarity);
-          setFamiliarityEstablished(recoveredCaregiver.established||snapshot.family.children.length>0);
-          if(!recoveredCaregiver.established&&snapshot.family.children.length>0){
-            caregiverEdited.current=true;
-            setCaregiverSaveError(!caregiverStorage.save(recoveredCaregiver.familiarity).ok);
-          }
-        }
-      }
+    caregiver.retry();
+    const retried=profiles.retry();
+    if(retried?.recovered){
+      const {snapshot}=retried;
+      caregiver.recoverFamily(snapshot);
       if(started)arrangeSelection(snapshot.settings);
-      setFamily(snapshot.family);setSettings(snapshot.settings);
-      if(!started){const next=initialInstruments(snapshot.settings.selected);stateRef.current=next;setInstruments(next);}
-      setSaveError(!storage.saveSnapshot(snapshot).ok);
-      return;
+      if(!started)resetInstruments(snapshot.settings);
     }
-    setSaveError(!storage.saveSnapshot({family,settings}).ok);
   }
 
   function saveFamily(nextFamily) {
-    if(!nextFamily)return false;
-    const nextSettings=nextFamily.children.find(child=>child.id===nextFamily.selectedId)?.settings??defaultSettings();
-    if(!storage.saveProfileSnapshot({family:nextFamily,settings:nextSettings}).ok){setSaveError(true);return false;}
+    const next=profiles.saveFamily(nextFamily);if(!next)return false;
     const removed=family.children.filter(child=>!nextFamily.children.some(next=>next.id===child.id)).map(child=>child.id);
     if(removed.length)learning.change(state=>({...state,children:Object.fromEntries(Object.entries(state.children).filter(([id])=>!removed.includes(id)))}));
-    setSaveError(false);setFamily(nextFamily);setSettings(nextSettings);
-    const next=initialInstruments(nextSettings.selected);stateRef.current=next;setInstruments(next);
+    resetInstruments(next.settings);
     return true;
   }
 
@@ -428,20 +374,20 @@ export default function App({developmentPreview}={}) {
       {started && <SettingsButton open={mixer} onClick={activateMixer}/>}
     </div>
 
-    {mixer && <Mixer playing={started} child={selectedChild} learning={learning.state} onLearning={learning.change} onGuide={setGuideView} familiarity={familiarity} onFamiliarity={updateFamiliarity} onHelp={()=>setHelp({topic:'settings',instrument:equipped})} saveError={saveWarning} onRetrySave={retrySave} instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} onRestoreSound={restoreSound} settings={settings} onSettings={updateSettings} onMenu={returnToMenu} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
+    {mixer && <Mixer playing={started} child={selectedChild} learning={learning.state} onLearning={learning.change} onGuide={setGuideView} familiarity={caregiver.familiarity} onFamiliarity={caregiver.update} onHelp={()=>setHelp({topic:'settings',instrument:equipped})} saveError={saveWarning} onRetrySave={retrySave} instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} onRestoreSound={restoreSound} settings={settings} onSettings={updateSettings} onMenu={returnToMenu} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
     {started&&<Metronome audio={audioRef.current} open={metronomeOpen} disabled={mixer||Boolean(practice)} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}
 
     {equipped&&!practice&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={performanceRoot} options={settings.instruments[equipped]} settingsOpen={mixer} harmonyPlan={harmonyPlan} onClose={()=>equip(null)}/>}
     {practice&&<PracticeRoom child={selectedChild} audio={audioRef.current} initialInstrument={practice} settings={settings} root={SCENES[sceneIndex].root} onHelp={(instrument,practiceStage)=>setHelp({topic:'practice',instrument,practiceStage})} onClose={()=>{practiceActive.current=false;setHarmonyPlan(null);setPractice(null);}}/>}
 
     {!started && <StartScreen inert={mixer||parentGuide||Boolean(editingId)} onSettings={()=>setMixer(true)} unreadGuides={GUIDES.filter(guide=>guideStatus(learning.state,guide)!=='Read').length} saveError={saveWarning&&!mixer} onRetrySave={retrySave} children={family.children} selectedId={family.selectedId} loading={loading} error={error} onStart={start} onSelect={selectChild} onEdit={setEditingId} onAdd={()=>setParentGuide(true)}/>}
-    {!started&&parentGuide&&<ParentGuide learning={learning.state} onGuide={setGuideView} familiarity={familiarity} familiarityEstablished={familiarityEstablished} settings={settings} onComplete={addChild} onClose={()=>setParentGuide(false)}/>}
+    {!started&&parentGuide&&<ParentGuide learning={learning.state} onGuide={setGuideView} familiarity={caregiver.familiarity} familiarityEstablished={caregiver.established} settings={settings} onComplete={addChild} onClose={()=>setParentGuide(false)}/>}
     {!started&&editingId&&<ChildEditor child={family.children.find(child=>child.id===editingId)} onSave={draft=>saveFamily(editChild(family,editingId,draft))} onDelete={()=>saveFamily(removeChild(family,editingId))} onClose={()=>setEditingId(null)}/>}
     {!mixer&&!practice&&!parentGuide&&!editingId&&!loading&&<HelpButton className="caregiver-help-corner" onOpen={()=>{window.dispatchEvent(new Event('farmjam-input-reset'));setHelp({topic:started?(equipped?'instruments':'landscape'):'menu',instrument:equipped});}}/>}
     {learningActive&&suggestion&&childLearning(learning.state,selectedChild.id).hints[suggestion.id]?.suggested&&<LearningBeacon hint={suggestion} onOpen={()=>{setHintView(suggestion);learning.change(state=>updateHint(state,selectedChild.id,suggestion.id,{seen:true,dismissed:false}));}}/>}
     {hintView&&<LearningHint hint={hintView} instruments={settings.selected} equipped={equipped} practice={practice} suspended={!started||loading||mixer||metronomeOpen||parentGuide||Boolean(editingId)||Boolean(help)||Boolean(guideView)} onComplete={id=>{discovered(id,true);setHintView(null);}} onClose={()=>{learning.change(state=>updateHint(state,selectedChild.id,hintView.id,{dismissed:true}));setHintView(null);}}/>}
-    {help&&<CaregiverHelp {...help} child={selectedChild} instruments={started&&!practice?settings.selected:null} onEquip={name=>{setHelp(null);setMixer(false);equip(name);}} onPractice={()=>{setHelp(null);setMixer(false);enterPractice();}} onGuides={setGuideView} discovery={started&&help.topic!=='practice'?{hasEquipped,hasPracticed}:null} familiarity={familiarity} onClose={()=>setHelp(null)}/>}
-    {guideView&&<GuideReader id={guideView} child={selectedChild} saveError={learning.error} onRetry={learning.retry} installation={installation} learning={learning.state} familiarity={familiarity} onOpen={setGuideView} onRead={guide=>learning.change(state=>({...state,guides:{...state.guides,[guide.id]:Math.max(state.guides[guide.id]??0,guide.version)}}))} onClose={()=>setGuideView(null)}/>}
+    {help&&<CaregiverHelp {...help} child={selectedChild} instruments={started&&!practice?settings.selected:null} onEquip={name=>{setHelp(null);setMixer(false);equip(name);}} onPractice={()=>{setHelp(null);setMixer(false);enterPractice();}} onGuides={setGuideView} discovery={started&&help.topic!=='practice'?{hasEquipped,hasPracticed}:null} familiarity={caregiver.familiarity} onClose={()=>setHelp(null)}/>}
+    {guideView&&<GuideReader id={guideView} child={selectedChild} saveError={learning.error} onRetry={learning.retry} installation={installation} learning={learning.state} familiarity={caregiver.familiarity} onOpen={setGuideView} onRead={guide=>learning.change(state=>({...state,guides:{...state.guides,[guide.id]:Math.max(state.guides[guide.id]??0,guide.version)}}))} onClose={()=>setGuideView(null)}/>}
     <LandscapeGuard/>
   </main>;
 }

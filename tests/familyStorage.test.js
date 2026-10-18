@@ -287,3 +287,83 @@ test('read recovery merges known edits without losing newly readable sibling pro
   assert.equal(snapshot.settings.instruments.piano.complexity,.35);
   assert.deepEqual(snapshot.family.children[1],recovered.family.children[1]);
 });
+
+test('legacy read recovery preserves untouched options when one in-session setting changes',()=>{
+  const saved=normalizeSettings({selected:['panflute','ukulele','guitar','piano','drums','flute'],instruments:{
+    piano:{complexity:1,noteLabels:true},guitar:{complexity:.35,fretDots:true},flute:{fingeringCharts:true},
+  }});
+  const raw={children:[child,{...child,id:'sibling',name:'Sam',settings:{instruments:{guitar:{complexity:1}}}}],selectedId:child.id};
+  const local=storage({[CHILDREN_KEY]:JSON.stringify(raw),[SETTINGS_KEY]:JSON.stringify(saved)});
+  let blocked=true;
+  const adapter=createFamilyStorage(()=>({...local,getItem(key){if(blocked&&key===SETTINGS_KEY)throw Error('read blocked');return local.getItem(key);}}));
+  const initial=adapter.load();
+  assert.ok(initial.saveError);
+  const current=structuredClone(initial);
+  current.family.children[0].settings.instruments.piano.complexity=.35;
+  current.settings=current.family.children[0].settings;
+  assert.equal(adapter.saveSnapshot(current).ok,false);
+  const originals=structuredClone({initial,current});
+  const before=new Map(local.values);
+  blocked=false;
+  const recovered=adapter.load();
+  const recoveredOriginal=structuredClone(recovered);
+  const snapshot=recoverFamilySnapshot(initial,current,recovered);
+  const expected=structuredClone(saved);expected.instruments.piano.complexity=.35;
+  assert.deepEqual(snapshot.settings,expected);
+  assert.deepEqual(snapshot.family.children[0].settings,expected);
+  assert.deepEqual(snapshot.family.children[1],recovered.family.children[1]);
+  assert.deepEqual(local.values,before,'recovery itself must not write');
+  assert.deepEqual({initial,current},originals);
+  assert.deepEqual(recovered,recoveredOriginal);
+  assert.equal(adapter.saveSnapshot(snapshot).ok,true);
+  assert.deepEqual(adapter.load().settings,expected);
+  assert.deepEqual(JSON.parse(local.getItem(SETTINGS_KEY)),expected);
+});
+
+test('recovery merges profile and instrument fields independently, with local edits winning conflicts',()=>{
+  const initial={family:normalizeChildren({children:[child]}),settings:defaultSettings()};
+  const current=structuredClone(initial);
+  current.family.children[0].name='Ally';
+  current.family.children[0].avatar.hair='bob';
+  current.family.children[0].settings.instruments.piano.complexity=.35;
+  current.family.children[0].settings.instruments.piano.noteLabels=true;
+  current.family.children[0].settings.selected.reverse();
+  const recovered=structuredClone(initial);
+  const saved=recovered.family.children[0];
+  saved.name='Recovered name';saved.age='8plus';saved.avatar.eyes='#537b91';
+  saved.settings.instruments.piano.complexity=1;
+  saved.settings.instruments.guitar.fretDots=true;
+  saved.settings.instruments.piano.playbackNotes=true;
+  const result=recoverFamilySnapshot(initial,current,recovered);
+  const merged=result.family.children[0];
+  assert.equal(merged.name,'Ally');assert.equal(merged.age,'8plus');
+  assert.equal(merged.avatar.hair,'bob');assert.equal(merged.avatar.eyes,'#537b91');
+  assert.equal(merged.settings.instruments.piano.complexity,.35);
+  assert.equal(merged.settings.instruments.piano.noteLabels,true);
+  assert.equal(merged.settings.instruments.piano.playbackNotes,true);
+  assert.equal(merged.settings.instruments.guitar.fretDots,true);
+  assert.deepEqual(merged.settings.selected,current.family.children[0].settings.selected);
+  assert.deepEqual(result.settings,merged.settings);
+});
+
+test('recovery keeps explicit child selection and uses that child\'s recovered settings',()=>{
+  const first=normalizeChildren({children:[child,{...child,id:'sibling',name:'Sam'}],selectedId:child.id});
+  const initial={family:first,settings:first.children[0].settings};
+  const current=structuredClone(initial);current.family.selectedId='sibling';
+  const recovered=structuredClone(initial);
+  recovered.family.children[1].settings.instruments.flute.noteLabels=true;
+  const result=recoverFamilySnapshot(initial,current,recovered);
+  assert.equal(result.family.selectedId,'sibling');
+  assert.equal(result.settings.instruments.flute.noteLabels,true);
+  assert.deepEqual(result.family.children,recovered.family.children);
+});
+
+test('recovery uses saved selection when local selection is unchanged or no longer exists',()=>{
+  const initial={family:normalizeChildren({children:[child,{...child,id:'sibling',name:'Sam'}]}),settings:defaultSettings()};
+  const recovered=structuredClone(initial);recovered.family.selectedId='sibling';
+  assert.equal(recoverFamilySnapshot(initial,initial,recovered).family.selectedId,'sibling');
+  const current=structuredClone(initial);current.family.selectedId='missing';
+  assert.equal(recoverFamilySnapshot(initial,current,recovered).family.selectedId,'sibling');
+  assert.deepEqual(recoverFamilySnapshot(initial,current,{family:{children:[],selectedId:null},settings:defaultSettings()}),
+    {family:{children:[],selectedId:null},settings:defaultSettings()});
+});

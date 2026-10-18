@@ -71,12 +71,22 @@ export function createFamilyStorage(storageProvider=()=>window.localStorage) {
   return {load,saveSnapshot,saveLegacySettings,saveProfileSnapshot};
 }
 
+function recoverUnchangedFields(initial,current,recovered) {
+  if(JSON.stringify(initial)===JSON.stringify(current))return recovered;
+  // These are normalized records. Ordered instrument selections are one value;
+  // object fields can be recovered independently (including instrument options).
+  if(!initial||!current||!recovered||typeof current!=='object'||Array.isArray(current))return current;
+  return Object.fromEntries(Object.entries(current).map(([key,value])=>[
+    key,recoverUnchangedFields(initial[key],value,recovered[key]),
+  ]));
+}
+
 export function recoverFamilySnapshot(initial,current,recovered) {
   // Recovered storage supplies unchanged data; preserve edits made in memory since the initial load.
   const children=recovered.family.children.map(saved=>{
     const previous=initial.family.children.find(child=>child.id===saved.id);
     const edited=current.family.children.find(child=>child.id===saved.id);
-    return previous&&edited&&JSON.stringify(previous)!==JSON.stringify(edited)?edited:saved;
+    return previous&&edited?recoverUnchangedFields(previous,edited,saved):saved;
   });
   const selectedId=current.family.selectedId!==initial.family.selectedId&&children.some(child=>child.id===current.family.selectedId)
     ?current.family.selectedId:recovered.family.selectedId;

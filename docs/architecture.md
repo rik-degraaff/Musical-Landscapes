@@ -4,7 +4,7 @@ FarmJam is a React application built with Vite. Its main design boundary is betw
 
 ## Runtime areas
 
-- `src/App.jsx` coordinates the active child, screen transitions, caregiver dialogs, settings, hints, help, and session lifetime.
+- `src/App.jsx` coordinates screen transitions, caregiver dialogs, hints, help, and gameplay session lifetime. `useFamily` owns the active family/settings snapshot, profile save policies, and read recovery; `useCaregiver` owns shared familiarity and its legacy seeding. Each persistence hook reports its own save status, and retry attempts remain independent.
 - `src/components/` implements reusable UI, child setup and profile editing, settings, guides, live gesture coaching, instruments, and practice controls.
 - `src/scenes/` renders the seven landscapes and their interactive objects. `LandscapeArt.jsx` and `scene-art.css` hold authored scenery artwork and styling.
 - `src/audio/AudioEngine.js` owns Tone.js initialization, transport scheduling, instruments, audio resource lifecycle, and output mixing. `sampleLibrary.js` maps local recordings; `sceneSounds.js` defines procedural effects.
@@ -15,6 +15,8 @@ FarmJam is a React application built with Vite. Its main design boundary is betw
 ## Playback flow
 
 The UI sends active instrument, key, tempo, and equipped-instrument preferences to the audio engine. Musical planning selects authored patterns and deterministically voices them for the current instruments and harmony. The audio engine schedules them on its shared transport. Instrument controls and practice use the same canonical note and ownership rules so release, cancellation, scene changes, and session teardown can clean up their own sounds.
+
+Practice owns the shared transport while its session is active. The landscape bar callback remains registered but cannot advance composition history, publish harmony, or queue tone automation during practice. Leaving practice restores the landscape state and starts a fresh composition timeline at bar zero.
 
 Landscape changes update the requested key. The current bar completes in its captured key; the latest requested key takes effect on the next downbeat. The transport is shared and is not restarted for scene changes.
 

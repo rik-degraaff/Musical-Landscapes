@@ -1,6 +1,8 @@
 import { test, expect } from './fixtures.js';
 
 async function start(page) {
+  const size=page.viewportSize();
+  if(size.height>size.width)await page.setViewportSize({width:size.height,height:size.width});
   await page.goto('/');
   await page.evaluate(async()=>{
     const text=await(await fetch('/src/App.jsx')).text();

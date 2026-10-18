@@ -153,3 +153,115 @@ for(const deniedKey of ['getter','farmjam-children-v1','farmjam-settings-v1','fa
     expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('farmjam-settings-v1')).instruments.piano.complexity)).toBe(.35);
   });
 }
+
+test('retry merges a live setting edit with previously unreadable legacy options',async({page})=>{
+  await page.goto('/');
+  const original=await page.evaluate(async()=>{
+    const {normalizeSettings}=await import('/src/utils/settings.js');
+    const settings=normalizeSettings({selected:['panflute','ukulele','guitar','piano','drums','flute'],instruments:{
+      piano:{complexity:1,noteLabels:true},guitar:{complexity:.35,fretDots:true},flute:{fingeringCharts:true},
+    }});
+    const sibling={id:'sibling',name:'Sibling',age:'8plus',settings:normalizeSettings({instruments:{guitar:{complexity:1}}})};
+    localStorage.setItem('farmjam-settings-v1',JSON.stringify(settings));
+    localStorage.setItem('farmjam-children-v1',JSON.stringify({children:[{id:'player',name:'Player',age:'5to7'},sibling],selectedId:'player'}));
+    return {settings,sibling};
+  });
+  await page.addInitScript(()=>{
+    const read=Storage.prototype.getItem;
+    let blocked=true;
+    Storage.prototype.getItem=function(key){if(blocked&&key==='farmjam-settings-v1')throw Error('read blocked');return read.call(this,key);};
+    window.restoreReads=()=>{blocked=false;};
+  });
+  await page.reload();
+  await page.getByRole('button',{name:/^Settings/}).click();
+  await page.getByRole('tab',{name:'Instruments',exact:true}).click();
+  await page.getByRole('combobox',{name:'Configure instrument'}).selectOption('piano');
+  await page.getByRole('radio',{name:'Simple',exact:true}).check();
+  await expect(page.locator('.save-status')).toBeVisible();
+  await page.evaluate(()=>window.restoreReads());
+  await page.getByRole('button',{name:'Retry saving'}).click();
+  await expect(page.locator('.save-status')).toHaveCount(0);
+  await expect(page.getByRole('radio',{name:'Simple',exact:true})).toBeChecked();
+  const expected=structuredClone(original.settings);expected.instruments.piano.complexity=.35;
+  const saved=await page.evaluate(()=>({family:JSON.parse(localStorage.getItem('farmjam-children-v1')),settings:JSON.parse(localStorage.getItem('farmjam-settings-v1'))}));
+  expect(saved.settings).toEqual(expected);
+  expect(saved.family.children[0].settings).toEqual(expected);
+  expect(saved.family.children[1]).toMatchObject(original.sibling);
+  await page.reload();
+  await page.getByRole('button',{name:/^Settings/}).click();
+  await page.getByRole('tab',{name:'Instruments',exact:true}).click();
+  await page.getByRole('combobox',{name:'Configure instrument'}).selectOption('piano');
+  await expect(page.getByRole('radio',{name:'Simple',exact:true})).toBeChecked();
+  await expect(page.locator('.save-status')).toHaveCount(0);
+});
+
+test('an unreadable caregiver record does not prevent independent family save retries',async({page})=>{
+  await page.goto('/');
+  await page.addInitScript(()=>{
+    const read=Storage.prototype.getItem,write=Storage.prototype.setItem;
+    let readBlocked=true,writeBlocked=true;
+    Storage.prototype.getItem=function(key){if(readBlocked&&key==='farmjam-caregiver-settings-v1')throw Error('read blocked');return read.call(this,key);};
+    Storage.prototype.setItem=function(key,value){if(writeBlocked&&key==='farmjam-children-v1')throw Error('write blocked');return write.call(this,key,value);};
+    window.restoreFamilyWrites=()=>{writeBlocked=false;};
+    window.restoreCaregiverReads=()=>{readBlocked=false;};
+  });
+  await page.reload();
+  await page.getByRole('button',{name:/^Settings/}).click();
+  await page.getByRole('tab',{name:'Instruments',exact:true}).click();
+  await page.getByRole('combobox',{name:'Configure instrument'}).selectOption('piano');
+  await page.getByRole('radio',{name:'Simple',exact:true}).check();
+  await expect(page.locator('.save-status')).toBeVisible();
+  await page.evaluate(()=>window.restoreFamilyWrites());
+  await page.evaluate(async()=>{
+    window.appliedUpdates=0;
+    const {appUpdates}=await import('/src/utils/updatePolicy.js');
+    appUpdates.setApplyUpdate(()=>{window.appliedUpdates++;});appUpdates.requestUpdate();
+  });
+  await page.getByRole('button',{name:'Retry saving'}).click();
+  await expect(page.locator('.save-status')).toBeVisible();
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('farmjam-children-v1')).children[0].settings.instruments.piano.complexity)).toBe(.35);
+  await page.getByRole('button',{name:'Done with settings',exact:true}).click();
+  await expect(page.locator('.save-status')).toBeVisible();
+  expect(await page.evaluate(()=>window.appliedUpdates)).toBe(0);
+  await page.evaluate(()=>window.restoreCaregiverReads());
+  await page.getByRole('button',{name:'Retry saving'}).click();
+  await expect(page.locator('.save-status')).toHaveCount(0);
+  await expect.poll(()=>page.evaluate(()=>window.appliedUpdates)).toBe(1);
+  await page.getByRole('button',{name:/^Settings/}).click();
+  await page.getByRole('tab',{name:'Instruments',exact:true}).click();
+  await page.getByRole('combobox',{name:'Configure instrument'}).selectOption('piano');
+  await expect(page.getByRole('radio',{name:'Simple',exact:true})).toBeChecked();
+});
+
+test('caregiver recovery retains legacy familiarity when family reads recover first',async({page})=>{
+  await page.goto('/');
+  await page.evaluate(()=>{
+    const family=JSON.parse(localStorage.getItem('farmjam-children-v1'));
+    family.children[0].profile.parent='confident';
+    localStorage.setItem('farmjam-children-v1',JSON.stringify(family));
+    localStorage.removeItem('farmjam-caregiver-settings-v1');
+  });
+  await page.addInitScript(()=>{
+    const read=Storage.prototype.getItem;
+    let familyBlocked=true,caregiverBlocked=true;
+    Storage.prototype.getItem=function(key){
+      if((familyBlocked&&key==='farmjam-children-v1')||(caregiverBlocked&&key==='farmjam-caregiver-settings-v1'))throw Error('read blocked');
+      return read.call(this,key);
+    };
+    window.restoreFamilyReads=()=>{familyBlocked=false;};
+    window.restoreCaregiverReads=()=>{caregiverBlocked=false;};
+  });
+  await page.reload();
+  await expect(page.getByRole('button',{name:'Tap to play'})).toBeDisabled();
+  await page.evaluate(()=>window.restoreFamilyReads());
+  await page.getByRole('button',{name:'Retry saving'}).click();
+  await expect(page.getByRole('radio',{name:'Select Player'})).toBeVisible();
+  await expect(page.locator('.save-status')).toBeVisible();
+  await page.evaluate(()=>window.restoreCaregiverReads());
+  await page.getByRole('button',{name:'Retry saving'}).click();
+  await expect(page.locator('.save-status')).toHaveCount(0);
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('farmjam-caregiver-settings-v1'))?.familiarity)).toBe('confident');
+  await page.getByRole('button',{name:/^Settings/}).click();
+  await page.getByRole('tab',{name:'Caregiver',exact:true}).click();
+  await expect(page.getByRole('radio',{name:'Comfortable with music',exact:true})).toBeChecked();
+});

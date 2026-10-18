@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, waitForInstrumentSettling } from './fixtures.js';
 import { noteMidi } from '../src/utils/autoplay.js';
 
 test.beforeEach(async({page})=>{
@@ -18,16 +18,20 @@ async function start(page) {
     const appSource=await (await fetch('/src/App.jsx')).text();
     const moduleUrl=/from\s+["']([^"']*\/audio\/AudioEngine[^"']*)["']/.exec(appSource)?.[1]??'/src/audio/AudioEngine.js';
     const {AudioEngine}=await import(moduleUrl);
+    const audioSource=await(await fetch(moduleUrl)).text();
+    window.testTone=await import(/import\s+\*\s+as\s+Tone\s+from\s+["']([^"']+)["']/.exec(audioSource)[1]);
     const initialize=AudioEngine.prototype.initialize;
     AudioEngine.prototype.initialize=async function(){await initialize.call(this);window.audioEngine=this;};
   });
   await page.getByRole('button',{name:'Tap to play'}).click();
   await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:20000});
+  await waitForInstrumentSettling(page);
   return errors;
 }
 async function dragTo(page,name,target) {
-  const rect=await page.locator(`#instrument-${name}`).boundingBox();
-  await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);await page.mouse.down();
+  // Wait for the requested hit target to settle before pressing. A cached
+  // rectangle can point at a different instrument during the entry animation.
+  await page.locator(`#instrument-${name}`).hover();await page.mouse.down();
   await page.mouse.move(target.x,target.y,{steps:12});await page.mouse.up();
 }
 async function equip(page,name) {
@@ -336,9 +340,13 @@ test('piano multitouch, all drum hits and chromatic marimba produce sampled audi
 test('dropped instruments slide away from instruments and scenery targets',async({page})=>{
   const errors=await start(page);
   for(const target of ['#instrument-drums','.cow']) {
-    const rect=await page.locator(target).boundingBox();await dragTo(page,'piano',{x:rect.x+rect.width/2,y:rect.y+rect.height/2});await page.waitForTimeout(450);
-    const piano=await page.locator('#instrument-piano .instrument-illustration').boundingBox();const obstacle=await page.locator(target==='#instrument-drums'?'#instrument-drums .instrument-illustration':target).boundingBox();
-    expect(piano.x+piano.width<=obstacle.x || piano.x>=obstacle.x+obstacle.width || piano.y+piano.height<=obstacle.y || piano.y>=obstacle.y+obstacle.height).toBe(true);
+    const rect=await page.locator(target).boundingBox();await dragTo(page,'piano',{x:rect.x+rect.width/2,y:rect.y+rect.height/2});
+    const selector=target==='#instrument-drums'?'#instrument-drums .instrument-illustration':target;
+    await expect.poll(()=>page.locator('#instrument-piano').evaluate((element,selector)=>{
+      const piano=element.querySelector('.instrument-illustration').getBoundingClientRect();
+      const obstacle=document.querySelector(selector).getBoundingClientRect();
+      return Math.min(piano.right-obstacle.left,obstacle.right-piano.left,piano.bottom-obstacle.top,obstacle.bottom-piano.top);
+    },selector),{message:`The settled piano must clear ${target}`}).toBeLessThanOrEqual(0);
   }
   expect(errors).toEqual([]);
 });
@@ -492,7 +500,8 @@ test('day cycle plays canonical current-chord piano voicings and guitar shapes i
       finally{
         sampled=null;
         const plan=scheduled.plan;
-        window.cycleSamples.piano.push({event,time,root,plan,samples,owned:plan.phrases.piano.events.includes(event),canonical:GUITAR_LIBRARY[root].chords.find(chord=>chord.degree===plan.currentChord.degree&&chord.size===3)});
+        const duration=window.testTone.Time(event.dur).toSeconds()*(event.gate??1);
+        window.cycleSamples.piano.push({event,time,root,plan,samples,duration,owned:plan.phrases.piano.events.includes(event),canonical:GUITAR_LIBRARY[root].chords.find(chord=>chord.degree===plan.currentChord.degree&&chord.size===3)});
       }
     };
     const strike=engine.manualStrike;
@@ -530,7 +539,7 @@ test('day cycle plays canonical current-chord piano voicings and guitar shapes i
       for(const [index,sample] of record.samples.entries()){
         expect(keyboard).toContain(sample.note);
         expect(record.canonical.tones).toContain(noteMidi(sample.note)%12);
-        expect(sample.time).toBe(record.time);expect(sample.dur).toBe(record.event.dur);
+        expect(sample.time).toBe(record.time);expect(sample.dur).toBeCloseTo(record.duration,8);
         expect(sample.velocity).toBeCloseTo((record.event.velocity??.55)*(1-index*.04),8);
       }
     }
@@ -583,6 +592,8 @@ test('day cycle plays canonical current-chord piano voicings and guitar shapes i
 async function recordAutoplay(page,key) {
   await page.evaluate(async key=>{
     const {compositionProfile}=await import('/src/utils/composition.js');
+    const {COMPOSITION_PHRASES}=await import('/src/data/compositionPhrases.js');
+    const {compositionStyle}=await import('/src/data/compositionStyles.js');
     const {equippedProfile}=await import('/src/utils/difficulty.js');
     const engine=window.audioEngine;
     window[key]=[];
@@ -591,11 +602,19 @@ async function recordAutoplay(page,key) {
       if(this.manualAutoplay&&name===this.manualInstrument&&scheduled){
         const plan=scheduled.plan;
         const phrase=plan.phrases[name];
-        const options={...this.performanceSettings[name],role:plan.roles[name],degree:name==='drums'?0:plan.currentChord.degree};
+        const options={...this.performanceSettings[name],role:plan.roles[name],degree:name==='drums'?0:plan.currentChord.degree,genre:plan.genre};
         const pool=compositionProfile(name,root,options);
         const motif=pool.find(candidate=>candidate.name===phrase.name&&candidate.role===phrase.role&&candidate.tier===phrase.tier);
+        const style=compositionStyle(plan.genre);
+        const authored=[...COMPOSITION_PHRASES[phrase.role],...(style.phrases[phrase.role]??[])].find(candidate=>candidate.name===phrase.name);
+        const performance=plan.movement.performance[name];
+        const base=style.performance[name];
+        // Movement colour may scale an authored accent, but cannot change the
+        // rhythm or exceed the documented per-movement accent difference.
+        const velocityTolerance=Math.max(0,...(authored?.dynamics??[]).map(Math.abs))*Math.abs((performance?.accent??1)-(base?.accent??1))+1e-10;
+        const accentRatio=(performance?.accent??1)/(base?.accent??1);
         const profile=equippedProfile(name,root,options);
-        window[key].push({name,event,root,chord:plan.currentChord,degree:phrase.degree,role:phrase.role,expectedRole:plan.roles[name],supportedMotif:Boolean(motif),expectedRhythm:motif?.events.map(value=>({time:value.time,dur:value.dur,velocity:value.velocity,count:(value.notes??[value.note]).length})),owned:phrase.events.includes(event),canonical:profile.chords.find(chord=>chord.degree===plan.currentChord.degree&&chord.size===3),hits:profile.hits});
+        window[key].push({name,event,root,chord:plan.currentChord,degree:phrase.degree,role:phrase.role,expectedRole:plan.roles[name],supportedMotif:Boolean(motif),velocityTolerance,accentRatio,gate:performance?.gate??1,expectedRhythm:motif?.events.map(value=>({time:value.time,dur:value.dur,velocity:value.velocity,count:(value.notes??[value.note]).length})),owned:phrase.events.includes(event),canonical:profile.chords.find(chord=>chord.degree===plan.currentChord.degree&&chord.size===3),hits:profile.hits});
       }
       return original.call(this,name,event,time,root,scheduled);
     };
@@ -609,7 +628,12 @@ function expectAutoplay(records) {
     expect(record.owned,`${name} belongs to its scheduled plan`).toBe(true);
     expect(record.supportedMotif,`${name} motif supports the current chord and tier`).toBe(true);
     expect(record.role).toBe(record.expectedRole);
-    expect(record.expectedRhythm).toContainEqual({time:event.time,dur:event.dur,velocity:event.velocity,count:(event.notes??[event.note]).length});
+    const expected=record.expectedRhythm.find(value=>value.time===event.time&&value.dur===event.dur&&value.count===(event.notes??[event.note]).length);
+    expect(expected,`${name} preserves authored rhythm and note count`).toBeDefined();
+    expect(Math.abs(event.velocity-expected.velocity)).toBeLessThanOrEqual(record.velocityTolerance);
+    expect(record.accentRatio).toBeGreaterThanOrEqual(.975-1e-10);expect(record.accentRatio).toBeLessThanOrEqual(1.025+1e-10);
+    expect(event.velocity).toBeGreaterThan(0);expect(event.velocity).toBeLessThanOrEqual(.72);
+    expect(event.gate).toBe(record.gate);
     if(name==='drums'){expect(record.hits).toContain(event.note);continue;}
     expect(record.degree).toBe(chord.degree);
     for(const note of event.notes??[event.note])expect(chord.tones).toContain(noteMidi(note)%12);

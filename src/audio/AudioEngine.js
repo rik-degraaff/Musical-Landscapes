@@ -768,7 +768,9 @@ export class AudioEngine {
   }
 
   scheduleBar(time,bar=this.barIndex) {
-    if(this.backgrounded||this.tempoHeld)return;
+    // The shared transport also drives practice; its rewinds must not advance
+    // landscape composition history or queue landscape tone automation.
+    if(this.practiceSession||this.backgrounded||this.tempoHeld)return;
     this.barIndex=bar+1;
     this.scheduleBarEvents(time,bar);
   }
