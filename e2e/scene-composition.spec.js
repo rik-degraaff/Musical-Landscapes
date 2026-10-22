@@ -1,4 +1,4 @@
-import {test,expect} from './fixtures.js';
+import {test,expect,waitForInstrumentSettling} from './fixtures.js';
 
 const scenes=['farm','garden','pond','dusk','night','late-night','dawn'];
 
@@ -15,13 +15,13 @@ async function reachable(target) {
 for(const [layout,width,height] of [['desktop',1440,900],['tablet',1024,768],['phone',852,393],['compact',780,284],['small',640,360]]){
   for(const [variant,roll] of [['regular',.9],['frequent',.1],['rare',.27]])test.describe(`${layout} ${variant}`,()=>{
     test.use({sceneVisitorRoll:roll});
-    test('saved scene layouts keep objects visible and controls reachable',async({page},testInfo)=>{
+    test('saved scene layouts keep objects visible and controls reachable',async({page})=>{
       await page.setViewportSize({width,height});await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/');
       await page.getByRole('button',{name:'Tap to play'}).click();await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});
       const failures=[];const captured=new Set();
       for(const scene of scenes){
         const host=page.locator(`.scene-${scene}`);await expect(host).toBeVisible();await expect(host.locator('.celestial-control')).toHaveAttribute('data-settled','true');
-        await page.waitForTimeout(350);
+        await waitForInstrumentSettling(page);
         const objects=host.locator('.interactive-object');await expect(objects).toHaveCount(2);
         for(const object of await objects.all()){
           const sound=await object.getAttribute('data-sound');const bounds=await object.boundingBox();
@@ -29,12 +29,11 @@ for(const [layout,width,height] of [['desktop',1440,900],['tablet',1024,768],['p
           if(bounds.x<0||bounds.y<0||bounds.x+bounds.width>width+1||bounds.y+bounds.height>height+1)failures.push(`${scene} ${sound}: outside viewport`);
           if(Math.min(bounds.width,bounds.height)<24)failures.push(`${scene} ${sound}: target smaller than 24px`);
           if(!await reachable(object))failures.push(`${scene} ${sound}: not reachable`);
-          await object.screenshot({path:testInfo.outputPath(`${scene}-${sound}-detail.png`)});
         }
         if(!await reachable(host.locator('.celestial-control')))failures.push(`${scene}: landscape control not reachable`);
-        await page.screenshot({path:testInfo.outputPath(`${scene}-scene.png`)});
         await page.locator('#instrument-piano').focus();await page.keyboard.press('e');
-        await page.waitForTimeout(350);
+        await expect(page.locator('.performance-piano')).toBeVisible();
+        await waitForInstrumentSettling(page);
         for(const object of await objects.all()){
           const sound=await object.getAttribute('data-sound');
           const bounds=await object.boundingBox();
@@ -44,7 +43,6 @@ for(const [layout,width,height] of [['desktop',1440,900],['tablet',1024,768],['p
         for(const name of ['Change landscape','Open settings','Open metronome','Open caregiver help']){
           if(!await reachable(page.getByRole('button',{name,exact:true})))failures.push(`${scene}: ${name} not reachable`);
         }
-        await page.screenshot({path:testInfo.outputPath(`${scene}-equipped.png`)});
         await page.getByRole('button',{name:'Put instrument down'}).click();
         await page.getByRole('button',{name:'Change landscape'}).click();
       }

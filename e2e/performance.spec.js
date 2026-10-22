@@ -39,7 +39,7 @@ async function equip(page,name) {
   await dragTo(page,name,{x:child.x+child.width/2,y:child.y+child.height/2});
   await expect(page.locator(`.performance-${name}`)).toBeVisible();
   await expect(page.locator('.instrument.equipped-instrument')).toHaveCount(1);
-  await page.waitForTimeout(350);
+  await waitForInstrumentSettling(page);
 }
 test('dragging onto the child equips every play surface and dragging away ends it',async({page},testInfo)=>{
   const errors=await start(page);
@@ -339,6 +339,11 @@ test('piano multitouch, all drum hits and chromatic marimba produce sampled audi
 
 test('dropped instruments slide away from instruments and scenery targets',async({page})=>{
   const errors=await start(page);
+  const centerOffset=await page.locator('#instrument-piano').evaluate(element=>{
+    const hit=element.getBoundingClientRect(),art=element.querySelector('.instrument-illustration').getBoundingClientRect();
+    return Math.max(Math.abs(art.x+art.width/2-hit.x-hit.width/2),Math.abs(art.y+art.height/2-hit.y-hit.height/2));
+  });
+  expect(centerOffset,'Collision placement and the rendered artwork must share a center').toBeLessThan(1);
   for(const target of ['#instrument-drums','.cow']) {
     const rect=await page.locator(target).boundingBox();await dragTo(page,'piano',{x:rect.x+rect.width/2,y:rect.y+rect.height/2});
     const selector=target==='#instrument-drums'?'#instrument-drums .instrument-illustration':target;
@@ -454,7 +459,7 @@ test('sun and moon advance the day, remain circular, and keep controls aligned t
   await equip(page,'piano');
   for (const viewport of [{width:851,height:393},{width:780,height:284},{width:1440,height:900}]) {
     await page.setViewportSize(viewport);
-    await page.waitForTimeout(400);
+    await waitForInstrumentSettling(page);
     const sky = await control.boundingBox();
     const mixer = await page.locator('.mixer-button').boundingBox();
     expect([sky.width,sky.height]).toEqual([64,64]);
@@ -677,6 +682,14 @@ test('equipped autoplay uses compatible selected phrases and manual input takes 
       expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBe(0);
     }
     await page.screenshot({path:`test-results/${testInfo.project.name}-autoplay-${name}.png`});
+    if(name==='flute'){
+      // Autoplay follows the demonstrated register. A lone D-sharp pinky is
+      // playable in the low register, but has no fingering in the high one.
+      const register=page.getByRole('slider',{name:'Flute pitch register',exact:true});
+      await register.focus();await page.keyboard.press('Home');
+      await expect(register).toHaveAttribute('aria-valuenow','0');
+      await expect(toggle).toHaveAttribute('aria-pressed','false');
+    }
     const target=name==='guitar'?page.locator('.playable-string').first():page.getByRole(name==='melody'?'slider':'button',{name:targets[name],exact:true});
     await target.focus();await page.keyboard.down('Space');
     await expect(toggle).toHaveAttribute('aria-pressed','false');

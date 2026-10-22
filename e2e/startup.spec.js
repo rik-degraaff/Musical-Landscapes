@@ -20,11 +20,14 @@ async function instrumentEngine(page,delay=false) {
 }
 
 test('manual input after a failed-load retry keeps the drawing synchronized',async({page})=>{
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.route('**/audio/instruments/piano/C3.mp3',route=>route.abort());
   await page.goto('/');await instrumentEngine(page);
   await page.getByRole('button',{name:'Tap to play'}).click();
   await expect(page.getByRole('alert')).toContainText('could not start');
   await page.unroute('**/audio/instruments/piano/C3.mp3');
+  const requests=[];
+  page.on('request',request=>{if(request.url().includes('/audio/instruments/'))requests.push(request.url());});
   await page.getByRole('button',{name:'Tap to play'}).click();
   await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});
   const piano=page.locator('#instrument-piano');
@@ -35,6 +38,9 @@ test('manual input after a failed-load retry keeps the drawing synchronized',asy
   expect(await page.evaluate(()=>window.audioEngine.active.piano)).toBe(false);
   await expect(piano).toHaveAttribute('aria-pressed','false');
   await page.keyboard.up('Space');
+  expect(requests.length).toBeGreaterThan(0);
+  expect(requests.every(url=>new URL(url).origin===new URL(page.url()).origin)).toBe(true);
+  expect(errors).toEqual([]);
 });
 
 test('selected child settings lock while loading and supply the final performance settings',async({page})=>{

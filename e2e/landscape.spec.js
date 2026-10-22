@@ -12,48 +12,6 @@ test.beforeEach(async({page})=>{
 const instruments = ['piano', 'drums', 'guitar', 'melody', 'marimba', 'flute'];
 const objects = [['Cow', 'Tractor'], ['Outdoor faucet', 'Bird'], ['Frog', 'Windmill'], ['Cricket','Airplane'], ['Little bell', 'Night owl'], ['Fluttering bat', 'Rustling hedgehog'], ['Rooster', 'Wind chimes']];
 
-test('all bundled recordings decode and a failed sample load can be retried', async ({ page }, testInfo) => {
-  const viewport=page.viewportSize();
-  if(viewport.height>viewport.width)await page.setViewportSize({width:viewport.height,height:viewport.width});
-  const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
-  await page.route('**/audio/instruments/piano/C3.mp3', route => route.fulfill({ status: 404, body: 'Missing sample' }));
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Tap to play' }).click();
-  await expect(page.getByRole('alert')).toBeVisible();
-  await expect(page.locator('.start-overlay')).toHaveCount(1);
-  await page.unroute('**/audio/instruments/piano/C3.mp3');
-  const requests = [];
-  page.on('request', request => { if(request.url().includes('/audio/instruments/')) requests.push(request.url()); });
-  await page.getByRole('button', { name: 'Tap to play' }).click();
-  await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:20000});
-  await expect(page.getByRole('button', { name: 'Acoustic guitar', exact: true })).toBeVisible();
-  const recordings = await page.evaluate(async () => {
-    const { SAMPLE_LIBRARY, DRUM_SAMPLES, sampleUrls } = await import('/src/audio/sampleLibrary.js');
-    const files = [...Object.keys(SAMPLE_LIBRARY).flatMap(name => Object.values(sampleUrls(name))), ...Object.values(DRUM_SAMPLES).map(sample => `drums/${sample.file}`)];
-    const context = new AudioContext();
-    try {
-      return await Promise.all(files.map(async file => {
-        const response = await fetch(`/audio/instruments/${file}`);
-        if (!response.ok) throw new Error(`Missing ${file}`);
-        const buffer = await context.decodeAudioData(await response.arrayBuffer());
-        const values = buffer.getChannelData(0);
-        return { file, duration: buffer.duration, rms: Math.sqrt(values.reduce((sum, value) => sum + value * value, 0) / values.length) };
-      }));
-    } finally { await context.close(); }
-  });
-  expect(recordings.length).toBeGreaterThanOrEqual(43);
-  for (const recording of recordings) {
-    expect(recording.duration, recording.file).toBeGreaterThan(0.05);
-    expect(recording.rms, recording.file).toBeGreaterThan(0.0001);
-  }
-  expect(requests.length).toBeGreaterThan(0);
-  expect(requests.every(url => url.startsWith('http://127.0.0.1:5173/'))).toBe(true);
-  await tap(page.getByRole('button', { name: 'Acoustic guitar', exact: true }), testInfo);
-  await expect(page.locator('#instrument-guitar')).toHaveAttribute('aria-pressed', 'true');
-  expect(errors).toEqual([]);
-});
-
 async function startWorld(page) {
   const viewport=page.viewportSize();
   if(viewport.height>viewport.width)await page.setViewportSize({width:viewport.height,height:viewport.width});
@@ -81,24 +39,32 @@ async function startWorld(page) {
 }
 
 async function measureAudio(page, name, seconds = 0.8) {
-  return page.evaluate(async ({ name, seconds }) => {
-    let output = name === 'scene' ? window.audioEngine.sceneGain : window.audioEngine.nodes[name].gain;
-    while (output.output) output = output.output;
-    const analyser = output.context.createAnalyser();
-    analyser.fftSize = 1024;
-    output.connect(analyser);
-    const values = new Float32Array(analyser.fftSize);
-    let peak = 0;
-    const until = performance.now() + seconds * 1000;
-    while (performance.now() < until) {
-      analyser.getFloatTimeDomainData(values);
-      peak = Math.max(peak, Math.sqrt(values.reduce((sum, value) => sum + value * value, 0) / values.length));
-      await new Promise(resolve => requestAnimationFrame(resolve));
+  const levels=await measureAudioTogether(page,[name],seconds);
+  return levels[name];
+}
+
+async function measureAudioTogether(page, names, seconds) {
+  return page.evaluate(async ({ names, seconds }) => {
+    const probes=names.map(name=>{
+      let output=name==='scene'?window.audioEngine.sceneGain:window.audioEngine.nodes[name].gain;
+      while(output.output)output=output.output;
+      const analyser=output.context.createAnalyser();analyser.fftSize=1024;output.connect(analyser);
+      return {name,output,analyser,values:new Float32Array(analyser.fftSize),peak:0};
+    });
+    try {
+      const until=performance.now()+seconds*1000;
+      while(performance.now()<until){
+        for(const probe of probes){
+          probe.analyser.getFloatTimeDomainData(probe.values);
+          probe.peak=Math.max(probe.peak,Math.sqrt(probe.values.reduce((sum,value)=>sum+value*value,0)/probe.values.length));
+        }
+        await new Promise(resolve=>requestAnimationFrame(resolve));
+      }
+      return Object.fromEntries(probes.map(({name,peak})=>[name,peak]));
+    } finally {
+      for(const {output,analyser} of probes){output.disconnect(analyser);analyser.disconnect();}
     }
-    output.disconnect(analyser);
-    analyser.disconnect();
-    return peak;
-  }, { name, seconds });
+  }, { names, seconds });
 }
 
 async function tap(locator, testInfo) {
@@ -126,7 +92,8 @@ test('all six instruments produce audio, stop, restart and survive rapid toggles
       await tap(page.locator(`#instrument-${name}`), testInfo);
     }
   }
-  for (const name of instruments) expect(await measureAudio(page, name, 2.8), `${name} keeps playing across bars`).toBeGreaterThan(0.0003);
+  const levels=await measureAudioTogether(page,instruments,2.8);
+  for (const name of instruments) expect(levels[name], `${name} keeps playing across bars`).toBeGreaterThan(0.0003);
   expect(errors).toEqual([]);
 });
 

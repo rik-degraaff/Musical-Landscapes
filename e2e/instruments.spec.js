@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, waitForInstrumentSettling } from './fixtures.js';
 
 test.beforeEach(async({page})=>{
   await page.addInitScript(()=>{
@@ -295,7 +295,7 @@ test('instruments avoid the sun only after its arc settles',async({page})=>{
   await page.getByRole('button',{name:'Change landscape'}).click({force:true});
   await expect(page.locator('.celestial-control')).toHaveAttribute('data-settled','false');
   await expect(page.locator('.celestial-control')).toHaveAttribute('data-settled','true');
-  await page.waitForTimeout(400);
+  await waitForInstrumentSettling(page);
   const sun=await page.locator('.celestial-control').boundingBox();
   for(const instrument of await page.locator('.instrument:not(.equipped-instrument) .instrument-illustration').all()){
     const art=await instrument.boundingBox();
