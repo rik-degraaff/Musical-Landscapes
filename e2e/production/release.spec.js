@@ -1,4 +1,4 @@
-import { readdirSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { test as base, expect } from '@playwright/test';
 
@@ -11,6 +11,10 @@ function recordings(directory, prefix = '/audio') {
 }
 
 const audioPaths = recordings(new URL('../../public/audio/', import.meta.url)).sort();
+const audioHashes = new Map(audioPaths.map(path => [
+  path,
+  createHash('sha256').update(readFileSync(new URL(`../../public${path}`, import.meta.url))).digest('hex'),
+]));
 const instrumentNames = ['piano', 'drums', 'guitar', 'melody', 'marimba', 'flute', 'ukulele', 'panflute'];
 const selected = instrumentNames.slice(0, 6);
 const failedRecording = '/audio/instruments/piano/C3.mp3';
@@ -84,72 +88,91 @@ async function waitForOfflineReady(page) {
     .toEqual({ controlled: true, activated: true, missing: [] });
 }
 
-async function verifyOfflineSession(page, context, testInfo) {
+async function verifyOfflineSession(page, context, testInfo, { decodeRecordings = false } = {}) {
   const session = await context.newCDPSession(page);
   await session.send('Network.enable');
   await session.send('Network.setCacheDisabled', { cacheDisabled: true });
   const servedByWorker = new Map();
-  page.on('response', response => {
+  const onResponse = response => {
     const path = new URL(response.url()).pathname;
     if (audioPaths.includes(path)) servedByWorker.set(path, response.fromServiceWorker());
-  });
-  await context.setOffline(true);
-  const response = await page.reload({ waitUntil: 'domcontentloaded' });
-  expect(response.fromServiceWorker(), 'Offline navigation must come from the worker, not the HTTP cache').toBe(true);
-  await expect(page.getByRole('radio', { name: 'Select Release Player', exact: true })).toBeChecked();
-  await expect(page.getByRole('button', { name: 'Tap to play', exact: true })).toBeEnabled();
-  expect(await page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+  };
+  page.on('response', onResponse);
+  try {
+    await context.setOffline(true);
+    const response = await page.reload({ waitUntil: 'domcontentloaded' });
+    expect(response.fromServiceWorker(), 'Offline navigation must come from the worker, not the HTTP cache').toBe(true);
+    await expect(page.getByRole('radio', { name: 'Select Release Player', exact: true })).toBeChecked();
+    await expect(page.getByRole('button', { name: 'Tap to play', exact: true })).toBeEnabled();
+    expect(await page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
 
-  const decoded = await page.evaluate(async paths => {
-    const audioContext = new AudioContext();
-    const results = [];
-    try {
-      for (const path of paths) {
-        const response = await fetch(path, { cache: 'no-store' });
-        if (!response.ok) throw new Error(`Offline recording ${path}: HTTP ${response.status}`);
-        const buffer = await audioContext.decodeAudioData(await response.arrayBuffer());
-        let peak = 0;
-        for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
-          for (const value of buffer.getChannelData(channel)) peak = Math.max(peak, Math.abs(value));
+    const recordings = await page.evaluate(async ({ paths, decode }) => {
+      const audioContext = decode ? new AudioContext() : undefined;
+      const results = [];
+      try {
+        for (const path of paths) {
+          const response = await fetch(path, { cache: 'no-store' });
+          if (!response.ok) throw new Error(`Offline recording ${path}: HTTP ${response.status}`);
+          const bytes = await response.arrayBuffer();
+          const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), value => value.toString(16).padStart(2, '0')).join('');
+          const result = { path, hash };
+          if (audioContext) {
+            const buffer = await audioContext.decodeAudioData(bytes);
+            let peak = 0, energy = 0;
+            for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+              for (const value of buffer.getChannelData(channel)) {
+                peak = Math.max(peak, Math.abs(value));
+                if (channel === 0) energy += value * value;
+              }
+            }
+            Object.assign(result, { duration: buffer.duration, channels: buffer.numberOfChannels, peak, rms: Math.sqrt(energy / buffer.length) });
+          }
+          results.push(result);
         }
-        results.push({ path, duration: buffer.duration, channels: buffer.numberOfChannels, peak });
+        return results;
+      } finally {
+        if (audioContext) await audioContext.close();
       }
-      return results;
-    } finally {
-      await audioContext.close();
+    }, { paths: audioPaths, decode: decodeRecordings });
+    await testInfo.attach(decodeRecordings ? 'offline-recording-decodes-and-hashes' : 'offline-recording-hashes', {
+      body: JSON.stringify(recordings, null, 2), contentType: 'application/json',
+    });
+    expect(recordings.map(recording => recording.path)).toEqual(audioPaths);
+    for (const name of selected) expect(recordings.some(recording => recording.path.startsWith(`/audio/instruments/${name}/`)), name).toBe(true);
+    expect(recordings.some(recording => recording.path.startsWith('/audio/scenery/'))).toBe(true);
+    for (const recording of recordings) {
+      expect(servedByWorker.get(recording.path), `${recording.path} must be served by the worker offline`).toBe(true);
+      expect(recording.hash, `${recording.path} must match the local production recording`).toBe(audioHashes.get(recording.path));
+      if (decodeRecordings) {
+        expect(recording.duration, recording.path).toBeGreaterThan(0);
+        expect(recording.channels, recording.path).toBeGreaterThan(0);
+        expect(recording.peak, recording.path).toBeGreaterThan(0);
+      }
     }
-  }, audioPaths);
-  await testInfo.attach('offline-recording-decodes', {
-    body: JSON.stringify(decoded, null, 2), contentType: 'application/json',
-  });
-  expect(decoded.map(recording => recording.path)).toEqual(audioPaths);
-  for (const name of selected) expect(decoded.some(recording => recording.path.startsWith(`/audio/instruments/${name}/`)), name).toBe(true);
-  expect(decoded.some(recording => recording.path.startsWith('/audio/scenery/'))).toBe(true);
-  for (const recording of decoded) {
-    expect(servedByWorker.get(recording.path), `${recording.path} must be served by the worker offline`).toBe(true);
-    expect(recording.duration, recording.path).toBeGreaterThan(0);
-    expect(recording.channels, recording.path).toBeGreaterThan(0);
-    expect(recording.peak, recording.path).toBeGreaterThan(0);
-  }
 
-  await page.getByRole('button', { name: 'Tap to play', exact: true }).click();
-  await expect(page.locator('.start-overlay')).toHaveCount(0);
-  await expect(page.locator('#young-musician')).toHaveAttribute('data-child-name', 'Release Player');
-  await page.locator('#instrument-piano').focus();
-  await page.keyboard.press('e');
-  const note = page.getByRole('button', { name: 'Piano key C4', exact: true });
-  await note.focus();
-  await page.keyboard.down('Space');
-  await expect(note).toHaveAttribute('aria-pressed', 'true');
-  await page.keyboard.up('Space');
-  await expect(note).toHaveAttribute('aria-pressed', 'false');
-  await page.getByRole('button', { name: 'Open settings', exact: true }).dblclick();
-  await expect(page.getByRole('dialog', { name: 'Settings', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Return to main menu', exact: true }).click();
-  await expect(page.locator('.start-overlay')).toBeVisible();
-  await expect(page.getByRole('radio', { name: 'Select Release Player', exact: true })).toBeChecked();
-  await page.getByRole('button', { name: 'Tap to play', exact: true }).click();
-  await expect(page.locator('.start-overlay')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Tap to play', exact: true }).click();
+    await expect(page.locator('.start-overlay')).toHaveCount(0);
+    await expect(page.locator('#young-musician')).toHaveAttribute('data-child-name', 'Release Player');
+    await page.locator('#instrument-piano').focus();
+    await page.keyboard.press('e');
+    const note = page.getByRole('button', { name: 'Piano key C4', exact: true });
+    await note.focus();
+    await page.keyboard.down('Space');
+    await expect(note).toHaveAttribute('aria-pressed', 'true');
+    await page.keyboard.up('Space');
+    await expect(note).toHaveAttribute('aria-pressed', 'false');
+    await page.getByRole('button', { name: 'Open settings', exact: true }).dblclick();
+    await expect(page.getByRole('dialog', { name: 'Settings', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Return to main menu', exact: true }).click();
+    await expect(page.locator('.start-overlay')).toBeVisible();
+    await expect(page.getByRole('radio', { name: 'Select Release Player', exact: true })).toBeChecked();
+    await page.getByRole('button', { name: 'Tap to play', exact: true }).click();
+    await expect(page.locator('.start-overlay')).toHaveCount(0);
+    return recordings;
+  } finally {
+    page.off('response', onResponse);
+    await session.detach();
+  }
 }
 
 test('complete production precache supports offline reload, recordings, keyboard play and menu', async ({ page, context, browserErrors }, testInfo) => {
@@ -157,7 +180,15 @@ test('complete production precache supports offline reload, recordings, keyboard
   await seedProfile(page);
   await page.reload();
   await waitForOfflineReady(page);
-  await verifyOfflineSession(page, context, testInfo);
+  const decoded = await verifyOfflineSession(page, context, testInfo, { decodeRecordings: true });
+  // Keep the signal-quality assertions here alongside exhaustive decoding,
+  // rather than decoding the entire bank again in the development suite.
+  const instruments = decoded.filter(recording => recording.path.startsWith('/audio/instruments/'));
+  expect(instruments.length).toBeGreaterThanOrEqual(43);
+  for (const recording of instruments) {
+    expect(recording.duration, recording.path).toBeGreaterThan(0.05);
+    expect(recording.rms, recording.path).toBeGreaterThan(0.0001);
+  }
   expect(unexpectedErrors(browserErrors)).toEqual([]);
 });
 
