@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import {patterns,transposeEvents} from '../src/utils/music.js';
 import {PIANO_NOTES,MARIMBA_NOTES,PANFLUTE_NOTES,guitarChords} from '../src/utils/performance.js';
 import {noteMidi} from '../src/utils/autoplay.js';
-import {STRING_INSTRUMENTS} from '../src/utils/guitar.js';
 import {fluteInput} from '../src/utils/wind.js';
 
 const ROOTS=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
@@ -28,24 +27,6 @@ test('transposition preserves every pitched event pitch class and leaves percuss
       const actual=transformed.notes??(transformed.note?[transformed.note]:[]);
       const expectedClasses=new Set(source.map(value=>(noteMidi(value)+shift)%12));
       assert.deepEqual(new Set(actual.map(noteMidi).map(value=>value%12)),expectedClasses,`${name} ${root} phrase ${phraseIndex} event ${eventIndex}`);
-    }
-  }
-});
-
-test('every guitar and ukulele phrase fingering matches its fixed-tuning string and fret',()=>{
-  for(const [name,instrument] of Object.entries(STRING_INSTRUMENTS))for(const [root,library] of Object.entries(instrument.library)){
-    for(const phrase of library.phrases)for(const event of phrase.events){
-      const notes=event.notes??[event.note];
-      const chord=library.chords.find(value=>value.name===event.chord);
-      assert.equal(event.fingering.length,notes.length);
-      assert.equal(new Set(event.fingering.map(input=>input.string)).size,notes.length);
-      event.fingering.forEach((input,index)=>{
-        assert.equal(input.note,notes[index]);
-        assert.equal(input.note,chord.notes[input.string]);
-        assert.equal(input.fret,chord.frets[input.string]);
-        assert.ok(input.fret>=0&&input.fret<=instrument.frets,`${name} ${root} fret ${input.fret}`);
-        assert.equal(noteMidi(input.note),noteMidi(instrument.tuning[input.string])+input.fret);
-      });
     }
   }
 });

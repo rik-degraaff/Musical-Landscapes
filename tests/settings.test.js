@@ -6,7 +6,11 @@ import {INSTRUMENTS,DEFAULT_INSTRUMENTS} from '../src/utils/music.js';
 test('defaults include the full catalog, six unique slots, advanced complexity and hidden display details',()=>{
   const defaults=defaultSettings();
   assert.deepEqual(defaults.selected,DEFAULT_INSTRUMENTS);
+  assert.equal(defaults.selected.length,6);
   assert.equal(new Set(defaults.selected).size,6);
+  assert.ok(defaults.selected.includes('ukulele'));
+  assert.ok(defaults.selected.includes('panflute'));
+  assert.ok(INSTRUMENTS.guitar&&INSTRUMENTS.flute);
   assert.deepEqual(Object.keys(defaults.instruments),Object.keys(INSTRUMENTS));
   assert.equal(Object.hasOwn(defaults,'preset'),false);
   for(const options of Object.values(defaults.instruments)){

@@ -200,8 +200,9 @@ test('both genres reuse the original phrase vocabulary and add distinct varied m
   }
 });
 
-test('all genre-specific phrase variants remain playable at each instrument tier',()=>{
-  for(const genre of Object.keys(COMPOSITION_STYLES))for(const root of roots)for(const complexity of [.35,1,1.5]){
+test('additional genres remain playable at every root, instrument role and tier',()=>{
+  // The pools-and-plans matrix above already checks every Folk variant.
+  for(const genre of Object.keys(COMPOSITION_STYLES).filter(genre=>genre!=='folk'))for(const root of roots)for(const complexity of [.35,1,1.5]){
     for(const name of names){
       const roles=name==='drums'?['rhythm']:['melody',...( ['piano','guitar','ukulele'].includes(name)?['accompaniment']:[])];
       for(const role of roles){

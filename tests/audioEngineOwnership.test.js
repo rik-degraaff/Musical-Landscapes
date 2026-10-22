@@ -59,7 +59,9 @@ function setup() {
     async load(url) {
       runtime.loads++;
       await runtime.onLoad?.(url, runtime.loads, this);
-      this.buffer = context.createBuffer(1, 88200, 44100);
+      // Ownership tests need two seconds of audio, not device-rate waveforms.
+      // Real-rate loop quality is covered by envelopes.test.js and browser audio.
+      this.buffer = context.createBuffer(1, 2000, 1000);
       return this;
     }
     get() { return this.buffer; }
