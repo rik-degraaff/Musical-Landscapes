@@ -18,6 +18,15 @@ For pitched autoplay, compare sampler durations in seconds with the owned event'
 
 The Playwright configs use fixed local ports. Production checks require a fresh build and a free production-preview port; do not run a second runner against the same `test-results/production` output at the same time. Failed browser runs retain traces/screenshots under ignored `test-results/`.
 
+## Test coverage boundaries
+
+- Node tests own exhaustive data, musical range, fingering, storage-policy and resource-ownership cases. Keep the full key/role/tier matrices; avoid repeating the same assertions in feature-specific files. `music.test.js` owns authored-library variety, `settings.test.js` owns catalog defaults, and the guitar/ukulele suites own canonical string fingerings.
+- Development browser tests own real controls, native gestures, audio output and React integration. Similar Node and browser cases can protect different boundaries: a mocked resource test cannot establish that a native source actually ends or that touch input releases it.
+- `scene-composition.spec.js` owns the five-size geometry matrix for regular objects and both visitor tiers. It supplies its own viewports and runs once in the desktop project. The other scene and layout suites retain desktop and touch interaction checks. Run the matrix with `npx playwright test e2e/scene-composition.spec.js --project=desktop`. Failure screenshots and traces supply diagnostics; the matrix does not write unasserted screenshots on successful runs.
+- The dedicated production offline case owns exhaustive browser decoding of the bundled recordings. Every production offline/update/retry case verifies all recording bytes against the local SHA-256 hashes and confirms service-worker delivery, then exercises real playback. Development startup tests separately cover failed-load retry and subsequent manual play; they do not decode the entire recording bank a second time.
+
+Development checks use two isolated browser workers, with tests within each file kept serial. Production worker/update checks remain serial. Audio observation windows must still use the real audio clock; use transition completion or retrying geometry assertions instead of fixed sleeps for layout. When observing several already-playing outputs, sample them together for the full observation window rather than waiting once per instrument.
+
 ## Change boundaries
 
 - Keep authored musical patterns and deterministic voicing in `src/data/` and `src/utils/`. Random draws may select supported progression and motif states; do not replace authored phrases with random individual notes.

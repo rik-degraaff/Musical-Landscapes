@@ -1,5 +1,29 @@
 # Release validation
 
+## Test audit and compact placement correction — 2026-10-23
+
+Reviewed the Node, development/editor browser and production suites. The Node suite now has **345 cases**, with duplicate catalog/range/fingering assertions consolidated into their owning suites. Ownership fixtures retain two seconds of audio at a small mock sample rate; real-rate envelope and browser output checks remain. The development matrix now has **663 configured cases**: the five-size scene matrix runs once rather than once per input project, and startup retry coverage replaces a duplicate development recording decode. The scene matrix also stops writing 1,260 unasserted success screenshots and waits for instrument transitions instead of fixed sleeps. A representative scene case took 15.7 seconds before these changes and 5.1 seconds afterwards locally; this is an observed case timing, not a full-suite benchmark. Development files use two isolated workers; production remains serial.
+
+The broad run exposed two failures. Flute autoplay can leave the high register selected, where the test's single pinky key has no valid fingering; the test now selects a playable register before asserting its manual voice. The compact drag failure was a real layout bug: implicit grid tracks displaced piano artwork 16.027 pixels horizontally and 8.395 pixels vertically from its hitbox center, while collision placement assumed those centers matched. Explicit bounded grid tracks center oversized artwork without changing its dimensions, and the drag regression now asserts that shared center.
+
+Current checks ran on Windows, Node **24.14.0**, npm **11.9.0**, Playwright **1.63.0**, Chromium. CI targets Node 22.
+
+| Check | Result |
+| --- | --- |
+| Full Node suite | 345 passed; the 8 settings cases also passed after preserving the explicit six-slot length assertion |
+| Development/editor browser coverage, all three projects | Every one of the 654 applicable cases has a passing execution; 9 intentional skips |
+| Initial focused desktop scene/startup batch | 17 passed |
+| Remaining development cases, two workers | 635 passed, 2 failed, 9 skipped in 29.9 minutes |
+| Both failed cases after correction | 2 passed in 32.3 seconds |
+| Affected placement, native gestures and editor placement after the CSS correction | 41 passed, 2 existing native-editor skips in 2.5 minutes |
+| Final production build and full real-worker/offline gate | Build succeeded; 14 passed in 1.7 minutes |
+
+Development evidence is a **split run with targeted corrections, not a clean single-run gate**. The final manifest was reconciled against the result files by project, file and full test title: 663 configured, 654 passed, 9 skipped, no unresolved cases. The affected placement batch overlaps earlier executions; do not add its counts to the unique total. One sandboxed correction launch stalled before tests started, was stopped, and supplied no validation result; the successful correction and final batches used the required browser/loopback permissions. Long checks now use cheaper-agent completion reports, with startup confirmation before waiting for process exit.
+
+Production now decodes the full recording bank only in its dedicated offline case on each project, retaining duration and RMS checks. Every offline/update/retry case still fetches every recording from the real worker and compares its SHA-256 with the local asset, then exercises offline play, keyboard input and menu/restart behavior. Listener/CDP cleanup is explicit. The final build retains the existing large-JavaScript-chunk warning and has 204 precache entries. These automated checks do not establish Safari/iPad behavior, real-device performance or audio latency, hosting behavior, multi-tab updates, or compatibility between different releases.
+
+Evidence is retained under ignored `test-results/test-audit-*`: `node-final.log`, `settings-final.log`, `layout-after.json`, `development-results.json`, `failed-final-results.json`, `placement-final-results.json`, `coverage.json`, `build-final.log`, and `production-current-results.json` (each with the `test-audit-` prefix). Original browser failure traces remain under `test-results/test-audit-development/`; the reproduced compact geometry is under `test-results/placement-investigation/`.
+
 ## Persistence and playback ownership — 2026-10-18
 
 Family/profile persistence now lives in `useFamily`, with one coherent family/settings snapshot; shared caregiver familiarity lives in `useCaregiver`. Recovery merges unchanged fields from readable storage while preserving local edits, including individual instrument options. Retry failures in one record no longer prevent independent records from saving. A landscape scheduler guard also prevents practice transport rewinds from advancing landscape composition history or scheduling its tone automation.
