@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, doubleActivate } from './fixtures.js';
 import { INSTRUMENTS } from '../src/utils/music.js';
 
 test.beforeEach(async({page})=>{
@@ -137,7 +137,10 @@ test('every object is reachable, audible and animates repeatedly in all seven sc
       const object = page.getByRole('button', { name: label, exact: true });
       await tap(object, testInfo);
       await expect(object.locator('.reacting')).toHaveCount(1);
-      expect(await measureAudio(page, 'scene', label === 'Outdoor faucet' ? 0.6 : 0.35), `${label} makes sound`).toBeGreaterThan(0.002);
+      // Observe the rooster's crow beyond its quiet lead-in as well as the
+      // faucet's first impact; a 350 ms window can contain only background noise.
+      const seconds=label==='Rooster'?1.5:label==='Outdoor faucet'?.6:.35;
+      expect(await measureAudio(page, 'scene', seconds), `${label} makes sound`).toBeGreaterThan(0.002);
       for (let repeat = 0; repeat < 4; repeat++) await tap(object, testInfo);
       await expect(object.locator('.reacting')).toHaveCount(1);
       const bounds = await object.boundingBox();
@@ -205,9 +208,7 @@ test('double activation protects the mixer and scenery mute leaves instruments a
   await expect.poll(() => page.evaluate(() => window.audioEngine.nodes.piano.gain.volume.value)).toBeCloseTo(configured, 2);
   await tap(page.locator('#instrument-piano'), testInfo);
   await page.getByRole('button', { name: 'Change landscape' }).click({force:true});
-  await tap(button, testInfo);
-  await expect(page.locator('.mixer')).toHaveCount(0);
-  await tap(button, testInfo);
+  await doubleActivate(button, testInfo);
   await expect(scenery).toHaveValue('-60');
   await scenery.fill('-10');
   await page.locator('.mixer-head').getByRole('button', { name: 'Close settings' }).click();

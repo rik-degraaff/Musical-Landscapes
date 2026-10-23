@@ -52,7 +52,10 @@ async function key(page,note){const button=page.getByRole('button',{name:`Piano 
 
 test('double-tapping the girl opens the farm room with equipped instrument and restores farm on exit',async({page},testInfo)=>{
   const errors=await start(page);await page.locator('#instrument-drums').click();await page.locator('#instrument-ukulele').focus();await page.keyboard.press('e');
-  await page.getByRole('button',{name:'Next phrase',exact:true}).click();const pinned=await page.evaluate(()=>({phrase:window.audioEngine.equippedPhrase,identity:window.audioEngine.phraseIdentity}));
+  // Pins retain the authored motif. Its rendered expression follows the current
+  // movement and can change as the transport advances before or after practice.
+  const phrasePin=()=>page.evaluate(()=>({name:window.audioEngine.equippedPhrase?.name,role:window.audioEngine.equippedPhrase?.role,identity:window.audioEngine.phraseIdentity,pinned:window.audioEngine.phrasePinned}));
+  await page.getByRole('button',{name:'Next phrase',exact:true}).click();const pinned=await phrasePin();expect(pinned.pinned).toBe(true);
   await enter(page);await expect(page.getByRole('combobox',{name:'Practice instrument'})).toHaveValue('ukulele');await expect(page.locator('.practice-room-art')).toBeVisible();
   await expect(page.locator('.practice-musician')).toBeVisible();await expect(page.locator('.practice-musician .instrument-illustration')).toHaveClass(/illustration-ukulele/);await expect(page.locator('.practice-neighbors button')).toHaveCount(5);
   await expect(page.getByRole('button',{name:'Leave practice through the open door'})).toBeVisible();await expect(page.locator('.practice-room .metronome-widget')).toBeVisible();
@@ -63,7 +66,8 @@ test('double-tapping the girl opens the farm room with equipped instrument and r
   await page.screenshot({path:`test-results/${testInfo.project.name}-farm-practice-room.png`});
   await page.getByRole('button',{name:'Leave practice through the open door'}).click();await expect(page.locator('.practice-room')).toHaveCount(0);
   expect(await page.evaluate(()=>({active:window.audioEngine.active.drums,manual:window.audioEngine.manualInstrument,practice:window.audioEngine.practiceSession}))).toEqual({active:true,manual:'ukulele',practice:null});
-  expect(await page.evaluate(()=>({phrase:window.audioEngine.equippedPhrase,identity:window.audioEngine.phraseIdentity}))).toEqual(pinned);expect(await page.evaluate(()=>window.audioEngine.phrasePinned)).toBe(true);
+  expect(await phrasePin()).toEqual(pinned);
+  await expect.poll(()=>page.evaluate(()=>[...window.audioEngine.scheduledBars.values()].at(-1)?.plan.phrases.ukulele?.name)).toBe(pinned.name);
   await expect(page.locator('.performance-ukulele')).toBeVisible();expect(errors).toEqual([]);
 });
 
@@ -91,10 +95,23 @@ test('learn waits for each right note and feedback leads into rhythm and accompa
   });
   async function playTimed(){
     await page.getByRole('button',{name:'Start repeating',exact:true}).click();
-    await page.evaluate(()=>new Promise(resolve=>{
-      const engine=window.audioEngine;const delay=Math.max(0,(window.practiceClock.startTime-engine.practiceTime())*1000);
-      setTimeout(()=>{for(const [index,note] of ['A4','C#5','E5'].entries()){engine.manualNoteOn(note,`test-${index}`);setTimeout(()=>engine.manualNoteOff(`test-${index}`),120);}resolve();},delay);
+    const played=await page.evaluate(()=>new Promise((resolve,reject)=>{
+      const engine=window.audioEngine,clock=window.practiceClock;
+      const deadline=performance.now()+7000;
+      // Scoring uses Transport ticks. A wall-clock timeout can fire before the
+      // audio clock reaches the first downbeat on a busy/headless CI runner.
+      const play=()=>{
+        const ticks=engine.practiceTicks();
+        if(ticks>=clock.startTick){
+          for(const [index,note] of ['A4','C#5','E5'].entries()){engine.manualNoteOn(note,`test-${index}`);setTimeout(()=>engine.manualNoteOff(`test-${index}`),120);}
+          resolve({beat:(ticks-clock.startTick)/clock.beatTicks});return;
+        }
+        if(performance.now()>deadline){reject(new Error('Practice transport did not reach its first downbeat'));return;}
+        setTimeout(play,8);
+      };
+      play();
     }));
+    expect(played.beat,'input lands inside the first-note scoring window').toBeLessThan(.5);
     await expect(page.locator('.practice-phrase-track .is-current')).toHaveCount(1);
     await expect(page.locator('.practice-score')).toHaveText('3/3 · 100%',{timeout:8000});
   }

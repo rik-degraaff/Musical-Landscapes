@@ -13,12 +13,16 @@ test('entering gameplay and every scene transition roll anew, including revisiti
   await page.getByRole('button',{name:'Open settings'}).dblclick();await page.getByRole('button',{name:'Close settings',exact:true}).click();
   await expect(page.locator('.scene-farm .visitor-object')).toHaveAttribute('data-sound','sheep');
   for(let index=1;index<=7;index++){
-    await page.getByRole('button',{name:'Change landscape'}).click({force:true});
+    await expect(page.locator('.celestial-control')).toHaveAttribute('data-settled','true');
+    await page.getByRole('button',{name:'Change landscape'}).click();
     const scene=scenes[index%7];await expect(page.locator(`.scene-${scene} .visitor-object`)).toHaveAttribute('data-sound',visitors[index%7][1]);
     await expect(page.locator(`.scene-${scene} .interactive-object`)).toHaveCount(2);
   }
   await page.evaluate(()=>window.__testVisitorRoll=.9);
-  for(let index=0;index<7;index++)await page.getByRole('button',{name:'Change landscape'}).click({force:true});
+  for(let index=0;index<7;index++){
+    await expect(page.locator('.celestial-control')).toHaveAttribute('data-settled','true');
+    await page.getByRole('button',{name:'Change landscape'}).click();
+  }
   await expect(page.locator('.scene-farm .visitor-object')).toHaveCount(0);
 });
 

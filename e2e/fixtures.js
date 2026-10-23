@@ -23,6 +23,21 @@ export const test=base.extend({
 
 export {expect};
 
+export async function doubleActivate(locator, testInfo) {
+  if (!testInfo.project.use.hasTouch) {
+    await locator.dblclick();
+    return;
+  }
+  // Resolve actionability once, then send both native taps without another
+  // locator wait or assertion consuming the application's double-tap interval.
+  await locator.tap({trial:true});
+  const bounds=await locator.boundingBox();
+  const page=locator.page();
+  const x=bounds.x+bounds.width/2,y=bounds.y+bounds.height/2;
+  await page.touchscreen.tap(x,y);
+  await page.touchscreen.tap(x,y);
+}
+
 export async function waitForInstrumentSettling(page) {
   await page.locator('.landscape-world .instrument').evaluateAll(async elements=>{
     // Let React's layout RAF enqueue its transitions before waiting for them.
