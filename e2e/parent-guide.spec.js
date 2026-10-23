@@ -77,7 +77,7 @@ test('installed display mode suppresses reinstallation and keeps restriction gui
   await expect(page.getByRole('button',{name:'Install FarmJam',exact:true})).toHaveCount(0);
   await guidePage(page,2);
   await expect(page.locator('.parent-restriction-steps')).not.toBeEmpty();
-  await expect(page.getByRole('heading',{name:'Set up device restrictions',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Set up device restrictions',exact:true})).toBeFocused();
   await expect(page.getByText(/caregiver must set up device restrictions/)).toBeVisible();
 });
 

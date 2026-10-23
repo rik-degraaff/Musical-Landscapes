@@ -34,6 +34,15 @@ for(const [layout,width,height] of [['desktop',1440,900],['tablet',1024,768],['p
         };
         await checkDoorway();
         const objects=host.locator('.interactive-object');await expect(objects).toHaveCount(2);
+        const checkCloud=async()=>{
+          const clear=await host.locator('.cloud-1').evaluate(element=>{
+            const box=element.getBoundingClientRect();
+            const hit=document.elementFromPoint(box.x+box.width/2,box.y+box.height/2);
+            return !!hit?.closest('.scenery-cloud');
+          });
+          if(!clear)failures.push(`${scene}: cloud center not reachable`);
+        };
+        await checkCloud();
         const checkSeparation=async()=>{
           const [one,two]=await Promise.all((await objects.all()).map(object=>object.boundingBox()));
           if(one.x+one.width>two.x+1&&two.x+two.width>one.x+1&&one.y+one.height>two.y+1&&two.y+two.height>one.y+1)failures.push(`${scene}: scene targets overlap`);
@@ -52,6 +61,7 @@ for(const [layout,width,height] of [['desktop',1440,900],['tablet',1024,768],['p
         await waitForInstrumentSettling(page);
         await checkDoorway();
         await checkSeparation();
+        await checkCloud();
         const world=await page.locator('.landscape-world').boundingBox();
         for(const object of await objects.all()){
           const sound=await object.getAttribute('data-sound');

@@ -1,6 +1,32 @@
 // World coordinates are CSS pixels. Both habitat artwork and targets use these
 // anchors, so shortening the world for an instrument panel cannot detach them.
+import {DAY_PHASES, celestialPosition} from './dayCycle.js';
+
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+// Reserve the largest weather silhouette, so changing genre does not rearrange
+// instruments. Keep the same anchors in every scene, clear of settled sun/moon
+// targets. Short worlds need a lower cloud row and a smaller illustration.
+export function cloudLayouts({width, height}) {
+  const scale = Math.min(1, Math.max(.5, width / 1440), height / 300);
+  const controls = Object.values(DAY_PHASES).map(phase => {
+    const point = celestialPosition(phase);
+    return {x:width * point.x / 100, y:Math.max(36, height * point.y / 100)};
+  }).sort((one,two)=>one.y-two.y);
+  return [[380,100,1],[980,100,1.08],[720,80,1.02]].map(([sourceX, sourceY, maxScale]) => {
+    const x = sourceX / 1440 * width;
+    const factor = scale * maxScale;
+    const left = x - 24 * factor, cloudWidth = 168 * factor, cloudHeight = 80 * factor;
+    let y = Math.max(50, sourceY / 900 * height);
+    for(const control of controls) {
+      if(left < control.x + 40 && left + cloudWidth > control.x - 40 &&
+        y > control.y - 40 && y - cloudHeight < control.y + 40) {
+        y = control.y + 40 + cloudHeight;
+      }
+    }
+    return {x, y, scale, left, top:y-cloudHeight, width:cloudWidth, height:cloudHeight};
+  });
+}
 export function landscapeMetrics({width, height}) {
   const unit = Math.min(width / 1150, height / 650, 1.5);
   const tree = (x, y) => ({x: width * x, y: height * y, scale: unit});

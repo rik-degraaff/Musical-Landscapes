@@ -22,6 +22,8 @@ Run `npm run dev:editor`, then open `http://127.0.0.1:5175/__editor`. The editor
 
 ## Saving And Isolation
 
+The accepted scene composition lives in `src/utils/sceneComposition.js`, shared by habitat artwork and interactive targets. The committed overrides file is deliberately empty after integrating the composition into source. Use overrides to try a change; promote a lasting layout decision into that catalog and remove the obsolete exception. Houses and their doorway paths, and animals and their tree anchors, should continue to share geometry.
+
 Edits live only in the editor's memory until **Save to project** writes `src/data/visual-overrides.json`. The game loads this committed-format file in development and production. The initial empty file leaves the artwork unchanged. Saving uses a fixed file path, localhost/same-origin checks, visual-property validation, an atomic file replacement, and a content revision check. A stale editor cannot overwrite an external edit: export its draft and reload instead.
 
 Undo/redo, per-property reset, selected-item reset, discard, JSON export/import, and an unsaved-navigation warning are provided. Drafts are not automatically persisted. Export a draft before restarting or leaving the editor if it is not ready to save. Vite may reload after a save. Preview profiles/settings never use the game's local storage.

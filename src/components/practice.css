@@ -66,7 +66,7 @@
 .practice-neighbors .instrument-illustration { width: 33px; height: 29px; }
 .practice-neighbors button.is-accompanying { border-color: #a34b19; background: #ffcf91; animation: companionPulse .5s ease-out; }
 .practice-room .practice-topbar .metronome-widget:not(.is-open) { position: relative; left: auto; bottom: auto; z-index: 1; flex: 0 0 46px; width: 46px; height: 62px; }
-.practice-topbar .metronome-widget.is-open { position: fixed; left: 12px; bottom: 12px; z-index: 190; }
+.practice-topbar .metronome-widget.is-open { position: fixed; left: calc(var(--safe-left, 0px) + 12px); bottom: calc(var(--safe-bottom, 0px) + 12px); z-index: 190; }
 .practice-select { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 300px; font-size: 12px; font-weight: 700; }
 .practice-select > span { min-width: 0; overflow-wrap: anywhere; }
 .practice-select select { min-width: 0; width: 100%; max-width: 200px; height: 36px; padding: 4px 24px 4px 8px; border: 1px solid var(--practice-line); border-radius: 4px; background: var(--practice-paper); text-overflow: ellipsis; }

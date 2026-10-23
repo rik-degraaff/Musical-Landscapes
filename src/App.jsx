@@ -10,6 +10,7 @@ import {SettingsButton} from './components/GameButtons';
 import { YoungMusician } from './components/YoungMusician';
 import { PerformancePanel } from './components/PerformancePanel';
 import { slidePosition } from './utils/performance';
+import { cloudLayouts } from './utils/sceneComposition';
 import './components/controls.css';
 import { LandscapeGuard, requestLandscape } from './components/LandscapeGuard';
 import {Metronome} from './components/Metronome';
@@ -322,6 +323,7 @@ export default function App({developmentPreview}={}) {
       const peerSize=peer?artSize(other)??bounds:bounds;
       return {x:peer?peer.x/100*world.width:bounds.left+bounds.width/2-world.left,y:peer?peer.y/100*world.height:bounds.top+bounds.height/2-world.top,width:peerSize.width,height:peerSize.height};
     });
+    obstacles.push(...cloudLayouts(world).map(cloud=>({x:cloud.left+cloud.width/2,y:cloud.top+cloud.height/2,width:cloud.width,height:cloud.height})));
     const point=slidePosition({x:stateRef.current[name].x/100*world.width,y:stateRef.current[name].y/100*world.height},size,obstacles,{left:insetX,top:8+insetY,right:world.width-insetX,bottom:world.height-8-insetY},3);
     const next={...stateRef.current,[name]:{...stateRef.current[name],x:point.x/world.width*100,y:point.y/world.height*100}};
     stateRef.current=next;setInstruments(next);
