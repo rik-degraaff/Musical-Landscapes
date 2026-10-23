@@ -83,6 +83,23 @@ test('object library, real character dialog, replay, responsive viewport, and vi
   expect(await preview.locator('body').evaluate(()=>({width:innerWidth,height:innerHeight}))).toEqual({width:780,height:284});
 });
 
+test('object library keeps scene placement overrides inside its preview cards',async({page})=>{
+  const document={version:1,rules:[{selector:'.scene .interactive-object[data-sound="bird"]',attributes:{},styles:{left:'6.3%',top:'55.6%',width:'70.88px',height:'62.02px',right:'auto',bottom:'auto',transform:'translate(-50%, -50%)'}}]};
+  await page.route('**/__editor/api/visuals',route=>route.fulfill({json:{document,revision:'positioned'}}));
+  await page.reload();
+  await expect(page.getByRole('status')).toHaveText('Project loaded');
+  await page.getByRole('button',{name:'Objects',exact:true}).click();
+  const preview=page.frameLocator('iframe');
+  await expect(preview.locator('.interactive-object')).toHaveCount(28);
+  for(const compact of [false,true]){
+    if(compact)await page.getByRole('button',{name:'Compact landscape viewport',exact:true}).click();
+    await expect.poll(()=>preview.locator('.interactive-object[data-sound="bird"]').evaluate(node=>{
+      const box=node.getBoundingClientRect(),card=node.closest('article').getBoundingClientRect();
+      return {width:box.width,height:box.height,centered:Math.abs(box.left+box.width/2-card.left-card.width/2)<1,inside:box.left>=card.left&&box.right<=card.right&&box.top>=card.top&&box.bottom<=card.bottom};
+    })).toEqual({width:130,height:114,centered:true,inside:true});
+  }
+});
+
 test('scene object and avatar dragging records reversible percentage constraints',async({page})=>{
   test.skip(test.info().project.name!=='desktop','Native mouse dragging is covered on desktop.');
   const preview=page.frameLocator('iframe');

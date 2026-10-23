@@ -29,8 +29,10 @@ export function ObjectArt({ type }) {
       <ellipse cx="78" cy="123" rx="49" ry="5" fill="#1b403833"/>
       <path d="M54 89L30 68L18 115m67-26l28-29l24 56M55 105l-7 20h-21m61-20l10 20h24" stroke="#586943" strokeWidth="6"/>
       <ellipse cx="73" cy="92" rx="34" ry="20" fill="#89965d" stroke="#485f42" strokeWidth="3"/>
-      <path className="cricket-wing" d="M44 89q21-33 47-7L60 106Z" fill="#b6b579" stroke="#657447" strokeWidth="2"/>
-      <path d="M51 86l27 5m-23 3l16 5" stroke="#6d7d4c" strokeWidth="2"/>
+      <g className="cricket-wing">
+        <path d="M44 89q21-33 47-7L60 106Z" fill="#b6b579" stroke="#657447" strokeWidth="2"/>
+        <path d="M51 86l27 5m-23 3l16 5" stroke="#6d7d4c" strokeWidth="2"/>
+      </g>
       <circle cx="106" cy="79" r="17" fill="#a3ad71" stroke="#526944" strokeWidth="3"/>
       <circle cx="113" cy="74" r="4" fill="#28493d"/><circle cx="114" cy="73" r="1.3" fill="#eef3c9"/>
       <path d="M110 62q12-36 27-36m-32 36q-5-32 9-45" stroke="#70814e" strokeWidth="2"/>
@@ -81,7 +83,7 @@ export function ObjectArt({ type }) {
       <path d="M31 19h102m-92 0v18" stroke="#947e6f" strokeWidth="7" /><g className="bell-body"><path d="M79 24v18" stroke="#b6a388" strokeWidth="5" /><path d="M43 99q13-16 13-39q0-23 24-23q25 0 25 23q0 23 13 39Z" fill="#ebbf69" stroke="#ae8050" strokeWidth="3" /><path d="M64 59q0-10 8-13v33" stroke="#ffe2a0" strokeWidth="6" /><path d="M79 102v15" stroke="#8e6746" strokeWidth="7" /><path d="M43 99h75" stroke="#f9d98a" strokeWidth="7" /></g>
     </>}
     {type === 'owl' && <>
-      <path d="M20 125h122" stroke="#8e7664" strokeWidth="9" /><path d="M44 50L39 22L67 37 M92 37l27-15l-4 35" fill="#a5968a" /><ellipse cx="79" cy="79" rx="43" ry="45" fill="#a5968a" /><path d="M40 74q8 43 24 35V66m54 8q-8 43-24 35V66" fill="#756e72" /><path d="M79 47q-42-24-40 13q1 36 40 28q39 8 40-28q2-37-40-13Z" fill="#ebd9b9" /><g className="owl-eyes" fill="#4b5159"><circle cx="59" cy="62" r="10" /><circle cx="98" cy="62" r="10" /></g><g fill="#fff9df"><circle cx="61" cy="59" r="3" /><circle cx="100" cy="59" r="3" /></g><path d="M72 75l7 13l8-13" fill="#dca66a" /><path d="M62 119v9m33-9v9" stroke="#dca66a" strokeWidth="5" />
+      <path d="M20 125h122" stroke="#8e7664" strokeWidth="9" /><path d="M44 50L39 22L67 37 M92 37l27-15l-4 35" fill="#a5968a" /><ellipse cx="79" cy="79" rx="43" ry="45" fill="#a5968a" /><path d="M40 74q8 43 24 35V66m54 8q-8 43-24 35V66" fill="#756e72" /><path d="M79 47q-42-24-40 13q1 36 40 28q39 8 40-28q2-37-40-13Z" fill="#ebd9b9" /><g className="owl-eyes" fill="#4b5159"><circle cx="59" cy="62" r="10" /><circle cx="98" cy="62" r="10" /><g fill="#fff9df"><circle cx="61" cy="59" r="3" /><circle cx="100" cy="59" r="3" /></g></g><path d="M72 75l7 13l8-13" fill="#dca66a" /><path d="M62 119v9m33-9v9" stroke="#dca66a" strokeWidth="5" />
     </>}
   </svg>;
 }

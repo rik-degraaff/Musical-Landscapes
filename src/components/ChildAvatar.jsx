@@ -25,7 +25,7 @@ export function ChildAvatar({avatar,age='5to7',className='',...props}) {
       <path d="M44 90Q31 97 27 123Q26 132 32 132Q37 132 38 125L48 105M86 90Q99 97 103 123Q104 132 98 132Q93 132 92 125L82 105" fill={look.skin}/>
       <path d="M47 120L48 151Q53 156 59 151L61 125M69 125L71 151Q77 156 82 151L83 120" fill={look.skin}/>
       <g data-avatar-part="bottom" data-avatar-style={look.bottom}>
-      {look.bottom==='trousers'&&<><path d="M45 115H85L82 151H71L65 126L59 151H48Z" fill={look.bottomPrimary}/><path d="M46 118H84M49 147H59M71 147H81" fill="none" stroke={look.bottomSecondary} strokeWidth="5"/><path d="M65 119V127" fill="none"/></>}
+      {look.bottom==='trousers'&&<><path d="M45 115H85L82 151H71L65 126L59 151H48Z" fill={look.bottomPrimary}/><path d="M46 118H84M49 147H59M71 147H81" fill="none" stroke={look.bottomSecondary} strokeWidth="5"/><path d="M65 119V127" fill="none"/><path d="M45 115H85L82 151H71L65 126L59 151H48Z" fill="none"/></>}
       {look.bottom==='shorts'&&<><path d="M45 115H85L83 137H70L65 126L60 137H47Z" fill={look.bottomPrimary}/><path d="M48 134H59M71 134H82M47 119H83" stroke={look.bottomSecondary} strokeWidth="4"/></>}
       {look.bottom==='skirt'&&<><path d="M47 114H83L94 140Q65 149 36 140Z" fill={look.bottomPrimary}/><path d="M40 137Q65 144 90 137M55 121L52 136M75 121L78 136" fill="none" stroke={look.bottomSecondary} strokeWidth="4"/></>}
       {look.bottom==='joggers'&&<>
@@ -33,6 +33,7 @@ export function ChildAvatar({avatar,age='5to7',className='',...props}) {
         <path d="M46 118H84M49 147H59M71 147H81" fill="none" stroke={look.bottomSecondary} strokeWidth="5"/>
         <path d="M50 123L49 128M80 123L81 128M65 120V126" fill="none" strokeLinecap="round"/>
         <path d="M62 121L61 125M68 121L69 125" fill="none" stroke={look.bottomSecondary} strokeLinecap="round"/>
+        <path d="M45 115H85L84 133L81 151H71L68 134L65 126L62 134L59 151H49L46 133Z" fill="none"/>
       </>}
       {look.bottom==='leggings'&&<>
         <path d="M46 115H84L83 126L82 151H71L69 130L65 124L61 130L59 151H48L47 126Z" fill={look.bottomPrimary}/>
@@ -65,6 +66,7 @@ export function ChildAvatar({avatar,age='5to7',className='',...props}) {
       </g>
       <path d="M47 150Q53 154 59 150L60 159H43Q40 154 47 150ZM71 150Q77 154 83 150Q90 154 87 159H70Z" fill="#fcf6e5"/>
       <path d="M44 157H59M71 157H86" stroke={look.bottomSecondary} strokeWidth="3"/>
+      <path d="M47 150Q53 154 59 150L60 159H43Q40 154 47 150ZM71 150Q77 154 83 150Q90 154 87 159H70Z" fill="none"/>
     </g>
     <g data-avatar-region="head" stroke={outline} strokeWidth="2" strokeLinejoin="round">
       <ellipse cx="35" cy="52" rx="6" ry="9" fill={look.skin}/><ellipse cx="95" cy="52" rx="6" ry="9" fill={look.skin}/>

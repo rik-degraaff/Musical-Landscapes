@@ -56,5 +56,11 @@
 @media (max-height: 550px) and (orientation: landscape) {
   .avatar-designer { grid-template-columns: 150px minmax(0,1fr); gap: 16px; }
   .avatar-live-preview { padding: 6px; }
-  .avatar-live-preview > .child-avatar { width: auto; max-width: 100%; height: min(160px, max(72px, calc(100dvh - 170px))); }
+  .avatar-live-preview > .child-avatar { width: auto; max-width: 100%; height: min(160px, max(56px, calc(100dvh - 210px))); }
+  .avatar-live-preview strong { margin-top: 4px; }
+}
+@media (max-width: 480px) and (max-height: 550px) and (orientation: landscape) {
+  .avatar-designer { grid-template-columns: minmax(78px,.6fr) minmax(0,1.4fr); gap: 8px; }
+  .avatar-live-preview { position: sticky; padding: 4px 2px; }
+  .avatar-style-options > div { grid-template-columns: repeat(3,minmax(0,1fr)); }
 }

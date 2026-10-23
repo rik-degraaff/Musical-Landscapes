@@ -91,8 +91,12 @@ export function VisitorArt({ type }) {
         <path d="M141 30q17-15 14-27q-18 2-14 27" fill="#9caf83" stroke="#69846b" />
         <g className="visitor-woodpecker-body">
           <path d="M61 92L42 130l25-9l15-27" fill="#4e6566" /><path d="M48 122l18-19" stroke="#b6ccc0" strokeWidth="2" />
-          <path d="M62 51q-20 23-11 45q7 15 25 9q26-13 24-41Z" fill="#f4e7cf" /><path className="visitor-woodpecker-wing" d="M62 58q-21 16-13 42q20 9 39-16q-2-20-26-26Z" fill="#526e71" />
-          <path d="M55 72l18 1m-20 9l18 1m-18 8l10 1" stroke="#d3e1d8" strokeWidth="3" /><path d="M67 101l11 1l-9 11l-9-6" fill="#ca7b71" stroke="none" />
+          <path d="M62 51q-20 23-11 45q7 15 25 9q26-13 24-41Z" fill="#f4e7cf" />
+          <g className="visitor-woodpecker-wing">
+            <path d="M62 58q-21 16-13 42q20 9 39-16q-2-20-26-26Z" fill="#526e71" />
+            <path d="M55 72l18 1m-20 9l18 1m-18 8l10 1" stroke="#d3e1d8" strokeWidth="3" />
+          </g>
+          <path d="M67 101l11 1l-9 11l-9-6" fill="#ca7b71" stroke="none" />
           <path d="M88 90l20 2l9-7m-31 14l22 5l8-6m-8-6l9 4m-9 8l9 3" fill="none" stroke="#9f8059" strokeWidth="3" />
           <g className="visitor-woodpecker-head">
             <path d="M62 43L58 20l14 4l8-15l9 14l12 1l-7 23Z" fill="#d17d78" stroke="#925d63" />
@@ -111,7 +115,9 @@ export function VisitorArt({ type }) {
           <path d="M48 111l-12 9h22m33-9l-4 11h18" fill="#e5ac68" stroke="#b0865c" />
           <path d="M116 74l29-13l-12 31" fill="#627a91" /><path d="M40 79q35-27 82 0q19 13 3 29q-23 20-64 5q-26-9-21-34Z" fill="#c2b496" />
           <path d="M49 93q8 26 53 18q20-4 28-18q-40 14-81 0Z" fill="#e8d9b8" stroke="none" />
-          <path className="visitor-duck-wing" d="M73 78q34-14 47 16q-22 21-47-2Z" fill="#8c9d9a" /><path d="M88 89l17 10l13-9" fill="#789fb9" stroke="#ecdfbe" strokeWidth="3" />
+          <g className="visitor-duck-wing">
+            <path d="M73 78q34-14 47 16q-22 21-47-2Z" fill="#8c9d9a" /><path d="M88 89l17 10l13-9" fill="#789fb9" stroke="#ecdfbe" strokeWidth="3" />
+          </g>
           <g className="visitor-duck-head">
             <path d="M38 50q-5 22 12 39l20-9l-8-28" fill="#76a593" /><circle cx="46" cy="44" r="25" fill="#76a593" /><path d="M29 60q15 11 34 5" stroke="#fff0d5" strokeWidth="5" />
             <path d="M28 45L9 49q-5 10 18 12l13-5Z" fill="#efc174" stroke="#ae875b" /><path d="M12 54h15" stroke="#c59a60" strokeWidth="1.5" />
@@ -124,7 +130,9 @@ export function VisitorArt({ type }) {
       return <g className="visitor-art visitor-otter" stroke="#77655b" strokeWidth="2.5">
         <g className="visitor-otter-ripples" stroke="#87bdc4" fill="none"><ellipse cx="82" cy="125" rx="65" ry="8" /><path d="M24 115q11-5 27-2m66 4l19 2" /></g>
         <g className="visitor-otter-body">
-          <path className="visitor-otter-tail" d="M104 99q29 18 42 15q-9 19-34 9l-29-19" fill="#ab8a73" /><path d="M111 115l18 6" stroke="#d2b097" strokeWidth="2" />
+          <g className="visitor-otter-tail">
+            <path d="M104 99q29 18 42 15q-9 19-34 9l-29-19" fill="#ab8a73" /><path d="M111 115l18 6" stroke="#d2b097" strokeWidth="2" />
+          </g>
           <path d="M44 114l-12 5q-8 10 14 10l17-10m36-5l15 8q7 9-16 6l-14-9" fill="#9a7b68" />
           <ellipse cx="77" cy="93" rx="35" ry="34" fill="#b99a7e" /><ellipse cx="76" cy="95" rx="23" ry="27" fill="#ead6b2" stroke="none" />
           <path d="M70 117l4-4l5 4l5-4" fill="none" stroke="#c3a184" strokeWidth="2" />
@@ -136,7 +144,9 @@ export function VisitorArt({ type }) {
           </g>
           <path d="M54 85q-15-5-17 8q4 14 24 6m38-14q18-4 18 10q-9 11-24 4" fill="#b99a7e" />
           <path d="M60 94q11-17 29 0l-4 14H66Z" fill="#bad1ce" stroke="#6c9798" /><path d="M64 96l5 8l5-11l6 11l5-8" fill="none" stroke="#e2eeDE" strokeWidth="2" />
-          <path className="visitor-otter-paws" d="M44 91q13-5 17 3q1 9-12 6m57-9q-12-6-17 3q-1 9 12 6" fill="#d0b196" /><path d="M49 94l1 5m5-6l1 5m43-4l-1 5m-5-6l-1 5" strokeWidth="1.5" />
+          <g className="visitor-otter-paws">
+            <path d="M44 91q13-5 17 3q1 9-12 6m57-9q-12-6-17 3q-1 9 12 6" fill="#d0b196" /><path d="M49 94l1 5m5-6l1 5m43-4l-1 5m-5-6l-1 5" strokeWidth="1.5" />
+          </g>
         </g>
       </g>;
     case 'cicada':

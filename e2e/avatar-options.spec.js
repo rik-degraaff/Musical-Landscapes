@@ -25,6 +25,26 @@ test('expanded hair and clothing options share palettes and matching colors pers
   await expect(preview).toHaveAttribute('data-avatar-bottom-primary','#b34b58');await expect(preview).toHaveAttribute('data-avatar-bottom-secondary','#f5f1e8');
   await page.screenshot({path:testInfo.outputPath('coordinated-avatar.png')});
   const metrics=await page.locator('.parent-guide-content').evaluate(element=>({width:element.clientWidth,scroll:element.scrollWidth}));expect(metrics.scroll).toBeLessThanOrEqual(metrics.width);
+  const originalViewport=page.viewportSize();
+  const previewSizes=originalViewport.width>originalViewport.height?[originalViewport]:[];
+  if(testInfo.project.name==='desktop')previewSizes.push({width:360,height:240});
+  for(const viewport of previewSizes){
+    await page.setViewportSize(viewport);
+    await page.getByRole('radio',{name:'Joggers',exact:true}).check();
+    await expect(async()=>{
+      const bounds=await page.locator('.avatar-live-preview').evaluate(element=>{
+        const content=element.closest('.parent-guide-content');
+        const footer=element.closest('[role="dialog"]').querySelector('.parent-guide-footer');
+        return {avatar:element.querySelector('svg').getBoundingClientRect().toJSON(),name:element.querySelector('strong').getBoundingClientRect().toJSON(),content:content.getBoundingClientRect().toJSON(),footer:footer.getBoundingClientRect().toJSON(),width:content.clientWidth,scroll:content.scrollWidth};
+      });
+      expect(bounds.scroll).toBeLessThanOrEqual(bounds.width);
+      expect(bounds.avatar.top).toBeGreaterThanOrEqual(bounds.content.top);
+      expect(bounds.avatar.bottom).toBeLessThanOrEqual(bounds.name.top);
+      expect(bounds.name.bottom).toBeLessThanOrEqual(bounds.footer.top);
+    }).toPass();
+  }
+  await page.setViewportSize(originalViewport);
+  await page.getByRole('radio',{name:'Leggings',exact:true}).check();
   for(let step=0;step<2;step++)await page.getByRole('button',{name:'Next step',exact:true}).click();
   await page.getByRole('dialog',{name:'Add a child',exact:true}).getByRole('button',{name:'Add child',exact:true}).click();
   if(size.height>size.width)await page.setViewportSize({width:size.height,height:size.width});
