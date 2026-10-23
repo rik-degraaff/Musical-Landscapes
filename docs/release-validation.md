@@ -1,6 +1,33 @@
 # Release validation
 
-## Test audit and compact placement correction — 2026-10-23
+## Shared illustration and responsive composition review — 2026-10-23
+
+The current visual direction is maintained in [visual standards](visual-standards.md), with agent and visual-editing skill entry points. A shared material palette now connects the child, eight instruments, all 28 scene objects/visitors, practice illustrations, metronome, sky and app icons. Avatar colors remain user-selected. Habitat props belong to the landscape: the woodpecker grips an existing tree, perching birds meet named branches, and bees/swimmers share the scene's flower/water anchors. The airplane uses consistent near/far wing and tail ordering.
+
+Composition uses the measured landscape world, including its reduced height above an open instrument panel. A single catalog owns object size tiers and contacts, tree positions, and house doorway/path transforms. All five house-bearing scenes derive the road from the doorway's actual bottom edge and width. Middle-distance buildings and structures remain smaller and quieter than foreground playable content. Accepted layout overrides were promoted into this baseline; the override file is empty.
+
+Rendered review covered all 25 top/bottom combinations plus 24 age/hair/skin variants, enlarged and compact instrument/practice artwork, and all 28 objects at rest and through reaction poses. Full-scene captures covered seven screen shapes × seven scenes × three visitor variants × panel open/closed (294 images). That pass exposed 12 short-panel reachability defects caused by the old metronome offset. After correction, a targeted 63-image panel pass at compact, minimum and very wide sizes found no world-bound or reachability issues and no page errors. These are split inspections, not a single clean 294-image pass. The automated nine-size matrix additionally covers house/path joins, 44px scene targets, pair separation and access with the panel open.
+
+The broader development run exposed a compact cloud center hidden behind the sun's touch target. Weather anchors now reserve the largest genre silhouette and shift sideways around the scene's settled sun/moon position; instruments settle around those reserved areas. Lowering clouds was rejected during follow-up checks because terrain and foreground animals hid them in short worlds. Clouds retain a consistent sky row and scale to both world dimensions. Corner metronomes and expanded menus respect device safe-area insets, and Escape dismisses the practice metronome before the practice room. A guide keyboard test now waits for the page's intended deferred heading focus before moving focus manually, retaining the actual Tab-order assertion. The editor's restoration test captures the authored starting fill instead of assuming the old barn color.
+
+Final review captured another **126 scenes** across compact, minimum and very wide screens, all visitor tiers and both panel states, after the sky corrections. All six contact sheets were inspected; the capture reported no world-bound/reachability defects and no page errors. Airborne visitor anchors were separated from the resident bat and clouds. Pure geometry coverage now checks all regular/visitor pairs and sky reservations across all 18 full/panel worlds from the nine browser viewports.
+
+Current checks ran on Windows, Node 24.14.0, npm 11.9.0 and Playwright 1.63.0 Chromium. CI targets Node 22.
+
+| Check | Result |
+| --- | --- |
+| Final full Node suite | 350 passed, no skips |
+| Unique development/editor cases across three projects | 669 passed, 9 intentional skips, no unresolved failures |
+| Final nine-size scene matrix | 27 passed |
+| Corrected cloud, safe-area and visitor regressions | 9 passed across the three projects |
+| Corrected Linux guide focus regression | Passed on desktop |
+| Fresh production build and real-worker/offline gate | Build succeeded; 14 passed |
+
+Development coverage is a **split run with targeted corrections, not a clean single-run gate**. The 678-case manifest was reconciled by project, file and full title, mapping the renamed safe-area case. Earlier focused/editor and remaining batches were followed by affected-area checks and corrections; their overlapping counts must not be added to the unique total. One affected visitor execution reported a recovered React concurrent-render error without its original cause in the retained trace. Added cause-chain diagnostics preserved the error assertion, and all three targeted visitor executions subsequently passed without that error. A sandboxed Node launch could not connect to its local test server; the successful final run used the required loopback permission.
+
+Evidence is retained under ignored `test-results/style-review/`: `validation/node-final.log`, `validation/reconciled.json`, the per-batch JSON/logs/traces in `focused`, `retry`, `remaining`, `final-main`, `final-targeted`, `final-matrix`, `final-matrix2` and `final-matrix3`, and `validation/final-production/runner.log`. Rendered galleries are in `playable/`, `scenery/`, `scenes/` and `final-scenes/`. The final build uses `index-BvYPeVzM.js` and `index-SC2u8Y5U.css`, with 204 precache entries and the existing large-chunk warning. These checks establish Chromium emulation and production-worker behavior; they do not establish real-device appearance, hardware input or audio latency.
+
+## Historical test audit and compact placement correction — 2026-10-23
 
 Reviewed the Node, development/editor browser and production suites. The Node suite now has **345 cases**, with duplicate catalog/range/fingering assertions consolidated into their owning suites. Ownership fixtures retain two seconds of audio at a small mock sample rate; real-rate envelope and browser output checks remain. The development matrix now has **663 configured cases**: the five-size scene matrix runs once rather than once per input project, and startup retry coverage replaces a duplicate development recording decode. The scene matrix also stops writing 1,260 unasserted success screenshots and waits for instrument transitions instead of fixed sleeps. A representative scene case took 15.7 seconds before these changes and 5.1 seconds afterwards locally; this is an observed case timing, not a full-suite benchmark. Development files use two isolated workers; production remains serial.
 
