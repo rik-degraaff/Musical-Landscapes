@@ -315,7 +315,12 @@ test('SVG point editing and individual clothing edits persist independently of t
   await expect(hair).toHaveAttribute('fill','#123456');
   const top = preview.locator('.avatar-live-preview [data-avatar-part="top"] path').first();
   await page.getByRole('button',{name:'Top: Hoodie / Path 1 path',exact:true}).click();
+  // Selection crosses the iframe boundary asynchronously. Wait for the new
+  // inspector before filling an input that was also present for the hair.
+  await expect(page.getByRole('heading',{name:'Top: Hoodie / Path 1',exact:true})).toBeVisible();
+  await expect(page.getByLabel('attributes fill',{exact:true})).toHaveValue(await top.getAttribute('fill'));
   await page.getByLabel('attributes fill',{exact:true}).fill('#abcdef');
+  await expect(top).toHaveAttribute('fill','#abcdef');
   await page.getByLabel('Preview bottom',{exact:true}).selectOption('skirt');
   await expect(top).toHaveAttribute('fill','#abcdef');
 });
