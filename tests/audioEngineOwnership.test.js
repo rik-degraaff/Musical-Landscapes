@@ -16,6 +16,7 @@ import * as selection from '../src/audio/sampleSelection.js';
 import * as voices from '../src/audio/manualVoice.js';
 import * as session from '../src/audio/session.js';
 import { attachOwnedSamplerVoices } from '../src/audio/samplerVoices.js';
+import { requestPlaybackSession, startAudioContext } from '../src/audio/playback.js';
 
 const source = readFileSync(new URL('../src/audio/AudioEngine.js', import.meta.url), 'utf8')
   .replace(/^import .+;\r?$/gm, '')
@@ -89,7 +90,7 @@ function setup() {
       start() { this.state = 'started'; }, stop() { this.state = 'stopped'; }, pause() { this.state = 'paused'; },
     },
   };
-  const dependencies = { Tone, ...music, ...composition, compositionStyle, blendCompositionStyles, SCENE_SOUNDS, audioLevels, ...samples, ...envelopes, STRING_INSTRUMENTS, equippedProfile, beatOffset, releaseManualVoice, AudioResources, ...selection, ...voices, ...session, attachOwnedSamplerVoices };
+  const dependencies = { Tone, ...music, ...composition, compositionStyle, blendCompositionStyles, SCENE_SOUNDS, audioLevels, ...samples, ...envelopes, STRING_INSTRUMENTS, equippedProfile, beatOffset, releaseManualVoice, AudioResources, ...selection, ...voices, ...session, attachOwnedSamplerVoices, requestPlaybackSession, startAudioContext };
   const AudioEngine = new Function(...Object.keys(dependencies), `${source}\nreturn AudioEngine;`)(...Object.values(dependencies));
   const engine = new AudioEngine();
   engine.composition = new composition.Composition({random:()=>.9});
@@ -439,6 +440,68 @@ test('a stale resume cannot wake or clear the promise of a new session', async (
   newGate.resolve();
   await newResume;
   assert.equal(engine.backgrounded, false);
+});
+
+test('a fresh gesture retries a pending automatic resume and restarts only once', async () => {
+  const {engine,runtime,Tone}=setup();
+  await engine.init();engine.active.piano=true;
+  const statuses=[];engine.onAudioStatus=status=>statuses.push(status);
+  const context=Tone.getContext().rawContext;
+  context.state='suspended';context.dispatchEvent(new Event('statechange'));
+  const gate=deferred();runtime.startGate=gate;
+  const automatic=engine.resumePlayback();
+  const starts=runtime.starts;
+  runtime.startGate=null;context.state='running';
+  window.dispatchEvent(new Event('pointerdown'));
+  assert.equal(runtime.starts,starts+1);
+  await engine.resumePromise;
+  assert.equal(engine.backgrounded,false);
+  assert.equal(Tone.Transport.state,'started');
+  const schedules=runtime.schedules.size;
+  gate.resolve();await automatic;
+  assert.equal(runtime.schedules.size,schedules);
+  assert.deepEqual(statuses,['suspended','running']);
+  engine.dispose();
+});
+
+test('closed audio stops playback, clears notes and publishes a recoverable help status', async () => {
+  const {engine,runtime,Tone}=setup();
+  await engine.init();engine.setManualInstrument('piano');engine.manualNoteOn('C4','held');
+  const context=Tone.getContext().rawContext;
+  context.state='closed';context.dispatchEvent(new Event('statechange'));
+  assert.equal(engine.audioStatus,'closed');
+  assert.equal(engine.backgrounded,true);
+  assert.equal(engine.manualVoices.size,0);
+  assert.equal(Tone.Transport.state,'stopped');
+  const starts=runtime.starts;
+  await engine.resumePlayback({gesture:true});
+  assert.equal(await engine.testSound(),false);
+  assert.equal(runtime.starts,starts);
+  engine.dispose();
+});
+
+test('audio session interruptions stop playback even while the context reports running', async () => {
+  const session=Object.assign(new EventTarget(),{type:'auto',state:'active'});
+  const descriptor=Object.getOwnPropertyDescriptor(globalThis,'navigator');
+  Object.defineProperty(globalThis,'navigator',{configurable:true,value:{audioSession:session}});
+  const {engine,Tone}=setup();
+  try {
+    await engine.init();
+    assert.equal(session.type,'playback');
+    session.state='interrupted';session.dispatchEvent(new Event('statechange'));
+    assert.equal(engine.audioStatus,'interrupted');assert.equal(engine.backgrounded,true);
+    await engine.resumePlayback({gesture:true});
+    assert.equal(engine.backgrounded,true);
+    session.state='active';session.dispatchEvent(new Event('statechange'));
+    await engine.resumePromise;
+    assert.equal(engine.audioStatus,'running');assert.equal(Tone.Transport.state,'started');
+    engine.dispose();
+    session.state='interrupted';session.dispatchEvent(new Event('statechange'));
+    assert.equal(engine.audioStatus,'unavailable');
+  } finally {
+    engine.dispose();
+    if(descriptor)Object.defineProperty(globalThis,'navigator',descriptor);else delete globalThis.navigator;
+  }
 });
 
 test('dispose clears only owned schedules and voices, preserving retirement until onended', async () => {

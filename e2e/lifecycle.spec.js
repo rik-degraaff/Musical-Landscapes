@@ -1,4 +1,4 @@
-import {test,expect} from './fixtures.js';
+import {test,expect,doubleActivate} from './fixtures.js';
 
 async function start(page) {
   const viewport=page.viewportSize();if(viewport.height>viewport.width)await page.setViewportSize({width:viewport.height,height:viewport.width});
@@ -116,4 +116,111 @@ test('a manual wake gesture is retained while held but canceled if released befo
   await expect.poll(()=>page.evaluate(()=>window.audioEngine.manualVoices.size)).toBe(1);
   await page.keyboard.up('Space');expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBe(0);
   await page.evaluate(()=>window.restoreResume());
+});
+
+test('sound help stays available with running audio and retries blocked audio through the real output',async({page},testInfo)=>{
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await start(page);
+  const button=page.locator('.sound-help-corner');
+  await expect(button).toHaveAttribute('data-attention','false');
+  await button.click();
+  const help=page.getByRole('dialog',{name:'Sound help',exact:true});
+  await expect(help).toContainText('cannot check your phone');
+  await expect(help).toContainText('Silent mode');
+  await page.keyboard.press('Escape');await expect(button).toBeFocused();
+  await page.evaluate(async()=>{
+    const context=window.testTone.getContext().rawContext;
+    window.nativeResume=context.resume.bind(context);
+    await context.suspend();
+    context.resume=()=>Promise.reject(new Error('Gesture required'));
+  });
+  await expect(button).toHaveAttribute('data-attention','true');
+  await button.click();await expect(help).toContainText('browser has paused or blocked audio');
+  await help.getByRole('button',{name:'Retry and test sound',exact:true}).click();
+  await expect(help).toContainText('Sound is still blocked');
+  await page.evaluate(()=>{
+    const context=window.testTone.getContext().rawContext;
+    context.resume=window.nativeResume;
+    const analyser=context.createAnalyser();analyser.fftSize=1024;
+    window.audioEngine.limiter.connect(analyser);
+    const samples=new Float32Array(analyser.fftSize);window.testNotePeak=0;
+    window.observeTestNote=new Promise(resolve=>{
+      const end=performance.now()+1500;
+      function sample(){analyser.getFloatTimeDomainData(samples);for(const value of samples)window.testNotePeak=Math.max(window.testNotePeak,Math.abs(value));if(performance.now()<end)requestAnimationFrame(sample);else{window.audioEngine.limiter.disconnect(analyser);analyser.disconnect();resolve();}}
+      sample();
+    });
+  });
+  await help.getByRole('button',{name:'Retry and test sound',exact:true}).click();
+  await expect(help).toContainText('A quiet test note was sent');
+  await page.evaluate(()=>window.observeTestNote);
+  expect(await page.evaluate(()=>window.testNotePeak)).toBeGreaterThan(.0001);
+  await expect(button).toHaveAttribute('data-attention','false');
+  await page.screenshot({path:testInfo.outputPath('sound-help.png')});
+  await help.getByRole('button',{name:'Back',exact:true}).click();
+  await doubleActivate(page.getByRole('button',{name:'Open settings',exact:true}),testInfo);
+  await page.getByRole('slider',{name:'Piano volume',exact:true}).fill('-18');
+  await page.getByRole('slider',{name:'Scenery sounds volume',exact:true}).fill('-60');
+  await page.getByRole('button',{name:'Close settings',exact:true}).click();
+  await button.click();await help.getByRole('button',{name:'Restore sound levels',exact:true}).click();
+  expect(await page.evaluate(()=>({piano:window.audioEngine.volumes.piano,scenery:window.audioEngine.sceneVolume}))).toEqual({piano:-9,scenery:-4});
+  await help.getByRole('button',{name:'Open Sound settings',exact:true}).click();
+  await expect(page.getByRole('tab',{name:'Sound',exact:true})).toHaveAttribute('aria-selected','true');
+  await expect(page.getByRole('slider',{name:'Scenery sounds volume',exact:true})).toHaveValue('-4');
+  await page.getByRole('slider',{name:'Scenery sounds volume',exact:true}).fill('-60');
+  await page.getByRole('button',{name:'Return to main menu',exact:true}).click();
+  await page.getByRole('button',{name:'Tap to play',exact:true}).click();
+  await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});
+  await doubleActivate(page.getByRole('button',{name:'Open settings',exact:true}),testInfo);
+  await expect(page.getByRole('slider',{name:'Scenery sounds volume',exact:true})).toHaveValue('-4');
+  expect(await page.evaluate(()=>window.audioEngine.sceneVolume)).toBe(-4);
+  expect(errors).toEqual([]);
+});
+
+test('playback session is requested before unlock and interruption help is reachable from practice',async({page},testInfo)=>{
+  await page.addInitScript(()=>{
+    const session=Object.assign(new EventTarget(),{type:'auto',state:'active'});
+    Object.defineProperty(navigator,'audioSession',{configurable:true,value:session});
+    window.testAudioSession=session;
+    window.resumeSessionTypes=[];
+    const resume=AudioContext.prototype.resume;
+    AudioContext.prototype.resume=function(...args){window.resumeSessionTypes.push(session.type);return resume.apply(this,args);};
+  });
+  await start(page);
+  const sessionTypes=await page.evaluate(()=>window.resumeSessionTypes);
+  expect(sessionTypes.length).toBeGreaterThan(0);
+  expect(sessionTypes.every(type=>type==='playback')).toBe(true);
+  await page.locator('#young-musician').focus();await page.keyboard.press('Enter');
+  const practice=page.getByRole('dialog',{name:'Farm practice room',exact:true});
+  await expect(practice).toBeVisible();
+  await page.evaluate(()=>{window.testAudioSession.state='interrupted';window.testAudioSession.dispatchEvent(new Event('statechange'));});
+  const button=practice.getByRole('button',{name:/Sound needs attention/});
+  await expect(button).toBeVisible();await button.click();
+  const help=page.getByRole('dialog',{name:'Sound help',exact:true});
+  await expect(help).toContainText('phone call has interrupted audio');
+  await page.screenshot({path:testInfo.outputPath('practice-sound-help.png')});
+  await page.evaluate(()=>{window.testAudioSession.state='active';window.testAudioSession.dispatchEvent(new Event('statechange'));});
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.audioStatus)).toBe('running');
+  await page.keyboard.press('Escape');await expect(practice).toBeVisible();
+  await expect(practice.locator('.sound-help-button')).toBeFocused();
+});
+
+test('a browser unlock that never settles returns to a retryable menu with sound help',async({page})=>{
+  const size=page.viewportSize();if(size.height>size.width)await page.setViewportSize({width:size.height,height:size.width});
+  await page.goto('/');
+  await page.evaluate(()=>{
+    const resume=AudioContext.prototype.resume;
+    window.restoreNativeResume=()=>{AudioContext.prototype.resume=resume;};
+    AudioContext.prototype.resume=()=>new Promise(()=>{});
+  });
+  await page.getByRole('button',{name:'Tap to play',exact:true}).click();
+  await expect(page.getByRole('alert')).toContainText('speaker symbol',{timeout:10000});
+  await expect(page.getByRole('button',{name:'Tap to play',exact:true})).toBeEnabled();
+  await page.getByRole('button',{name:/Sound needs attention/}).click();
+  const help=page.getByRole('dialog',{name:'Sound help',exact:true});
+  await expect(help).toContainText('Silent mode');
+  await help.getByRole('button',{name:'Back',exact:true}).click();
+  await page.evaluate(()=>window.restoreNativeResume());
+  await page.getByRole('button',{name:'Tap to play',exact:true}).click();
+  await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});
+  await expect(page.locator('.sound-help-corner')).toHaveAttribute('data-attention','false');
 });

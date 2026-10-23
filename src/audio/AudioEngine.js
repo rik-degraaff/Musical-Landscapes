@@ -14,6 +14,7 @@ import { parseMidi, prepareSampleCandidates, selectNearestSample } from './sampl
 import { disconnectManualVoice, finishManualVoice } from './manualVoice';
 import { capturePracticeSnapshot, restorePracticeSnapshot } from './session';
 import { attachOwnedSamplerVoices } from './samplerVoices';
+import { requestPlaybackSession, startAudioContext } from './playback';
 
 const MIN_GAIN = -60;
 const FADE_SECONDS = 0.045;
@@ -59,6 +60,8 @@ export class AudioEngine {
     this.backgrounded = false;
     this.resumePromise = null;
     this.lifecycleCleanup = null;
+    this.audioStatus = 'unavailable';
+    this.onAudioStatus = null;
     this.playbackVersion = 0;
     this.equippedPhrase=null;
     this.phraseIdentity=null;
@@ -99,7 +102,8 @@ export class AudioEngine {
   async initialize() {
     const attempt = this.initializationAttempt;
     const resources = attempt.resources;
-    await Tone.start();
+    requestPlaybackSession();
+    await startAudioContext(() => Tone.start(), Tone.getContext().rawContext, {cancelled: resources.cancelled});
     resources.check();
     Tone.Transport.bpm.value = this.tempo;
     Tone.Transport.swing = 0;
@@ -137,32 +141,48 @@ export class AudioEngine {
   installLifecycle() {
     this.lifecycleCleanup?.();
     const context=Tone.getContext().rawContext;
+    const session=requestPlaybackSession();
     const hidden=()=>{if(document.hidden)this.suspendPlayback();else this.resumePlayback();};
     const suspend=()=>this.suspendPlayback();
     const resume=()=>{if(!document.hidden)this.resumePlayback();};
-    const state=()=>{if(context.state==='running')resume();else if(context.state!=='closed')suspend();};
+    // An automatic resume can remain pending until a gesture. Always make a new
+    // native resume call during that gesture rather than reusing the pending one.
+    const gesture=()=>{if(!document.hidden)this.resumePlayback({gesture:true});};
+    const state=()=>{if(context.state==='running'&&session?.state!=='interrupted')resume();else suspend();this.updateAudioStatus();};
     document.addEventListener('visibilitychange',hidden);
     window.addEventListener('pagehide',suspend);
     window.addEventListener('pageshow',resume);
     window.addEventListener('focus',resume);
-    window.addEventListener('pointerdown',resume,true);
-    window.addEventListener('keydown',resume,true);
+    window.addEventListener('pointerdown',gesture,true);
+    window.addEventListener('keydown',gesture,true);
     context.addEventListener('statechange',state);
+    session?.addEventListener?.('statechange',state);
     this.lifecycleCleanup=()=>{
       document.removeEventListener('visibilitychange',hidden);
       window.removeEventListener('pagehide',suspend);
       window.removeEventListener('pageshow',resume);
       window.removeEventListener('focus',resume);
-      window.removeEventListener('pointerdown',resume,true);
-      window.removeEventListener('keydown',resume,true);
+      window.removeEventListener('pointerdown',gesture,true);
+      window.removeEventListener('keydown',gesture,true);
       context.removeEventListener('statechange',state);
+      session?.removeEventListener?.('statechange',state);
     };
-    if(document.hidden||context.state!=='running')this.suspendPlayback();
+    if(document.hidden||context.state!=='running'||session?.state==='interrupted')this.suspendPlayback();
+    this.updateAudioStatus();
+  }
+
+  updateAudioStatus() {
+    const state=Tone.getContext().rawContext.state;
+    let interrupted=false;
+    try { interrupted=globalThis.navigator?.audioSession?.state==='interrupted'; } catch { /* Optional API. */ }
+    const status=!this.ready?'unavailable':state==='closed'?'closed':interrupted?'interrupted':this.backgrounded&&state==='running'?'suspended':state;
+    if(this.audioStatus!==status){this.audioStatus=status;this.onAudioStatus?.(status);}
   }
 
   suspendPlayback() {
     if(!this.ready||this.backgrounded)return;
     this.backgrounded=true;
+    this.updateAudioStatus();
     if(this.practiceSession){this.stopPracticeRun();this.onPracticeInterrupt?.();}
     window.dispatchEvent(new Event('farmjam-input-reset'));
     this.playbackVersion++;
@@ -188,18 +208,31 @@ export class AudioEngine {
     for(const players of Object.values(this.scenePlayers??{}))for(const player of players)if(player.state==='started')player.stop();
   }
 
-  resumePlayback() {
+  resumePlayback({gesture=false}={}) {
     if(!this.ready||!this.backgrounded||document.hidden)return Promise.resolve();
-    if(this.resumePromise)return this.resumePromise;
+    if(Tone.getContext().rawContext.state==='closed'){this.updateAudioStatus();return Promise.resolve();}
+    if(this.resumePromise&&!gesture)return this.resumePromise;
     const generation=this.audioGeneration;
-    const promise=Tone.start().then(()=>{
-      if(generation!==this.audioGeneration||!this.ready||document.hidden||Tone.getContext().rawContext.state!=='running')return;
+    requestPlaybackSession();
+    const promise=startAudioContext(()=>Tone.start(),Tone.getContext().rawContext,{cancelled:this.resources?.cancelled}).then(()=>{
+      if(generation!==this.audioGeneration||!this.ready||!this.backgrounded||document.hidden||Tone.getContext().rawContext.state!=='running')return;
+      try { if(globalThis.navigator?.audioSession?.state==='interrupted')return; } catch { /* Optional API. */ }
       this.backgrounded=false;
+      this.updateAudioStatus();
       for(const [name,node] of Object.entries(this.nodes))node.gain.volume.rampTo(!this.tempoHeld&&(this.active[name]||this.manualInstrument===name)?this.effectiveVolume(name):MIN_GAIN,.025);
       this.ensureTransport();
-    }).catch(error=>console.warn('Audio resume requires a new user gesture',error)).finally(()=>{if(this.resumePromise===promise)this.resumePromise=null;});
+    }).catch(()=>{if(generation===this.audioGeneration&&this.ready)this.updateAudioStatus();}).finally(()=>{if(this.resumePromise===promise)this.resumePromise=null;});
     this.resumePromise=promise;
     return promise;
+  }
+
+  async testSound() {
+    const generation=this.audioGeneration;
+    await this.resumePlayback({gesture:true});
+    if(generation!==this.audioGeneration||!this.ready||this.backgrounded||document.hidden||Tone.getContext().rawContext.state!=='running')return false;
+    // A gentle test through the existing master/limiter, independent of the mix.
+    this.metronomeSynth.triggerAttackRelease('C5',.15,Tone.now(),.3);
+    return true;
   }
 
   async createSampledInstrument(name, attempt) {
@@ -902,6 +935,7 @@ export class AudioEngine {
   dispose() {
     this.audioGeneration++;
     this.ready = false;
+    this.updateAudioStatus();
     this.initPromise = null;
     const attempt = this.initializationAttempt;
     this.initializationAttempt = null;

@@ -8,7 +8,7 @@ import {PracticeFeedback} from './PracticeFeedback';
 import {PracticeProgress,PracticeTransport,PracticeReadout,PracticePhraseTrack,PracticeDuration} from './PracticeRoomControls';
 import {PracticeRoomHeader,PracticeRoomLayout} from './PracticeRoomLayout';
 
-export function PracticeRoom({child,audio,initialInstrument,settings,root,onClose,onHelp}) {
+export function PracticeRoom({child,audio,audioStatus,soundMuted,onSoundHelp,initialInstrument,settings,root,onClose,onHelp}) {
   const [name,setName]=useState(initialInstrument);
   const [phraseIndex,setPhraseIndex]=useState(0);
   const [stage,setStage]=useState(0);
@@ -198,7 +198,7 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
   const targetNotes=target?.notes??(target?.note?[target.note]:[]);
   const progress=stage===1?Math.min(step,steps.length):stage===0?(complete?steps.length:0):attempt.current.reduce((sum,value)=>sum+value.hits,0);
   return <PracticeRoomLayout roomRef={room} roomProps={{role:'dialog','aria-modal':true,'aria-label':'Farm practice room',onPointerDownCapture:captureInput,onKeyDownCapture:captureInput}}
-    header={<PracticeRoomHeader child={child} name={name} selected={settings.selected} companions={companions} phrases={profile.phrases} phraseIndex={phraseIndex}
+    header={<PracticeRoomHeader child={child} name={name} selected={settings.selected} companions={companions} phrases={profile.phrases} phraseIndex={phraseIndex} audioStatus={audioStatus} soundMuted={soundMuted} onSoundHelp={onSoundHelp}
       onInstrument={instrument=>{cancel();setPhraseIndex(0);setName(instrument);}} onPhrase={index=>{cancel();setPhraseIndex(index);}} onHelp={()=>onHelp(name,stage)} onClose={onClose}
       metronome={<Metronome audio={audio} open={metronomeOpen} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}/>}
     stage={stage} onStage={index=>{cancel();setStage(index);}}

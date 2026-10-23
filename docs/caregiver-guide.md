@@ -31,6 +31,8 @@ Choose **Show gesture** to watch an example and **Replay gesture** to see it aga
 
 The **?** button opens contextual help with one tap. Help returns to the screen where it was opened. During play, gameplay Settings still opens with a double-tap of its button. In help and guides, explanations adapt to the caregiver familiarity setting.
 
+The **speaker symbol** opens Sound help from the menu, landscape or practice room. It changes to a crossed speaker when the browser reports blocked/interrupted audio or the whole sound mix is muted; help never opens itself. During play, **Retry and test sound** retries audio and sends a quiet test note. You can also restore the session's sound levels. Check media volume, Silent mode on iPhone/iPad, Bluetooth/AirPlay routing and tab mute if the note is inaudible. FarmJam requests media playback on supported browsers to help with Silent mode, but browsers cannot reliably detect the phone's hardware volume or whether sound reaches its speaker. For persistent problems, return to the menu and reload; keep browser site data to retain profiles.
+
 ## Learning hints
 
 Hints offer brief suggestions for actions such as tapping, changing landscapes, equipping an instrument, or visiting practice. They never open by themselves. At most one suggestion is highlighted at a time, and selecting it shows a hand over the actual control in play, with a short caption and Replay gesture / Stop hint controls. There is no child hint dialog. Equipping and entering practice can continue into a second action after the child performs the first. Demonstrations never press controls or make sounds. Reduced-motion users see static contact and direction cues. Stopping dismisses a hint; an unfinished suggestion remains available after restarting.

@@ -1,5 +1,13 @@
 # Release validation
 
+## Audio startup and missing-sound help — 2026-10-23
+
+FarmJam now requests a playback audio session where supported to address iOS Silent-mode muting, bounds browser audio unlock/recovery to five seconds, and retries pending automatic resumes inside fresh user gestures. Closed contexts and Audio Session interruptions use the existing owned stop/release path. An always-available speaker symbol opens optional troubleshooting, a quiet retry/test note, and session sound-level restoration. The scenery slider also resets with the engine when returning to the menu.
+
+Current focused verification: **68 Node tests passed** across audio playback, engine ownership, resources, manual voices, practice snapshots, learning and settings. The production build passed with the existing large-chunk warning. **26 unique browser cases passed** across desktop and compact landscape Chromium: 16 lifecycle cases plus 10 settings/practice/shared-guide-layout cases. This was a split run: the initial lifecycle run passed 14 cases and failed two instances of an overly strict test expectation about Tone's native resume-call count; both passed after checking that every resume requests playback instead. The expanded sound-help/session-reset case was then rerun on both projects alongside the 10 remaining cases. A stale unresponsive local server required an isolated validation port (5183); it was left untouched.
+
+The browser checks observe an actual test-note signal, blocked and hanging unlock recovery, interruption help in practice, focus return, sample/manual cleanup, shared downbeats and guide geometry. Screenshots were inspected on desktop and compact landscape. These checks cannot establish physical speaker audibility, hardware volume, Silent-mode behavior on a real iPhone/iPad, output routing or device latency. Real-device silent-switch/call/lock-screen checks remain necessary; this focused work is not a full release gate.
+
 ## Shared illustration and responsive composition review — 2026-10-23
 
 The current visual direction is maintained in [visual standards](visual-standards.md), with agent and visual-editing skill entry points. A shared material palette now connects the child, eight instruments, all 28 scene objects/visitors, practice illustrations, metronome, sky and app icons. Avatar colors remain user-selected. Habitat props belong to the landscape: the woodpecker grips an existing tree, perching birds meet named branches, and bees/swimmers share the scene's flower/water anchors. The airplane uses consistent near/far wing and tail ordering.

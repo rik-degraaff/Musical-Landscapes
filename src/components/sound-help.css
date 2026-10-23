@@ -1,0 +1,11 @@
+.sound-help-button { display:grid;place-items:center;flex:none;box-sizing:border-box;width:44px;height:44px;padding:0;border:1px solid #427567;border-radius:50%;background:#f5fff7;color:#245d52;cursor:pointer;touch-action:manipulation; }
+.sound-help-button[data-attention="true"] { color:#943b41;border:2px solid #a44132;background:#fff0df; }
+.sound-help-button:focus-visible { outline:3px solid #a44132;outline-offset:2px; }
+.sound-help-corner { position:fixed;top:max(12px,var(--safe-top));left:calc(max(12px,var(--safe-left)) + 50px);z-index:205; }
+.sound-help-actions { display:flex;flex-wrap:wrap;gap:8px; }
+.sound-help-copy li { margin-bottom:12px;line-height:1.5; }
+.practice-topbar .sound-help-button { width:34px;height:34px; }
+@media(max-height:550px) and (orientation:landscape) {
+  .sound-help-corner { top:max(6px,var(--safe-top));left:calc(max(6px,var(--safe-left)) + 42px); }
+  .practice-topbar .sound-help-button { width:30px;height:30px; }
+}

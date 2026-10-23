@@ -31,6 +31,7 @@ import {GUIDES,childLearning,guideStatus,nextHint,updateHint} from './utils/lear
 import {useLearningClock} from './components/useLearningClock';
 import {LearningBeacon,LearningHint} from './components/LearningHint';
 import {useInstallation} from './components/useInstallation';
+import {SoundHelp,SoundHelpButton} from './components/SoundHelp';
 
 function initialInstruments(selected, preview = false) {
   const size = {width:window.innerWidth,height:window.innerHeight};
@@ -57,6 +58,8 @@ export default function App({developmentPreview}={}) {
   const [parentGuide,setParentGuide]=useState(false);
   const [editingId,setEditingId]=useState(null);
   const [help,setHelp]=useState(null);
+  const [soundHelp,setSoundHelp]=useState(false);
+  const [audioStatus,setAudioStatus]=useState('unavailable');
   const [guideView,setGuideView]=useState(null);
   const [hintView,setHintView]=useState(null);
   const learning=useLearning(Boolean(developmentPreview));
@@ -81,7 +84,8 @@ export default function App({developmentPreview}={}) {
   const [nearChild,setNearChild] = useState(false);
   const startupState=useRef({settings,sceneIndex});
   const mounted=useRef(false);
-  const activeLandscape=started&&!loading&&!mixer&&!metronomeOpen&&!practice&&!parentGuide&&!editingId&&!help&&!guideView&&!developmentPreview;
+  const activeLandscape=started&&!loading&&!mixer&&!metronomeOpen&&!practice&&!parentGuide&&!editingId&&!help&&!soundHelp&&!guideView&&!developmentPreview;
+  const soundMuted=started&&sceneVolume<=-60&&settings.selected.every(name=>instruments[name].volume<=-60);
   const learningActive=activeLandscape&&!hintView;
   const suggestion=nextHint(learning.state,selectedChild);
   useEffect(()=>{if(selectedChild&&!childLearning(learning.state,selectedChild.id).enabled)setHintView(null);},[learning.state,selectedChild]);
@@ -91,7 +95,7 @@ export default function App({developmentPreview}={}) {
       learning.change(state=>updateHint(state,selectedChild.id,suggestion.id,{suggested:true}));
     }
   },[learningActive,suggestion,learning.state,selectedChild,learning.change]);
-  useAppUpdates({started,loading,parentGuide:parentGuide||mixer||Boolean(guideView)||Boolean(hintView)||Boolean(editingId)||Boolean(help)||saveWarning});
+  useAppUpdates({started,loading,parentGuide:parentGuide||mixer||soundHelp||Boolean(guideView)||Boolean(hintView)||Boolean(editingId)||Boolean(help)||saveWarning});
 
   function discovered(id,coached=false) {
     if(!started||!selectedChild||developmentPreview)return;
@@ -117,6 +121,7 @@ export default function App({developmentPreview}={}) {
     try {
       if(!audioRef.current)audioRef.current = new AudioEngine();
       const engine=audioRef.current;
+      engine.onAudioStatus=status=>{if(mounted.current&&audioRef.current===engine)setAudioStatus(status);};
       engine.onSceneKeyChange=root=>{if(mounted.current&&audioRef.current===engine)setPerformanceRoot(root);};
       engine.onHarmonyChange=plan=>{if(mounted.current&&audioRef.current===engine&&!practiceActive.current){if(plan)weatherPlanRef.current=plan;setHarmonyPlan(plan);}};
       engine.onActiveChange=(name,active)=>{
@@ -133,8 +138,9 @@ export default function App({developmentPreview}={}) {
       setHarmonyPlan(engine.harmonyPlan??null);
       weatherPlanRef.current=engine.harmonyPlan??null;
       setStarted(true);
+      setAudioStatus(engine.audioStatus);
     }
-    catch(e) { if(mounted.current){console.error(e);setError('The sound engine could not start. Try tapping play again.');} }
+    catch(e) { if(mounted.current){console.error(e);setAudioStatus('blocked');setError('The sound engine could not start. Try tapping play again, or tap the speaker symbol for sound help.');} }
     finally { startInProgress.current=false;if(mounted.current)setLoading(false); }
   }
 
@@ -158,6 +164,11 @@ export default function App({developmentPreview}={}) {
     stateRef.current=reset.instruments;setInstruments(reset.instruments);
     audioRef.current?.setVolumes(reset.volumes);
     changeSceneVolume(reset.sceneVolume);
+  }
+
+  function openSoundHelp() {
+    window.dispatchEvent(new Event('farmjam-input-reset'));
+    setSoundHelp(true);
   }
 
   function arrangeSelection(next) {
@@ -374,7 +385,7 @@ export default function App({developmentPreview}={}) {
     drag.current=null;equippedRef.current=null;mixerTap.current=null;
     setEquipped(null);setDragging(null);setNearChild(false);setPractice(null);
     setHasEquipped(false);setHasPracticed(false);
-    setMixer(false);setMetronomeOpen(false);setHintView(null);setStarted(false);setSceneIndex(0);setError(null);
+    setMixer(false);setMetronomeOpen(false);setHintView(null);setSoundHelp(false);setAudioStatus('unavailable');setStarted(false);setSceneIndex(0);setError(null);setSceneVolume(-4);
     const next=initialInstruments(settings.selected);stateRef.current=next;setInstruments(next);
   }
 
@@ -396,16 +407,18 @@ export default function App({developmentPreview}={}) {
     {started&&<Metronome audio={audioRef.current} open={metronomeOpen} disabled={mixer||Boolean(practice)} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}
 
     {equipped&&!practice&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={performanceRoot} options={settings.instruments[equipped]} settingsOpen={mixer} harmonyPlan={harmonyPlan} onClose={()=>equip(null)}/>}
-    {practice&&<PracticeRoom child={selectedChild} audio={audioRef.current} initialInstrument={practice} settings={settings} root={SCENES[sceneIndex].root} onHelp={(instrument,practiceStage)=>setHelp({topic:'practice',instrument,practiceStage})} onClose={()=>{practiceActive.current=false;setHarmonyPlan(null);setPractice(null);}}/>}
+    {practice&&<PracticeRoom child={selectedChild} audio={audioRef.current} audioStatus={audioStatus} soundMuted={soundMuted} onSoundHelp={openSoundHelp} initialInstrument={practice} settings={settings} root={SCENES[sceneIndex].root} onHelp={(instrument,practiceStage)=>setHelp({topic:'practice',instrument,practiceStage})} onClose={()=>{practiceActive.current=false;setHarmonyPlan(null);setPractice(null);}}/>}
 
     {!started && <StartScreen inert={mixer||parentGuide||Boolean(editingId)} onSettings={()=>setMixer(true)} unreadGuides={GUIDES.filter(guide=>guideStatus(learning.state,guide)!=='Read').length} saveError={saveWarning&&!mixer} onRetrySave={retrySave} children={family.children} selectedId={family.selectedId} loading={loading} error={error} onStart={start} onSelect={selectChild} onEdit={setEditingId} onAdd={()=>setParentGuide(true)}/>}
     {!started&&parentGuide&&<ParentGuide learning={learning.state} onGuide={setGuideView} familiarity={caregiver.familiarity} familiarityEstablished={caregiver.established} settings={settings} onComplete={addChild} onClose={()=>setParentGuide(false)}/>}
     {!started&&editingId&&<ChildEditor child={family.children.find(child=>child.id===editingId)} onSave={draft=>saveFamily(editChild(family,editingId,draft))} onDelete={()=>saveFamily(removeChild(family,editingId))} onClose={()=>setEditingId(null)}/>}
     {!mixer&&!practice&&!parentGuide&&!editingId&&!loading&&<HelpButton className="caregiver-help-corner" onOpen={()=>{window.dispatchEvent(new Event('farmjam-input-reset'));setHelp({topic:started?(equipped?'instruments':'landscape'):'menu',instrument:equipped});}}/>}
+    {!mixer&&!practice&&!parentGuide&&!editingId&&!loading&&!developmentPreview&&<SoundHelpButton className="sound-help-corner" status={audioStatus} muted={soundMuted} onOpen={openSoundHelp}/>}
     {learningActive&&suggestion&&childLearning(learning.state,selectedChild.id).hints[suggestion.id]?.suggested&&<LearningBeacon hint={suggestion} onOpen={()=>{setHintView(suggestion);learning.change(state=>updateHint(state,selectedChild.id,suggestion.id,{seen:true,dismissed:false}));}}/>}
-    {hintView&&<LearningHint hint={hintView} instruments={settings.selected} equipped={equipped} practice={practice} suspended={!started||loading||mixer||metronomeOpen||parentGuide||Boolean(editingId)||Boolean(help)||Boolean(guideView)} onComplete={id=>{discovered(id,true);setHintView(null);}} onClose={()=>{learning.change(state=>updateHint(state,selectedChild.id,hintView.id,{dismissed:true}));setHintView(null);}}/>}
+    {hintView&&<LearningHint hint={hintView} instruments={settings.selected} equipped={equipped} practice={practice} suspended={!started||loading||mixer||metronomeOpen||parentGuide||soundHelp||Boolean(editingId)||Boolean(help)||Boolean(guideView)} onComplete={id=>{discovered(id,true);setHintView(null);}} onClose={()=>{learning.change(state=>updateHint(state,selectedChild.id,hintView.id,{dismissed:true}));setHintView(null);}}/>}
     {help&&<CaregiverHelp {...help} child={selectedChild} instruments={started&&!practice?settings.selected:null} onEquip={name=>{setHelp(null);setMixer(false);equip(name);}} onPractice={()=>{setHelp(null);setMixer(false);enterPractice();}} onGuides={setGuideView} discovery={started&&help.topic!=='practice'?{hasEquipped,hasPracticed}:null} familiarity={caregiver.familiarity} onClose={()=>setHelp(null)}/>}
     {guideView&&<GuideReader id={guideView} child={selectedChild} saveError={learning.error} onRetry={learning.retry} installation={installation} learning={learning.state} familiarity={caregiver.familiarity} onOpen={setGuideView} onRead={guide=>learning.change(state=>({...state,guides:{...state.guides,[guide.id]:Math.max(state.guides[guide.id]??0,guide.version)}}))} onClose={()=>setGuideView(null)}/>}
+    {soundHelp&&<SoundHelp audio={started?audioRef.current:null} status={audioStatus} muted={soundMuted} onClose={()=>setSoundHelp(false)} onRestore={started?restoreSound:null} onSettings={started&&!practice?()=>{setSoundHelp(false);setMixer(true);}:null}/>}
     <LandscapeGuard/>
   </main>;
 }
