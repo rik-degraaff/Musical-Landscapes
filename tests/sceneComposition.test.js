@@ -7,13 +7,11 @@ import {DAY_PHASES,celestialPosition} from '../src/utils/dayCycle.js';
 const sizes=[{width:360,height:240},{width:360,height:130},{width:780,height:284},{width:780,height:165},{width:700,height:700},{width:1180,height:250},{width:1440,height:900},{width:1920,height:1080}];
 
 test('weather silhouettes stay inside short worlds and clear of every settled celestial target',()=>{
-  for(const size of [...sizes,{width:1180,height:140}])for(const cloud of cloudLayouts(size)){
+  for(const size of [...sizes,{width:1180,height:140}])for(const [scene,phase] of Object.entries(DAY_PHASES))for(const cloud of cloudLayouts(size,scene)){
     assert.ok(cloud.left>=0&&cloud.left+cloud.width<=size.width);
     assert.ok(cloud.top>=0&&cloud.y<=size.height);
-    for(const phase of Object.values(DAY_PHASES)){
-      const position=celestialPosition(phase),x=size.width*position.x/100,y=Math.max(36,size.height*position.y/100);
-      assert.ok(cloud.left>=x+32||cloud.left+cloud.width<=x-32||cloud.top>=y+32||cloud.y<=y-32,`${size.width}×${size.height} cloud overlaps sun/moon`);
-    }
+    const position=celestialPosition(phase),x=size.width*position.x/100,y=Math.max(36,size.height*position.y/100);
+    assert.ok(cloud.left>=x+32||cloud.left+cloud.width<=x-32||cloud.top>=y+32||cloud.y<=y-32,`${size.width}×${size.height} ${scene} cloud overlaps sun/moon`);
   }
 });
 

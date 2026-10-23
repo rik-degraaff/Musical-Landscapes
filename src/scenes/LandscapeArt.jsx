@@ -87,7 +87,7 @@ export function LandscapeArt({ scene, phase, worldSize, genre='folk', genreTrans
       <g fill="none" stroke="#638b93" strokeWidth="3" strokeLinecap="round"><path d="M415 142q10-12 20 0q10-12 20 0 M476 170q8-10 16 0q8-10 16 0" /></g>
     </>}
     <g className={`scenery-cloud${cloudPulse?' is-tapped':''}`} role="button" tabIndex={0} aria-label="Change music weather" onClick={changeWeather} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();changeWeather(event);}}} onAnimationEnd={()=>setCloudPulse(false)} fill={cloudColor}>
-      {cloudLayouts(size).map(({x,y,scale},index)=><CloudShape key={index} index={index} x={x/size.width*1440} y={y/size.height*900} stretch={stretch} scale={cloudScale[index]*scale*900/size.height} opacity={cloudOpacity[index]}/>)}
+      {cloudLayouts(size,scene).map(({x,y,scale},index)=><CloudShape key={index} index={index} x={x/size.width*1440} y={y/size.height*900} stretch={stretch} scale={cloudScale[index]*scale*900/size.height} opacity={cloudOpacity[index]}/>)}
     </g>
     <path data-name="Distant hills" d="M0 403 Q180 269 370 376 T750 378 T1120 349 T1440 366 V900H0Z" fill={palette[2]} />
     <path data-name="Near hills" d="M0 482 Q220 332 474 463 Q699 521 923 417 T1440 481 V900H0Z" fill={palette[3]} />

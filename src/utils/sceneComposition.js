@@ -5,25 +5,26 @@ import {DAY_PHASES, celestialPosition} from './dayCycle.js';
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 // Reserve the largest weather silhouette, so changing genre does not rearrange
-// instruments. Keep the same anchors in every scene, clear of settled sun/moon
-// targets. Short worlds need a lower cloud row and a smaller illustration.
-export function cloudLayouts({width, height}) {
-  const scale = Math.min(1, Math.max(.5, width / 1440), height / 300);
-  const controls = Object.values(DAY_PHASES).map(phase => {
-    const point = celestialPosition(phase);
-    return {x:width * point.x / 100, y:Math.max(36, height * point.y / 100)};
-  }).sort((one,two)=>one.y-two.y);
+// instruments. Keep clouds above the terrain; move them sideways around the
+// current scene's sun/moon instead of lowering them into foreground objects.
+export function cloudLayouts({width, height}, scene='farm') {
+  const scale = Math.min(1, Math.max(.5, width / 1440), height / 300, width / 900);
+  const point = celestialPosition(DAY_PHASES[scene]);
+  const control = {x:width * point.x / 100, y:Math.max(36, height * point.y / 100)};
   return [[380,100,1],[980,100,1.08],[720,80,1.02]].map(([sourceX, sourceY, maxScale]) => {
-    const x = sourceX / 1440 * width;
     const factor = scale * maxScale;
-    const left = x - 24 * factor, cloudWidth = 168 * factor, cloudHeight = 80 * factor;
-    let y = Math.max(50, sourceY / 900 * height);
-    for(const control of controls) {
-      if(left < control.x + 40 && left + cloudWidth > control.x - 40 &&
-        y > control.y - 40 && y - cloudHeight < control.y + 40) {
-        y = control.y + 40 + cloudHeight;
-      }
+    const cloudWidth = 168 * factor, cloudHeight = 80 * factor;
+    const original = sourceX / 1440 * width - 24 * factor;
+    const y = Math.max(50, cloudHeight + 8, sourceY / 900 * height);
+    let left = original;
+    if(y > control.y - 40 && y - cloudHeight < control.y + 40) {
+      const candidates = [original,control.x-40-cloudWidth,control.x+40]
+        .filter(value=>value>=64&&value+cloudWidth<=width-64)
+        .filter(value=>value+cloudWidth<=control.x-40+.001||value>=control.x+40-.001);
+      candidates.sort((one,two)=>Math.abs(one-original)-Math.abs(two-original));
+      left = candidates[0] ?? original;
     }
+    const x = left + 24 * factor;
     return {x, y, scale, left, top:y-cloudHeight, width:cloudWidth, height:cloudHeight};
   });
 }

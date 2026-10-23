@@ -31,7 +31,12 @@ for(const [tier,roll] of [[0,.1],[1,.27]])test.describe(`visitor tier ${tier+1}`
   test('each scene keeps two objects with a stable, audible and animated visitor',async({page},testInfo)=>{
     test.setTimeout(120000);
     const size=page.viewportSize();if(size.height>size.width)await page.setViewportSize({width:size.height,height:size.width});
-    const errors=[];page.on('pageerror',error=>errors.push(error.message));await page.goto('/');
+    const errors=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.addInitScript(()=>window.addEventListener('error',event=>{
+      const chain=[];for(let error=event.error;error&&chain.length<5;error=error.cause)chain.push(error.stack??String(error));
+      (window.visitorErrorDetails??=[]).push(chain.join('\nCaused by: '));
+    }));
+    await page.goto('/');
     await page.evaluate(async()=>{
       const {AudioEngine}=await import('/src/audio/AudioEngine.js');const init=AudioEngine.prototype.initialize;
       AudioEngine.prototype.initialize=async function(){await init.call(this);window.audioEngine=this;};
@@ -73,6 +78,6 @@ for(const [tier,roll] of [[0,.1],[1,.27]])test.describe(`visitor tier ${tier+1}`
       await expect(page.locator(`.scene-${scenes[(index+1)%7]}`)).toBeVisible();
     }
     await expect(page.locator('.scene-farm .visitor-object')).toHaveCount(0);await expect(page.getByRole('button',{name:'Cow',exact:true})).toBeVisible();
-    expect(errors).toEqual([]);
+    expect(errors,(await page.evaluate(()=>window.visitorErrorDetails??[])).join('\n')).toEqual([]);
   });
 });

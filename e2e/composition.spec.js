@@ -215,7 +215,9 @@ test('existing sky clouds indicate and change music weather without changing sce
   await page.getByRole('button',{name:'Change landscape',exact:true}).click();
   await expect(page.locator('.scene-garden')).toBeVisible();
   const nextCloudPosition=await page.locator('.scene-garden .cloud-1').getAttribute('transform');
-  expect(nextCloudPosition.match(/^translate\(([^)]+)\)/)?.[1]).toBe(cloudPosition.match(/^translate\(([^)]+)\)/)?.[1]);
+  // The sky row stays fixed; short worlds move clouds sideways around the sun.
+  const row=transform=>Number(transform.match(/^translate\([^ ]+ ([^)]+)\)/)?.[1]);
+  expect(row(nextCloudPosition)).toBe(row(cloudPosition));
   expect(await page.getByRole('button',{name:'Change music weather',exact:true}).count()).toBeGreaterThan(0);
 });
 

@@ -155,7 +155,7 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
   useEffect(()=>{
     const escape=event=>{
       if(event.defaultPrevented||document.querySelector('dialog[open]'))return;
-      if(event.key==='Escape'){event.preventDefault();onClose();}
+      if(event.key==='Escape'){event.preventDefault();if(metronomeOpen)setMetronomeOpen(false);else onClose();}
       if(event.key==='Tab'){
         const controls=[...room.current.querySelectorAll('button:not(:disabled),select,[tabindex="0"]'),...document.querySelectorAll('.live-coach button')];
         const first=controls[0],last=controls.at(-1);
@@ -164,7 +164,7 @@ export function PracticeRoom({child,audio,initialInstrument,settings,root,onClos
       }
     };
     window.addEventListener('keydown',escape);return ()=>window.removeEventListener('keydown',escape);
-  },[onClose]);
+  },[onClose,metronomeOpen]);
   function stopAttempt() {
     if(!state.current.running)return;
     const current=attemptSummary(attempt.current);

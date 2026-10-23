@@ -31,6 +31,8 @@ test('corner controls remain hittable inside changing full-screen safe areas',as
     await page.getByRole('button',{name:'Open metronome',exact:true}).click();
     await safeControl(page.getByRole('dialog',{name:'Metronome',exact:true}),top,side,bottom,false);
     await safeControl(page.getByRole('switch',{name:'Metronome sound',exact:true}),top,side,bottom);await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog',{name:'Metronome',exact:true})).toHaveCount(0);
+    await expect(page.getByRole('dialog',{name:'Farm practice room',exact:true})).toBeVisible();
     await page.screenshot({path:testInfo.outputPath(`safe-area-${top}-${side}.png`)});await exit.click();
   }
   await page.getByRole('button',{name:'Open settings'}).dblclick();await page.getByRole('button',{name:'Return to main menu'}).click();
