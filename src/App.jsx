@@ -71,6 +71,7 @@ export default function App({developmentPreview}={}) {
   const drag = useRef(null);
   const startInProgress = useRef(false);
   const worldRef = useRef(null);
+  const [worldSize,setWorldSize] = useState(()=>({width:window.innerWidth,height:window.innerHeight}));
   const equippedRef = useRef(null);
   const [equipped,setEquipped] = useState(null);
   const [hasEquipped,setHasEquipped]=useState(false);
@@ -296,13 +297,16 @@ export default function App({developmentPreview}={}) {
   }
 
   function attachToChild(name) {
-    const world=worldRef.current.getBoundingClientRect();
-    const child=document.getElementById('young-musician').getBoundingClientRect();
+    if(!mounted.current)return;
+    const world=worldRef.current?.getBoundingClientRect();
+    const child=document.getElementById('young-musician')?.getBoundingClientRect();
+    if(!world||!child)return;
     const next={...stateRef.current,[name]:{...stateRef.current[name],x:(child.left+child.width/2-world.left)/world.width*100,y:(child.top+child.height*.65-world.top)/world.height*100}};
     stateRef.current=next;setInstruments(next);
   }
 
   function settle(name) {
+    if(!mounted.current)return;
     if(equippedRef.current===name) return;
     const world=worldRef.current?.getBoundingClientRect();
     const element=document.getElementById(`instrument-${name}`);
@@ -324,11 +328,23 @@ export default function App({developmentPreview}={}) {
   }
 
   useLayoutEffect(()=>{
-    const layout=()=>requestAnimationFrame(()=>{if(equippedRef.current)attachToChild(equippedRef.current);for(const name of Object.keys(INSTRUMENTS))settle(name);});
+    let frame;
+    const layout=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{if(equippedRef.current)attachToChild(equippedRef.current);for(const name of Object.keys(INSTRUMENTS))settle(name);});};
     if(started)layout();
     window.addEventListener('resize',layout);
-    return ()=>window.removeEventListener('resize',layout);
-  },[equipped,sceneIndex,started,settings.selected]);
+    return ()=>{cancelAnimationFrame(frame);window.removeEventListener('resize',layout);};
+  },[equipped,sceneIndex,started,settings.selected,worldSize.width,worldSize.height]);
+
+  useLayoutEffect(()=>{
+    const world=worldRef.current;
+    const measure=()=>{
+      const {width,height}=world.getBoundingClientRect();
+      if(width>0&&height>0)setWorldSize(current=>current.width===width&&current.height===height?current:{width,height});
+    };
+    const observer=new ResizeObserver(measure);
+    observer.observe(world);measure();
+    return ()=>observer.disconnect();
+  },[]);
 
   function rotateScene() {
     discovered('landscape');
@@ -361,8 +377,8 @@ export default function App({developmentPreview}={}) {
   }
 
   return <main className={`app-shell ${equipped?'manual-open':''}`}>
-    <div className="landscape-world" ref={worldRef} inert={mixer||Boolean(practice)}>
-    <Scene sceneIndex={sceneIndex} playing={started} audio={audioRef.current} genre={audibleGenre} genreTransition={weatherTransition} onGenreChange={()=>changeGenre(GENRE_OPTIONS[(GENRE_OPTIONS.findIndex(option=>option.id===genre)+1)%GENRE_OPTIONS.length].id)} onRotate={rotateScene} onCelestialSettled={()=>{if(started)for(const name of Object.keys(INSTRUMENTS))settle(name);}}/>
+    <div className="landscape-world" ref={worldRef} style={{'--world-width':`${worldSize.width}px`,'--world-height':`${worldSize.height}px`}} inert={mixer||Boolean(practice)}>
+    <Scene worldSize={worldSize} sceneIndex={sceneIndex} playing={started} audio={audioRef.current} genre={audibleGenre} genreTransition={weatherTransition} onGenreChange={()=>changeGenre(GENRE_OPTIONS[(GENRE_OPTIONS.findIndex(option=>option.id===genre)+1)%GENRE_OPTIONS.length].id)} onRotate={rotateScene} onCelestialSettled={()=>{if(started)for(const name of Object.keys(INSTRUMENTS))settle(name);}}/>
     {started&&<YoungMusician child={selectedChild} equipped={equipped?INSTRUMENTS[equipped].label:null} accepting={nearChild} onPractice={enterPractice}/>}
     <div className="instrument-layer">
       {settings.selected.map(name=>{const i=instruments[name];return <Instrument key={name} name={name} label={i.label} x={i.x} y={i.y} active={i.active} equipped={equipped===name} sliding={dragging!==name} onEquip={()=>equip(name)} onToggle={toggle}

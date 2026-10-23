@@ -15,7 +15,7 @@ export default defineConfig({
   use: { baseURL: 'http://127.0.0.1:5173', screenshot: 'only-on-failure', trace: 'retain-on-failure' },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
-    // The scene geometry suite supplies its own five viewports. Run that matrix
+    // The scene geometry suite supplies its own nine viewports. Run that matrix
     // once; native touch/reachability is covered by the other scene suites.
     { name: 'phone', testIgnore: ['**/production/**', '**/scene-composition.spec.js'], use: { ...devices['Pixel 7'], viewport: { width: 393, height: 851 } } },
     { name: 'phone-landscape', testIgnore: ['**/production/**', '**/scene-composition.spec.js'], use: { ...devices['Pixel 7'], viewport: { width: 780, height: 284 } } },

@@ -12,25 +12,12 @@
 .app-shell .start-button { display: flex; align-items: center; gap: 12px; margin-top: 30px; }
 .app-shell .mixer { border-radius: 8px; }
 .loading-icon { animation: sailTurn 1s linear infinite; }
-.scene .interactive-object { width: 138px; height: 128px; padding: 0; border: 0; border-radius: 8px; background: transparent; z-index: 45; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .object-reaction { display: block; width: 100%; height: 100%; transform-origin: 50% 90%; }
-.object-art { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 5px 2px #22463420); transition: filter .2s; }
-.interactive-object:hover .object-art { filter: drop-shadow(0 4px 3px #22463440) brightness(1.06); }
+.interactive-object { filter:none; }
+.object-art { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 2px 1px #38534f18); transition: filter .2s; }
+.interactive-object:hover .object-art { filter: drop-shadow(0 2px 1px #38534f28) brightness(1.06); }
 .scene .interactive-object:hover { transform: none; }
 .scene .interactive-object.is-tapped { animation: none; }
-.scene .cow { left: 28%; bottom: 24%; }
-.scene .tractor { left: 67%; bottom: 16%; }
-.scene .faucet { left: 22%; bottom: 19%; }
-.scene .bird { right: auto; left: 5%; top: 44%; }
-.scene .frog { left: 22%; bottom: 16%; }
-.scene .windmill { right: 25%; bottom: 27%; width: 155px; height: 170px; }
-.scene .bell { right: 5%; top: 44%; }
-.scene .owl { left: 5%; top: 44%; }
-.scene .rooster { left: 28%; bottom: 24%; }
-.scene .chimes { right: 5%; top: 44%; }
-.scene .cricket { left:28%;bottom:17%; }
-.scene .bat { left: 62%; top: 25%; width: 144px; height: 126px; }
-.scene .hedgehog { left: 28%; bottom: 17%; }
 .bat .reacting { animation: batFlight 1.8s ease-in-out; transform-origin: 50% 50%; }
 .hedgehog .reacting { animation: hedgehogShuffle 2s ease-in-out; }
 .is-tapped .bat-wings { transform-origin: 80px 76px; animation: batFlutter .12s ease-in-out 14 alternate; }
@@ -41,7 +28,6 @@
 @keyframes batFlutter { to { transform: scaleY(.48); } }
 @keyframes hedgehogShuffle { 0%,100% { transform: translateX(0); } 25%,65% { transform: translate(14px,-3px) rotate(-3deg); } 45%,80% { transform: translate(22px,0) rotate(2deg); } }
 @keyframes leafRustle { to { transform: translateY(-6px) rotate(5deg); } }
-.scene .airplane { left:65%;top:16%;width:155px;height:125px; }
 .cricket .reacting { animation:cricketHop 2.4s ease-in-out; }
 .airplane .reacting { animation:airplaneFlyby 3s ease-in-out; }
 .is-tapped .cricket-wing { transform-origin:60px 90px;animation:wingFlutter .08s ease-in-out 24 alternate; }
@@ -109,42 +95,11 @@
 @keyframes cloudDrift { to { transform: translateX(35px); } }
 @media (max-width: 650px) {
   .app-shell .start-overlay h1 { font-size: 46px; }
-  .scene .interactive-object { width: 94px; height: 96px; }
-  .scene .cow { left: 4%; bottom: 9%; }
-  .scene .tractor { left: auto; right: 5%; bottom: 15%; }
-  .scene .faucet { left: 4%; bottom: 9%; }
-  .scene .bird { left: 2%; top: 45%; }
-  .scene .frog { left: 4%; bottom: 9%; }
-  .scene .windmill { right: 5%; bottom: auto; top: 44%; width: 95px; height: 124px; }
-  .scene .bell { right: 4%; top: 45%; }
-  .scene .owl { left: 2%; top: 45%; }
-  .scene .rooster { left: 4%; bottom: 9%; }
-  .scene .chimes { right: 4%; top: 45%; }
-  .scene .cricket { left:4%;bottom:9%; }
-  .scene .bat { left: 57%; top: 24%; width: 104px; height: 96px; }
-  .scene .hedgehog { left: 4%; bottom: 9%; }
-  .scene .airplane { left:56%;top:17%;width:108px;height:94px; }
 }
 @media (max-height: 550px) and (orientation: landscape) {
-  .app-shell .instrument { width: 90px; height: 82px; }
-  .app-shell .instrument-drawing { scale: .72; }
-  .app-shell .instrument:hover .instrument-drawing { scale: .78; }
   .app-shell .start-overlay h1 { font-size: 40px; }
   .app-shell .title-note { font-size: 40px; margin-bottom: 12px; }
   .app-shell .start-button { font-size: 18px; padding: 12px 26px; margin-top: 15px; }
-  .scene .interactive-object { width: 85px; height: 80px; }
-  .scene .cow { left: 28%; bottom: 18%; }
-  .scene .tractor { left: 67%; right: auto; bottom: 14%; }
-  .scene .bird, .scene .owl { left: 28%; top: 43%; }
-  .scene .rooster { left: 28%; bottom: 18%; }
-  .scene .chimes { right: 28%; top: 43%; }
-  .scene .cricket { left:28%;bottom:14%; }
-  .scene .bat { left: 61%; top: 24%; width: 85px; height: 75px; }
-  .scene .hedgehog { left: 28%; bottom: 14%; }
-  .scene .airplane { left:61%;top:20%;width:85px;height:65px; }
-  .scene .bell { right: 28%; top: 43%; }
-  .scene .faucet, .scene .frog { left: 22%; bottom: 14%; }
-  .scene .windmill { right: 25%; top: auto; bottom: 21%; width: 95px; height: 95px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .scene *, .scene *::before, .scene *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }

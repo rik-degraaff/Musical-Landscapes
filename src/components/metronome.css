@@ -24,4 +24,3 @@
 .metronome-widget.is-held .metronome-weight { background:#f3d998; }
 .metronome-widget.is-held .metronome-rail { transition:none; }
 @media(prefers-reduced-motion:reduce) { .mini-pendulum,.metronome-rail { transition:none; } }
-@media(max-height:400px) and (orientation:landscape) { .manual-open .metronome-widget:not(.is-open) { left:72px; } }

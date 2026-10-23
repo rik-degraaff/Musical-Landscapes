@@ -1,74 +1,44 @@
-.landscape-world {
-  --visual-unit: min(clamp(0px, calc((100vw - 360px) / 1560), 1px), clamp(0px, calc((100vh - 240px) / 840), 1px));
-}
-
+/* Scene.jsx supplies catalog geometry in world coordinates. Overrides can still
+   adjust the same semantic variables in the editor. */
 .scene .interactive-object[data-sound] {
-  --object-size: calc(76px + 44 * var(--visual-unit, 1px));
+  --object-size: 80px;
   --object-height: calc(var(--object-size) * .875);
-  --object-x: 32%;
-  --object-base: 82%;
+  --object-x: 50%;
+  --object-center: 75%;
   width: var(--object-size);
   height: var(--object-height);
   left: clamp(4px, calc(var(--object-x) - var(--object-size) / 2), calc(100% - var(--object-size) - 4px));
-  top: auto;
+  top: clamp(4px, calc(var(--object-center) - var(--object-height) / 2), calc(100% - var(--object-height) - 4px));
   right: auto;
-  bottom: calc(100% - var(--object-base));
-  transform: none;
-}
-
-.app-shell.manual-open .scene .interactive-object[data-sound] {
-  width: var(--object-size);
-  height: var(--object-height);
-}
-
-.scene .interactive-object[data-sound='moo'] { --object-x: 32%; --object-base: 80%; }
-.scene .interactive-object[data-sound='tractor'] { --object-size: calc(84px + 61 * var(--visual-unit, 1px)); --object-x: 73%; --object-base: 84%; }
-.scene .interactive-object[data-sound='water'] { --object-x: 26%; --object-base: 84%; }
-.scene .interactive-object[data-sound='bird'] { --object-x: 9%; --object-base: 62%; }
-.scene .interactive-object[data-sound='frog'] { --object-x: 22%; --object-base: 84%; }
-.scene .interactive-object[data-sound='windmill'] { --object-size: calc(90px + 70 * var(--visual-unit, 1px)); --object-height: var(--object-size); --object-x: 94%; --object-base: 76%; }
-.scene .interactive-object[data-sound='bell'] { --object-x: 84%; --object-base: 63%; }
-.scene .interactive-object[data-sound='owl'] { --object-x: 13%; --object-base: 62%; }
-.scene .interactive-object[data-sound='rooster'] { --object-x: 32%; --object-base: 82%; }
-.scene .interactive-object[data-sound='chimes'] { --object-x: 84%; --object-base: 64%; }
-.scene .interactive-object[data-sound='cricket'] { --object-x: 29%; --object-base: 83%; }
-.scene .interactive-object[data-sound='hedgehog'] { --object-x: 36%; --object-base: 83%; }
-.scene .interactive-object[data-sound='sheep'] { --object-x: 39%; --object-base: 83%; }
-.scene .interactive-object[data-sound='horse'] { --object-x: 83%; --object-base: 82%; }
-.scene .interactive-object[data-sound='bee'] { --object-x: 39%; --object-base: 86%; }
-.scene .interactive-object[data-sound='woodpecker'] { --object-x: 12%; --object-base: 76%; }
-.scene .interactive-object[data-sound='duck'] { --object-x: 53%; --object-base: 82%; }
-.scene .interactive-object[data-sound='otter'] { --object-x: 72%; --object-base: 84%; }
-.scene .interactive-object[data-sound='cicada'] { --object-x: 86%; --object-base: 81%; }
-.scene .interactive-object[data-sound='fox'] { --object-x: 85%; --object-base: 82%; }
-.scene .interactive-object[data-sound='badger'] { --object-x: 85%; --object-base: 83%; }
-.scene .interactive-object[data-sound='dove'] { --object-x: 9%; --object-base: 62%; }
-.scene .interactive-object[data-sound='deer'] { --object-x: 84%; --object-base: 81%; }
-
-.scene .interactive-object[data-sound='airplane'],
-.scene .interactive-object[data-sound='bat'],
-.scene .interactive-object[data-sound='balloon'],
-.scene .interactive-object[data-sound='moth'],
-.scene .interactive-object[data-sound='shootingStar'] {
-  --object-center: 30%;
-  top: max(calc(var(--safe-top, 0px) + 4px), calc(var(--object-center) - var(--object-height) / 2));
   bottom: auto;
-}
-.scene .interactive-object[data-sound='airplane'] { --object-size: calc(76px + 52 * var(--visual-unit, 1px)); --object-x: 6%; --object-center: 30%; }
-.scene .interactive-object[data-sound='bat'] { --object-x: 94%; --object-center: 32%; }
-.scene .interactive-object[data-sound='balloon'] { --object-x: 6%; --object-center: 22%; }
-.scene .interactive-object[data-sound='moth'] { --object-x: 9%; --object-center: 43%; }
-.scene .interactive-object[data-sound='shootingStar'] { --object-x: 38%; --object-center: 7%; }
-
-@media (max-height: 550px) {
-  .scene .interactive-object[data-sound='bird'] { --object-x: 4%; }
-  .scene .interactive-object[data-sound='woodpecker'] { --object-x: 19%; }
-  .scene .interactive-object[data-sound='windmill'] { --object-x: 83%; }
-  .scene .interactive-object[data-sound='bat'] { --object-x: 6%; }
-  .scene .interactive-object[data-sound='bell'],
-  .scene .interactive-object[data-sound='chimes'] { --object-x: 72%; }
+  transform: none;
+  z-index:45;
+  cursor:pointer;
+  touch-action:manipulation;
 }
 
-.app-shell.manual-open .scene .interactive-object[data-sound='duck'] { --object-x: 62%; }
-
-.app-shell.manual-open .scene .interactive-object[data-sound='windmill'] { max-height:60% !important; }
+/* One scale for the actual landscape area, including an open performance panel. */
+.app-shell .landscape-world {
+  --play-size: clamp(44px, min(calc(var(--world-width, 100vw) * .14), calc(var(--world-height, 100vh) * .31)), 176px);
+  --child-width: clamp(34px, min(calc(var(--world-width, 100vw) * .12), calc(var(--world-height, 100vh) * .23)), 132px);
+}
+.app-shell .landscape-world .instrument {
+  width: var(--play-size);
+  height: max(44px, calc(var(--play-size) * .82));
+}
+.app-shell .landscape-world .instrument-drawing,
+.app-shell .landscape-world .instrument:hover .instrument-drawing,
+.app-shell .landscape-world .instrument:active .instrument-drawing {
+  width:100%; height:100%; scale:1; transform:none;
+  filter:drop-shadow(0 3px 2px #38534f20);
+}
+.app-shell .landscape-world .instrument.playing .instrument-drawing {
+  filter:drop-shadow(0 3px 2px #38534f20) drop-shadow(0 0 5px #fff0b080);
+}
+.app-shell .landscape-world .instrument .instrument-illustration {
+  width:100%; height:100%; max-width:none;
+}
+.app-shell .landscape-world .young-musician {
+  width:var(--child-width); height:calc(var(--child-width) * 1.3077); top:55%;
+}
+.app-shell.manual-open { --performance-height:clamp(110px, 42vh, 270px); }

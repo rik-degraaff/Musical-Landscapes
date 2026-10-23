@@ -14,6 +14,7 @@ import './object-placement.css';
 import { WATER_DROP_TIMES, WATER_DROP_FALL, WATER_DURATION } from '../audio/sceneSounds';
 import {SCENE_ROOTS} from '../utils/dayCycle';
 import {sceneObjectPair,visitorRoll} from '../utils/sceneVisitors';
+import {sceneObjectStyle, OBJECT_PLACEMENT} from '../utils/sceneComposition';
 
 export const SCENES = [
   { id:'farm', name:'Sunny Farm', root:SCENE_ROOTS.farm, component:FarmScene },
@@ -26,6 +27,7 @@ export const SCENES = [
 ];
 
 export const ScenePreviewContext = createContext(null);
+const SceneLayoutContext = createContext(null);
 
 export function SceneObjects({scene,objects,audio}) {
   const preview = useContext(ScenePreviewContext);
@@ -34,6 +36,7 @@ export function SceneObjects({scene,objects,audio}) {
 }
 
 export function InteractiveObject({ sound, audio, label, className='' }) {
+  const size = useContext(SceneLayoutContext);
   const [taps, setTaps] = useState(0);
   const [pulse, setPulse] = useState(false);
   const [startsAt, setStartsAt] = useState(0);
@@ -45,7 +48,7 @@ export function InteractiveObject({ sound, audio, label, className='' }) {
     setPulse(true);
   };
   const delay = Math.max(-0.1, (startsAt - performance.now()) / 1000);
-  return <button type="button" aria-label={label} title={label} data-sound={sound} className={`interactive-object ${className} ${pulse?'is-tapped':''}`} onClick={tap}>
+  return <button type="button" aria-label={label} title={label} data-sound={sound} data-habitat={OBJECT_PLACEMENT[sound]?.habitat} style={size?sceneObjectStyle(sound,size):undefined} className={`interactive-object ${className} ${pulse?'is-tapped':''}`} onClick={tap}>
     <span key={taps} className={`object-reaction ${pulse ? 'reacting' : ''}`} style={sound === 'water' ? { animationDuration: `${WATER_DURATION}s`, animationDelay: `${delay}s` } : undefined} onAnimationEnd={event => { if(event.target === event.currentTarget) setPulse(false); }}><ObjectArt type={sound} /></span>
     {pulse && (sound === 'water' ? <svg key={`effect-${taps}`} className="object-effect water-drops" viewBox="0 0 160 140" aria-hidden="true">
       {WATER_DROP_TIMES.map(impact => <g key={impact}>
@@ -56,7 +59,7 @@ export function InteractiveObject({ sound, audio, label, className='' }) {
   </button>;
 }
 
-export function Scene({ sceneIndex, playing, audio, onRotate, onGenreChange, genre='folk', genreTransition, onCelestialSettled }) {
+export function Scene({ worldSize, sceneIndex, playing, audio, onRotate, onGenreChange, genre='folk', genreTransition, onCelestialSettled }) {
   const sceneRef = useRef(null);
   const advanceRef = useRef(onRotate);
   const lastPointerAdvance = useRef(null);
@@ -103,8 +106,8 @@ export function Scene({ sceneIndex, playing, audio, onRotate, onGenreChange, gen
     };
   }, []);
   return <div ref={sceneRef} className={`scene scene-${scene.id}`}>
-    <LandscapeArt key={scene.id} scene={scene.id} phase={phase} genre={genre} genreTransition={genreTransition} onGenreChange={onGenreChange}/>
-    <SceneComponent key={`${scene.id}-objects-${playing?'play':'menu'}`} audio={sceneAudio} />
+    <LandscapeArt key={scene.id} worldSize={worldSize} scene={scene.id} phase={phase} genre={genre} genreTransition={genreTransition} onGenreChange={onGenreChange}/>
+    <SceneLayoutContext.Provider value={worldSize}><SceneComponent key={`${scene.id}-objects-${playing?'play':'menu'}`} audio={sceneAudio} /></SceneLayoutContext.Provider>
     <CelestialControl scene={scene.id} phase={phase} settled={settled} />
   </div>;
 }

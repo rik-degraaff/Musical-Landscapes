@@ -346,16 +346,17 @@ test('compact-only color overrides restore at desktop sizes and decorative SVG s
   const preview=page.frameLocator('iframe');
   await page.getByRole('button',{name:'Select SVG parts',exact:true}).click();
   const barn=preview.locator('.landscape-art > g[transform]').filter({has:preview.locator('path[d="M-118 12H118V154H-118Z"]')});
+  const originalFill=await barn.locator('path').first().getAttribute('fill');
   await page.getByRole('button',{name:'landscape-art svg',exact:true}).click();
   await page.getByRole('button',{name:'Browse SVG parts',exact:true}).click();
   await page.getByRole('button',{name:'path: M-118 12H118V154H-118Z path',exact:true}).click();
   await page.getByLabel('Compact viewport only').check();
   await page.getByLabel('attributes fill',{exact:true}).fill('#123456');
-  await expect(barn.locator('path').first()).toHaveAttribute('fill','#cc6c59');
+  await expect(barn.locator('path').first()).toHaveAttribute('fill',originalFill);
   await page.getByRole('button',{name:'Compact landscape viewport',exact:true}).click();
   await expect(barn.locator('path').first()).toHaveAttribute('fill','#123456');
   await page.getByRole('button',{name:'Desktop viewport',exact:true}).click();
-  await expect(barn.locator('path').first()).toHaveAttribute('fill','#cc6c59');
+  await expect(barn.locator('path').first()).toHaveAttribute('fill',originalFill);
   if(test.info().project.name==='desktop') {
     await page.getByRole('button',{name:'Select SVG parts',exact:true}).click();
     await page.getByRole('button',{name:'Drag scene items',exact:true}).click();
