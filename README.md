@@ -22,6 +22,7 @@ Open the local URL printed by Vite. Create a production build with `npm run buil
 - [Release validation](docs/release-validation.md)
 - [Musical and instrument reference](docs/musical-reference.md)
 - [Development visual editor](docs/visual-editor.md)
+- [Visual standards](docs/visual-standards.md)
 - [Engineering execution record](docs/engineering-execution.md)
 - [Future ideas](docs/feature-ideas.md)
 

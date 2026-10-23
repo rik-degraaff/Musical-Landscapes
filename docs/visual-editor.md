@@ -1,5 +1,7 @@
 # Development Visual Editor
 
+Read [visual-standards.md](visual-standards.md) before changing artwork or composition. It defines palette, contours, habitat integration, visual hierarchy, and responsive placement.
+
 Run `npm run dev:editor`, then open `http://127.0.0.1:5175/__editor`. The editor also works at `/__editor` on any freshly started localhost Vite development server. Restart an older development server after adding the editor plugin. The editor UI and save endpoint are not included in production builds.
 
 ## Editing
