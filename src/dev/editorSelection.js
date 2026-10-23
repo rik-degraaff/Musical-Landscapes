@@ -24,7 +24,10 @@ export function selectorFor(node) {
     } else if (node === svg) {
       for (const key of ['hair', 'top', 'bottom']) selector += `[data-avatar-${key}="${svg.getAttribute(`data-avatar-${key}`)}"]`;
     }
-  } else if (svg?.classList.contains('landscape-art')) selector = `.${[...svg.closest('.scene').classList].find(name => name.startsWith('scene-'))} .landscape-art`;
+  } else if (svg?.classList.contains('landscape-art')) {
+    const layer = svg.classList.contains('landscape-foreground') ? '.landscape-foreground' : svg.classList.contains('landscape-background') ? '.landscape-background' : '';
+    selector = `.${[...svg.closest('.scene').classList].find(name => name.startsWith('scene-'))} .landscape-art${layer}`;
+  }
   else {
     anchor = node.closest(roots);
     if (!anchor) return null;

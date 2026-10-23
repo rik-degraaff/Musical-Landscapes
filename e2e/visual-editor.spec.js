@@ -164,10 +164,26 @@ test('responsive endpoint resizing interpolates and leaves the other endpoint in
   await expect(page.getByLabel('Viewport width')).toHaveValue('1920');
 });
 
+test('foreground trees have independent editable selectors and depth',async({page})=>{
+  const preview=page.frameLocator('iframe');
+  const foreground=preview.locator('.landscape-foreground:not([data-visual-layer])');
+  const background=preview.locator('.landscape-background:not([data-visual-layer])');
+  await page.getByRole('button',{name:'landscape-art landscape-foreground svg',exact:true}).click();
+  await page.getByLabel('Layer depth').fill('32');
+  await expect(foreground).toHaveCSS('z-index','32');
+  await expect(background).not.toHaveCSS('z-index','32');
+  const treeName=await foreground.locator('[data-habitat-tree="right"]').getAttribute('data-name');
+  await page.getByRole('button',{name:`${treeName} g`,exact:true}).click();
+  await page.getByLabel('Layer depth').fill('34');
+  await expect(preview.locator('[data-visual-layer] [data-habitat-tree="right"]')).toHaveCount(1);
+  await expect(preview.locator('[data-visual-layer]')).toHaveCSS('z-index','34');
+  expect(page.editorErrors).toEqual([]);
+});
+
 test('background layers can occlude an interactable and reset without changing SVG identity', async ({page}) => {
   const preview = page.frameLocator('iframe');
-  const barn = preview.locator('.landscape-art:not([data-visual-layer]) > g[transform]').filter({has:preview.locator('path[d="M-118 12H118V154H-118Z"]')});
-  await page.getByRole('button',{name:'landscape-art svg',exact:true}).click();
+  const barn = preview.locator('.landscape-art.landscape-background:not([data-visual-layer]) > g[transform]').filter({has:preview.locator('path[d="M-118 12H118V154H-118Z"]')});
+  await page.getByRole('button',{name:'landscape-art landscape-background svg',exact:true}).click();
   await page.getByRole('button',{name:'Browse SVG parts',exact:true}).click();
   await page.getByRole('button',{name:'Barn g',exact:true}).click();
   await page.getByLabel('Layer depth').fill('60');
@@ -181,7 +197,7 @@ test('background layers can occlude an interactable and reset without changing S
   const position = await barn.evaluate(node=>{const bounds=node.getBoundingClientRect(),world=node.closest('.landscape-world').getBoundingClientRect();return {x:(bounds.left+bounds.width/2-world.left)/world.width*100,y:(bounds.top+bounds.height/2-world.top)/world.height*100};});
   await page.getByLabel('Endpoint x').fill(String(position.x)); await page.getByLabel('Endpoint y').fill(String(position.y));
   expect(await preview.locator('[data-visual-layer]').evaluate(node=>{const cow=node.parentElement.querySelector('.cow');const bounds=cow.getBoundingClientRect();return document.elementsFromPoint(bounds.left+bounds.width/2,bounds.top+bounds.height/2).some(hit=>hit.closest('[data-visual-layer]'));})).toBe(true);
-  await page.getByRole('button',{name:'landscape-art svg',exact:true}).click();
+  await page.getByRole('button',{name:'landscape-art landscape-background svg',exact:true}).click();
   await page.getByRole('button',{name:'Browse SVG parts',exact:true}).click();
   await page.getByRole('button',{name:'Barn g',exact:true}).click();
   await page.getByRole('button',{name:'Reset selected item',exact:true}).click();
@@ -225,7 +241,7 @@ test('saved instrument placement remains draggable and can still equip in the no
 
 test('background resizing uses the saved geometry at both endpoints and between them', async ({page}) => {
   const preview=page.frameLocator('iframe');
-  const barn=preview.locator('.landscape-art:not([data-visual-layer]) [data-name="Barn"]');
+  const barn=preview.locator('.landscape-art.landscape-background:not([data-visual-layer]) [data-name="Barn"]');
   await page.getByRole('button',{name:'Barn g',exact:true}).click();
   await page.getByRole('button',{name:'Fit responsive endpoints',exact:true}).click();
   await page.getByLabel('Endpoint x').fill('60'); await page.getByLabel('Endpoint y').fill('55');
@@ -300,9 +316,9 @@ test('nested background layers reflect child edits without hidden copied ancesto
   await expect(preview.locator('[data-visual-layer] path[d="M-118 12H118V154H-118Z"]')).toHaveCount(1);
   await expect(preview.locator('[data-visual-layer] path[d="M-118 12H118V154H-118Z"]')).toHaveCSS('visibility','visible');
   await page.getByRole('button',{name:'Refresh scene outline',exact:true}).click();
-  await page.getByRole('button',{name:'landscape-art svg',exact:true}).click();
+  await page.getByRole('button',{name:'landscape-art landscape-background svg',exact:true}).click();
   await page.getByLabel('Layer depth').fill('20');
-  await expect(preview.locator('.landscape-art:not([data-visual-layer])')).toHaveCSS('z-index','20');
+  await expect(preview.locator('.landscape-art.landscape-background:not([data-visual-layer])')).toHaveCSS('z-index','20');
   await expect(preview.locator('[data-visual-layer]').first()).toHaveCSS('z-index','60');
   await expect(preview.locator('[data-visual-layer]').last()).toHaveCSS('z-index','61');
 });
@@ -347,7 +363,7 @@ test('compact-only color overrides restore at desktop sizes and decorative SVG s
   await page.getByRole('button',{name:'Select SVG parts',exact:true}).click();
   const barn=preview.locator('.landscape-art > g[transform]').filter({has:preview.locator('path[d="M-118 12H118V154H-118Z"]')});
   const originalFill=await barn.locator('path').first().getAttribute('fill');
-  await page.getByRole('button',{name:'landscape-art svg',exact:true}).click();
+  await page.getByRole('button',{name:'landscape-art landscape-background svg',exact:true}).click();
   await page.getByRole('button',{name:'Browse SVG parts',exact:true}).click();
   await page.getByRole('button',{name:'path: M-118 12H118V154H-118Z path',exact:true}).click();
   await page.getByLabel('Compact viewport only').check();

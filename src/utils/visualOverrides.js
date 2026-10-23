@@ -35,7 +35,7 @@ export function visualOverrideCSS(value, { preview = false } = {}) {
       styles.width = boundedFormula(rule.layout.min.width, rule.layout.max.width);
       styles.height = boundedFormula(rule.layout.min.height, rule.layout.max.height, 'height');
     }
-    if (rule.layer !== undefined && (!rule.selector.includes('landscape-art') || rule.selector.endsWith('.landscape-art'))) styles['z-index'] = String(rule.layer);
+    if (rule.layer !== undefined && (!rule.selector.includes('landscape-art') || /\.landscape-art(?:\.landscape-(?:background|foreground))?$/.test(rule.selector))) styles['z-index'] = String(rule.layer);
     const declarations = Object.entries(styles).filter(([key]) => preview || !instrument || !instrumentPosition.has(key)).map(([key, text]) => `${key}:${text} !important`).join(';');
     const css = `${rule.selector}{${declarations}}`;
     return rule.maxWidth === undefined ? css : `@media(max-width:${rule.maxWidth}px){${css}}`;

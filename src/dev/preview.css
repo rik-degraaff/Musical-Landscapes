@@ -15,6 +15,9 @@ body { touch-action: auto; }
 .editor-interacting .landscape-art,.editor-interacting .landscape-art * { pointer-events: none !important; }
 .editor-animations-paused *, .editor-animations-paused *::before, .editor-animations-paused *::after { animation-play-state: paused !important; transition: none !important; }
 .landscape-art { pointer-events: auto !important; }
+/* The foreground SVG covers the world; only its painted trees are selectable. */
+.landscape-art.landscape-foreground { pointer-events: none !important; }
+.landscape-foreground [data-habitat-tree] { pointer-events: visiblePainted; }
 .landscape-art > path:last-child { pointer-events: none; }
 .editor-visitor-layer { position: absolute; inset: 0; pointer-events: none; z-index: 50; }
 .editor-visitor-layer .interactive-object { pointer-events: auto; }

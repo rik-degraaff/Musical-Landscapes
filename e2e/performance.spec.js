@@ -429,7 +429,7 @@ test('sun and moon advance the day, remain circular, and keep controls aligned t
     const bounds=element.getBoundingClientRect();
     return element.contains(document.elementFromPoint(bounds.x+bounds.width/2,bounds.y+bounds.height/2));
   })).toBe(true);
-  const skyLayers = await page.locator('.landscape-art:not([data-visual-layer])').evaluate(svg => {
+  const skyLayers = await page.locator('.landscape-art.landscape-background:not([data-visual-layer])').evaluate(svg => {
     const sun = svg.querySelector('.celestial-art');
     const terrain = [...svg.querySelectorAll('path')].find(path => path.getAttribute('d')?.startsWith('M0 403'));
     return {sunBeforeTerrain:Boolean(sun && terrain && (sun.compareDocumentPosition(terrain) & Node.DOCUMENT_POSITION_FOLLOWING)),pulse:getComputedStyle(svg.querySelector('.celestial-pulse')).animationName};

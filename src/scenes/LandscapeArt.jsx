@@ -72,7 +72,7 @@ export function LandscapeArt({ scene, phase, worldSize, genre='folk', genreTrans
     setCloudPulse(true);
   }
   useEffect(()=>()=>clearTimeout(cloudWeatherTimer.current),[]);
-  return <svg ref={artRef} className="landscape-art" viewBox="0 0 1440 900" preserveAspectRatio="none" role="presentation" aria-hidden="false">
+  return <><svg ref={artRef} className="landscape-art landscape-background" viewBox="0 0 1440 900" preserveAspectRatio="none" role="presentation" aria-hidden="false">
     <defs>
       <linearGradient id={`${scene}-sky`} x2="0" y2="1"><stop stopColor={palette[0]} /><stop offset="1" stopColor={palette[1]} /></linearGradient>
       <linearGradient id={`${scene}-ground`} x2=".3" y2="1"><stop stopColor={palette[3]} /><stop offset="1" stopColor={palette[4]} /></linearGradient>
@@ -98,7 +98,6 @@ export function LandscapeArt({ scene, phase, worldSize, genre='folk', genreTrans
       <path d="M0 678Q262 580 535 640L331 900H0Z" fill="#adc168" /><path d="M0 730Q226 622 487 675 M0 791Q210 670 433 727 M0 853Q166 749 379 790" stroke="#6e944c" strokeWidth="8" opacity=".45" fill="none" />
       <g data-name="Barn" transform={landmark.transform}><path d="M-118 12H118V154H-118Z" fill="#bf8b77" /><path d="M-143 15L0-108L143 15Z" fill="#7e7770" /><path d="M-111 15L0-79L111 15Z" fill="#cfa28a" /><path data-doorway="true" d="M-41 154V58H41V154" fill="#8b7663" stroke="#e4d8b6" strokeWidth="7" /><path d="M-37 63L37 150 M37 63L-37 150" stroke="#e4d8b6" strokeWidth="5" /><rect x="-17" y="-31" width="34" height="34" fill="#f3dba2" /><path d="M-110 36H-67 M66 36H110" stroke="#d4b59a" strokeWidth="6" /></g>
       <g data-name="Farm fence" stroke="#d9dbb5" strokeWidth="6" opacity=".65" fill="none"><path d="M0 578Q235 537 458 583 M0 607Q235 566 458 612 M1170 587L1440 562 M1170 616L1440 591" />{[24, 91, 158, 225, 292, 359, 426, 1190, 1257, 1324, 1391].map(position => <path key={position} d={`M${position} ${position < 460 ? 550 + Math.abs(230 - position) / 14 : 565}v86`} />)}</g>
-      <Tree {...treeProps(metrics.leftTree)} color={night ? '#3d625c' : '#719875'}/><Tree {...treeProps(metrics.rightTree)} color={night ? '#496d62' : '#86a07c'}/>
     </>}
     {dawn && <>
       <path d="M0 605Q350 548 716 588T1440 585 M0 650Q310 601 620 638T1440 643" stroke="#f1e8d4" strokeWidth="16" opacity=".22" fill="none" />
@@ -108,7 +107,6 @@ export function LandscapeArt({ scene, phase, worldSize, genre='folk', genreTrans
         <path d="M-116 45H116M-116 123H116" stroke="#b69d84" strokeWidth="4" />
       </g>
       <g data-name="Dawn fence" stroke="#b9baa0" strokeWidth="5" opacity=".55" fill="none"><path d="M160 665H635M160 698H635" />{[180,260,340,420,500,580,630].map(position => <path key={position} d={`M${position} 640v89`} />)}</g>
-      <Tree {...treeProps(metrics.leftTree)} color={night ? '#3d625c' : '#719875'}/><Tree {...treeProps(metrics.rightTree)} color={night ? '#496d62' : '#86a07c'}/>
       <g fill="#c9d6b4" opacity=".55">{Array.from({ length: 16 }, (_, index) => <ellipse key={index} cx={50 + index * 85} cy={760 + index % 3 * 35} rx="3" ry="2" />)}</g>
     </>}
     {dusk && <>
@@ -118,13 +116,11 @@ export function LandscapeArt({ scene, phase, worldSize, genre='folk', genreTrans
         <rect x="-55" y="36" width="35" height="34" fill="#f1d19a" stroke="#6a7465" strokeWidth="5"/><path data-doorway="true" d="M26 111V41h34v70" fill="#62776d"/>
         <path d="M-37 37v32m-16-16h31" stroke="#6a7465" strokeWidth="3"/>
       </g>
-      <Tree {...treeProps(metrics.leftTree)} color={night ? '#3d625c' : '#719875'}/><Tree {...treeProps(metrics.rightTree)} color={night ? '#496d62' : '#86a07c'}/>
       <g stroke="#345b4e" strokeWidth="4" fill="none">{Array.from({length:7},(_,index)=><path key={index} d={`M${90+index*190} 877q-15-32-5-${50+index%3*12}m5 50q12-24 24-30`}/>)}</g>
       {Array.from({length:8},(_,index)=><circle key={index} className="firefly-light" cx={160+index*145} cy={685+(index*37)%150} r="2.5" fill="#f5db94" style={{animationDelay:`${index%4*.7}s`}}/>)}
     </>}
     {garden && <>
       <g data-name="Garden cottage" transform={landmark.transform}><rect x="-117" y="0" width="234" height="178" rx="5" fill="#ded2b2" /><path d="M-150 12L0-103L150 12Z" fill="#a98578" /><path d="M-133 9L0-86L133 9" fill="none" stroke="#c5a68b" strokeWidth="8" /><rect data-doorway="true" x="29" y="77" width="53" height="101" rx="24" fill="#68918c" /><circle cx="68" cy="132" r="4" fill="#f7d584" /><rect x="-84" y="47" width="62" height="62" rx="3" fill="#9ab9bb" stroke="#e6ddc4" strokeWidth="8" /><path d="M-53 49V108 M-82 78H-25" stroke="#e6ddc4" strokeWidth="5" /><path d="M-100 118H-5L-13 140H-93Z" fill="#ba7366" /><g fill="#75935f"><circle cx="-82" cy="115" r="14" /><circle cx="-54" cy="114" r="17" /><circle cx="-28" cy="115" r="13" /></g></g>
-      <Tree {...treeProps(metrics.leftTree)} color={night ? '#3d625c' : '#719875'}/><Tree {...treeProps(metrics.rightTree)} color={night ? '#496d62' : '#86a07c'}/>
       <path d="M230 789Q415 699 576 770L581 820Q386 763 244 838Z" fill="#466d52" />
       {Array.from({ length: 10 }, (_, index) => <g key={index} transform={`translate(${255 + index * 29} ${780 + Math.sin(index) * 18})`}><path d="M0 0v-27m0 14q-15-16-17-1m17-7q15-16 18-4" fill="none" stroke="#40724e" strokeWidth="3" /><circle cy="-29" r="9" fill={['#f3a5a3', '#fff0b0', '#d8b7dd'][index % 3]} /><circle cy="-29" r="3" fill="#dc9955" /></g>)}
       <g data-name="Bee flower patch" transform={`translate(950 794) scale(${stretch} 1)`} fill={ART.pink} stroke={ART.leafShade} strokeWidth="3">
@@ -137,7 +133,6 @@ export function LandscapeArt({ scene, phase, worldSize, genre='folk', genreTrans
       <g className="pond-reflections" stroke="#d1eee2" strokeWidth="4" strokeLinecap="round" opacity=".45"><path d="M480 652h98 M843 684h110 M540 758h127 M1090 803h108 M759 857h143 M1025 730h47 M378 822h59" /></g>
       <g fill={ART.leafShade}><ellipse data-name="Frog lily pad" cx={frogPad.x/size.width*1440} cy={frogPad.y/size.height*900} rx={Math.max(24,40*metrics.unit)/size.width*1440} ry={Math.max(4,8*metrics.unit)/size.height*900}/><ellipse cx="675" cy="787" rx="43" ry="13" /><ellipse cx="1030" cy="717" rx="35" ry="10" /><ellipse cx="1133" cy="846" rx="48" ry="14" /></g>
       <g fill="#f5c2cc"><path d="M659 785q-3-33 16-13q16-27 25 6Z" /><path d="M1017 715q-6-24 12-14q14-20 25 11Z" /></g>
-      <Tree {...treeProps(metrics.leftTree)} color={night ? '#3d625c' : '#719875'}/><Tree {...treeProps(metrics.rightTree)} color={night ? '#496d62' : '#86a07c'}/>
       <g stroke="#486f49" strokeWidth="5" fill="none">{[285, 311, 338, 362, 1202, 1231, 1254].map((position, index) => <path key={position} d={`M${position} 742q${index % 2 ? 23 : -20}-35 5-${65 + index % 3 * 18}`} />)}</g>
       <g stroke="#886e4c" strokeWidth="12" strokeLinecap="round"><path d="M290 658v22 M316 640v23 M343 627v24 M1207 635v28 M1259 647v23" /></g>
     </>}
@@ -166,10 +161,13 @@ export function LandscapeArt({ scene, phase, worldSize, genre='folk', genreTrans
     {night && !lateNight && <>
       <g fill="#283e46">{[80, 164, 250, 1210, 1300, 1400].map((position, index) => <path key={position} d={`M${position} ${310 + index % 2 * 50}l-68 178h40l-61 89h178l-61-89h40Z`} />)}</g>
       <g data-name="Night cottage" transform={landmark.transform}><path d="M-115 0H115V159H-115Z" fill="#8d7068" /><path d="M-145 8L0-100L145 8Z" fill="#39454c" /><path d="M-110 29H110 M-110 61H110 M-110 93H110 M-110 125H110" stroke="#72595b" strokeWidth="5" /><rect x="-78" y="48" width="57" height="58" rx="2" fill="#f9d990" stroke="#51464d" strokeWidth="7" /><path d="M-49 49V104 M-77 77H-23" stroke="#51464d" strokeWidth="5" /><path data-doorway="true" d="M29 159V61Q56 30 83 61V159" fill="#51464d" /><path d="M72-56V-108H96V-36" fill="#72595b" /></g>
-      <Tree {...treeProps(metrics.leftTree)} color={night ? '#3d625c' : '#719875'}/><Tree {...treeProps(metrics.rightTree)} color={night ? '#496d62' : '#86a07c'}/>
       {Array.from({ length: 10 }, (_, index) => <circle key={index} className="firefly-light" cx={90 + index * 130} cy={650 + (index * 59) % 210} r="3" fill="#f4dd8f" style={{ animationDelay: `${index % 4 * 0.6}s` }} />)}
     </>}
     <g fill={night ? '#6c8b76' : '#b7cd83'} opacity=".30">{Array.from({ length: 23 }, (_, index) => <path key={index} d={`M${index * 67} ${820 + (index * 31) % 80}l-4-12l8 9l5-14l-1 17Z`} />)}</g>
 
-  </svg>;
+  </svg>
+    {scene !== 'late-night' && <svg className="landscape-art landscape-foreground" viewBox="0 0 1440 900" preserveAspectRatio="none" role="presentation" aria-hidden="true">
+      <Tree {...treeProps(metrics.leftTree)} color={night ? '#3d625c' : '#719875'}/><Tree {...treeProps(metrics.rightTree)} color={night ? '#496d62' : '#86a07c'}/>
+    </svg>}
+  </>;
 }

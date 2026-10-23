@@ -17,6 +17,8 @@
   touch-action:manipulation;
 }
 
+.scene .interactive-object[data-habitat="bank"] { z-index:20; }
+
 /* One scale for the actual landscape area, including an open performance panel. */
 .app-shell .landscape-world {
   --play-size: clamp(44px, min(calc(var(--world-width, 100vw) * .14), calc(var(--world-height, 100vh) * .31)), 176px);
