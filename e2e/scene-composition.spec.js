@@ -38,9 +38,9 @@ for(const [layout,width,height] of [['desktop',1440,900],['tablet',1024,768],['p
           const clear=await host.locator('.cloud-1').evaluate(element=>{
             const box=element.getBoundingClientRect();
             const hit=document.elementFromPoint(box.x+box.width/2,box.y+box.height/2);
-            return !!hit?.closest('.scenery-cloud');
+            return hit?.closest('.scenery-cloud')?null:hit?.closest('button')?.getAttribute('aria-label')??hit?.tagName??'nothing';
           });
-          if(!clear)failures.push(`${scene}: cloud center not reachable`);
+          if(clear)failures.push(`${scene}: cloud center covered by ${clear}`);
         };
         await checkCloud();
         const checkSeparation=async()=>{

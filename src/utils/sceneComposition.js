@@ -1,8 +1,10 @@
 // World coordinates are CSS pixels. Both habitat artwork and targets use these
 // anchors, so shortening the world for an instrument panel cannot detach them.
 import {DAY_PHASES, celestialPosition} from './dayCycle.js';
+import {SCENE_VISITORS} from './sceneVisitors.js';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+export const SCENE_SKY_RESIDENTS = {dusk:['airplane'],'late-night':['bat']};
 
 // Reserve the largest weather silhouette, so changing genre does not rearrange
 // instruments. Keep clouds above the terrain; move them sideways around the
@@ -11,16 +13,23 @@ export function cloudLayouts({width, height}, scene='farm') {
   const scale = Math.min(1, Math.max(.5, width / 1440), height / 300, width / 900);
   const point = celestialPosition(DAY_PHASES[scene]);
   const control = {x:width * point.x / 100, y:Math.max(36, height * point.y / 100)};
+  const obstacles = [{left:control.x-32,right:control.x+32,top:control.y-32,bottom:control.y+32},
+    ...[...(SCENE_SKY_RESIDENTS[scene]??[]),...SCENE_VISITORS[scene].map(visitor=>visitor.sound)]
+    .filter(sound=>OBJECT_PLACEMENT[sound].habitat==='sky').map(sound=>{
+      const box=sceneObjectGeometry(sound,{width,height});
+      return {left:box.x-box.width/2,right:box.x+box.width/2,top:box.y-box.height/2,bottom:box.y+box.height/2};
+    })];
   return [[380,100,1],[980,100,1.08],[720,80,1.02]].map(([sourceX, sourceY, maxScale]) => {
     const factor = scale * maxScale;
     const cloudWidth = 168 * factor, cloudHeight = 80 * factor;
     const original = sourceX / 1440 * width - 24 * factor;
     const y = Math.max(50, cloudHeight + 8, sourceY / 900 * height);
     let left = original;
-    if(y > control.y - 40 && y - cloudHeight < control.y + 40) {
-      const candidates = [original,control.x-40-cloudWidth,control.x+40]
-        .filter(value=>value>=64&&value+cloudWidth<=width-64)
-        .filter(value=>value+cloudWidth<=control.x-40+.001||value>=control.x+40-.001);
+    const nearby=obstacles.filter(box=>y>box.top-8&&y-cloudHeight<box.bottom+8);
+    if(nearby.some(box=>left<box.right+8&&left+cloudWidth>box.left-8)) {
+      const candidates = [original,...nearby.flatMap(box=>[box.left-8-cloudWidth,box.right+8])]
+        .filter(value=>value>=56&&value+cloudWidth<=width-56)
+        .filter(value=>nearby.every(box=>value+cloudWidth<=box.left-8+.001||value>=box.right+8-.001));
       candidates.sort((one,two)=>Math.abs(one-original)-Math.abs(two-original));
       left = candidates[0] ?? original;
     }
@@ -89,9 +98,9 @@ export const OBJECT_PLACEMENT = Object.freeze({
   deer: {habitat:'ground', x:.74, y:.85, tier:1.18},
   airplane: {habitat:'sky', x:.72, y:.22, tier:1.05, contact:[80,70]},
   bat: {habitat:'sky', x:.74, y:.28, tier:.94, contact:[80,70]},
-  balloon: {habitat:'sky', x:.30, y:.23, tier:.92, contact:[80,70]},
-  moth: {habitat:'sky', x:.25, y:.39, tier:.76, contact:[80,70]},
-  shootingStar: {habitat:'sky', x:.32, y:.23, tier:.92, contact:[80,70]},
+  balloon: {habitat:'sky', x:.60, y:.23, tier:.92, contact:[80,70]},
+  moth: {habitat:'sky', x:.82, y:.45, tier:.76, contact:[80,70]},
+  shootingStar: {habitat:'sky', x:.46, y:.23, tier:.92, contact:[80,70]},
 });
 
 export function habitatAnchor(sound, size) {
