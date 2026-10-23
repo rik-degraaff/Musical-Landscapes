@@ -1,89 +1,93 @@
 import React from 'react';
+import { ART, ART_STROKE } from '../data/artStyle';
 import { VisitorArt } from './VisitorArt';
 
+const Detail = ({ children, ...props }) => <g strokeWidth={ART_STROKE.detail} {...props}>{children}</g>;
+const Eye = ({ x, y, r = 3.5 }) => <g stroke="none"><circle cx={x} cy={y} r={r} fill={ART.ink} /><circle cx={x + 1} cy={y - 1} r={r * .3} fill={ART.paper} /></g>;
+
+// All objects share a 160 × 140 illustration space. Perch contact points are
+// authored geometry: bird (65,102)/(82,102), owl (62,126)/(95,126).
 export function ObjectArt({ type }) {
-  return <svg viewBox="0 0 160 140" className={`object-art art-${type}`} aria-hidden="true" fill="none" strokeLinecap="round" strokeLinejoin="round">
+  return <svg viewBox="0 0 160 140" className={`object-art art-${type}`} aria-hidden="true" fill="none" stroke={ART.ink} strokeWidth={ART_STROKE.outline} strokeLinecap="round" strokeLinejoin="round">
     <VisitorArt type={type} />
     {type === 'bat' && <>
-      <g className="bat-wings" fill="#9297b5" stroke="#515b76" strokeWidth="3">
+      <g className="bat-wings" fill={ART.violet}>
         <path d="M75 72Q46 26 8 39Q26 52 17 80Q37 64 44 91Q59 72 72 96Z" /><path d="M85 72Q114 26 152 39Q134 52 143 80Q123 64 116 91Q101 72 88 96Z" />
-        <path d="M72 77L24 47m48 32L43 83m45-6l48-30m-48 32l29 4" fill="none" stroke="#c4c3d1" strokeWidth="2" />
+        <Detail stroke={ART.violetShade}><path d="M72 77L24 47m48 32L43 83m45-6l48-30m-48 32l29 4" /></Detail>
       </g>
-      <ellipse cx="80" cy="86" rx="16" ry="24" fill="#646a87" />
-      <path d="M65 61L61 33L77 50m6 0l16-17l-4 28" fill="#777e9e" stroke="#515b76" strokeWidth="3" />
-      <path d="M65 48l2-9l6 12m14 0l6-12l-2 9" stroke="#d6afbf" strokeWidth="3" />
-      <ellipse cx="80" cy="66" rx="20" ry="18" fill="#9297b5" /><ellipse cx="80" cy="76" rx="10" ry="7" fill="#c8c7d6" />
-      <g fill="#263e49"><circle cx="72" cy="63" r="3.5" /><circle cx="88" cy="63" r="3.5" /><path d="M76 72h8l-4 4Z" /></g>
-      <path d="M73 81q7 5 14 0" stroke="#515b76" strokeWidth="2" />
+      <ellipse cx="80" cy="86" rx="16" ry="24" fill={ART.violetShade} />
+      <path d="M65 61L61 33L77 50m6 0l16-17l-4 28" fill={ART.violet} />
+      <Detail stroke={ART.pink}><path d="M65 48l2-9l6 12m14 0l6-12l-2 9" /></Detail>
+      <ellipse cx="80" cy="66" rx="20" ry="18" fill={ART.violet} /><ellipse cx="80" cy="76" rx="10" ry="7" fill={ART.cream} stroke="none" />
+      <Eye x={72} y={63} /><Eye x={88} y={63} /><path d="M76 72h8l-4 4Z" fill={ART.ink} stroke="none" /><Detail><path d="M73 81q7 5 14 0" /></Detail>
     </>}
     {type === 'hedgehog' && <>
-      <ellipse cx="80" cy="125" rx="63" ry="7" fill="#163c3544" />
-      <g className="hedgehog-leaves" fill="#bd9873" stroke="#8b7961" strokeWidth="2"><path d="M13 120q-7-22 18-16q7 15-18 16Z" /><path d="M128 125q-1-25 24-15q-1 17-24 15Z" /><path d="M98 131q-20-14-5-22q19 5 5 22Z" /></g>
-      <path d="M35 104v16h12m47-16v16h12" stroke="#a6947e" strokeWidth="8" />
-      <path d="M22 99L14 83L27 80L23 65L38 64L39 48L54 53L66 38L77 48L91 40L96 54L113 53L110 71L121 89L105 108H34Z" fill="#7c7c70" stroke="#4c6258" strokeWidth="3" />
-      <path d="M35 83l6-13m9 28l8-14m0-16l8-14m7 42l7-14m7-14l7-12m-5 45l7-13" stroke="#c8c0a3" strokeWidth="4" />
-      <path d="M92 79Q110 64 120 85L148 102Q143 117 116 116H78Q70 96 92 79Z" fill="#d5c6a6" stroke="#7c7c70" strokeWidth="3" />
-      <circle cx="109" cy="84" r="10" fill="#baa78e" /><circle cx="109" cy="84" r="5" fill="#e5c2b0" /><circle cx="126" cy="96" r="4" fill="#304b42" /><circle cx="127" cy="95" r="1.3" fill="#fff7da" /><ellipse cx="147" cy="104" rx="6" ry="4" fill="#304b42" />
+      <path d="M35 104v20h12m47-20v20h12" stroke={ART.brownShade} strokeWidth="7" />
+      <path d="M22 99L14 83L27 80L23 65L38 64L39 48L54 53L66 38L77 48L91 40L96 54L113 53L110 71L121 89L105 108H34Z" fill={ART.brownShade} />
+      <Detail stroke={ART.wood}><path d="M35 83l6-13m9 28l8-14m0-16l8-14m7 42l7-14m7-14l7-12" /></Detail>
+      <path d="M92 79Q110 64 120 85L148 102Q143 117 116 116H78Q70 96 92 79Z" fill={ART.cream} />
+      <circle cx="109" cy="84" r="10" fill={ART.brown} /><circle cx="109" cy="84" r="5" fill={ART.pink} stroke="none" /><Eye x={126} y={96} /><ellipse cx="147" cy="104" rx="6" ry="4" fill={ART.ink} stroke="none" />
     </>}
-    {type==='cricket' && <>
-      <ellipse cx="78" cy="123" rx="49" ry="5" fill="#1b403833"/>
-      <path d="M54 89L30 68L18 115m67-26l28-29l24 56M55 105l-7 20h-21m61-20l10 20h24" stroke="#586943" strokeWidth="6"/>
-      <ellipse cx="73" cy="92" rx="34" ry="20" fill="#89965d" stroke="#485f42" strokeWidth="3"/>
-      <g className="cricket-wing">
-        <path d="M44 89q21-33 47-7L60 106Z" fill="#b6b579" stroke="#657447" strokeWidth="2"/>
-        <path d="M51 86l27 5m-23 3l16 5" stroke="#6d7d4c" strokeWidth="2"/>
-      </g>
-      <circle cx="106" cy="79" r="17" fill="#a3ad71" stroke="#526944" strokeWidth="3"/>
-      <circle cx="113" cy="74" r="4" fill="#28493d"/><circle cx="114" cy="73" r="1.3" fill="#eef3c9"/>
-      <path d="M110 62q12-36 27-36m-32 36q-5-32 9-45" stroke="#70814e" strokeWidth="2"/>
+    {type === 'cricket' && <>
+      <path d="M54 89L30 68L18 119m67-30l28-29l24 59M55 105l-7 20h-21m61-20l10 20h24" stroke={ART.leafShade} strokeWidth="5" />
+      <ellipse cx="73" cy="92" rx="34" ry="20" fill={ART.leaf} />
+      <g className="cricket-wing"><path d="M44 89q21-33 47-7L60 106Z" fill={ART.gold} /><Detail stroke={ART.goldShade}><path d="M51 86l27 5m-23 3l16 5" /></Detail></g>
+      <circle cx="106" cy="79" r="17" fill={ART.leaf} /><Eye x={113} y={74} />
+      <Detail><path d="M110 62q12-36 27-36m-32 36q-5-32 9-45" /></Detail>
     </>}
-    {type==='airplane' && <>
-      <path d="M65 65L37 23L57 22L91 63Z" fill="#dfb168" stroke="#9c7e54" strokeWidth="3"/>
-      <path d="M32 80L17 45L33 46L47 77Z" fill="#b86f62" stroke="#875b55" strokeWidth="3"/>
-      <path d="M21 81q67-27 113-1q15 10-1 20H42Z" fill="#f1ddad" stroke="#9a8464" strokeWidth="3"/>
-      <path d="M72 69q15-20 29 2Z" fill="#96bfbe" stroke="#5f8d8c" strokeWidth="3"/>
-      <path d="M64 88L48 124L65 125L102 92Z" fill="#dba966" stroke="#9c7e54" strokeWidth="3"/>
-      <path d="M118 78v23" stroke="#c67a64" strokeWidth="7"/>
-      <g className="airplane-propeller"><ellipse cx="141" cy="88" rx="4" ry="30" fill="#9baca1"/><circle cx="141" cy="88" r="6" fill="#657d77"/></g>
-      <path d="M34 84h27" stroke="#cc866c" strokeWidth="4"/>
+    {type === 'airplane' && <>
+      {/* The far wing and tailplane share a shallow up-right vanishing direction. */}
+      <path d="M66 76L83 41Q85 37 91 38L103 40L88 77Z" fill={ART.goldShade} />
+      <path d="M26 78L38 60L51 61L41 82Z" fill={ART.coralShade} />
+      <path d="M22 83L15 48Q16 44 22 46L34 51L47 84Z" fill={ART.coral} />
+      <path d="M20 83Q77 62 125 76Q144 81 137 94Q134 103 114 102L44 99Z" fill={ART.cream} />
+      <path d="M70 74Q75 57 88 58Q102 58 106 75Z" fill={ART.teal} />
+      <Detail stroke={ART.tealShade}><path d="M88 59v14" /></Detail>
+      {/* Near wing repeats the far wing's taper, foreshortened in the same camera. */}
+      <path d="M67 88L43 114Q40 119 47 120L62 121L99 91Z" fill={ART.gold} />
+      <path d="M31 89L19 103L33 104L53 93Z" fill={ART.coral} />
+      <path d="M122 78v23" stroke={ART.coral} strokeWidth="7" />
+      <g className="airplane-propeller"><ellipse cx="141" cy="88" rx="3" ry="25" fill={ART.softInk} stroke="none" /><circle cx="141" cy="88" r="5" fill={ART.tealShade} /></g>
+      <Detail stroke={ART.coralShade}><path d="M45 83h13" /></Detail>
     </>}
     {type === 'rooster' && <>
-      <path d="M48 87Q2 69 20 31Q48 32 58 72Q22 43 31 20Q65 36 64 82" fill="#3c7977" stroke="#305e63" strokeWidth="4" />
-      <ellipse cx="78" cy="86" rx="36" ry="30" fill="#d6a267" /><path className="rooster-wing" d="M61 74Q100 68 97 100Q62 107 61 74Z" fill="#ac7258" />
-      <path d="M85 74Q92 62 90 44Q88 27 104 29Q123 31 119 53L106 88Z" fill="#f3ddb1" /><path d="M95 28Q89 12 99 13Q103 3 110 17Q124 5 124 24L117 35Z" fill="#c76d61" />
-      <path d="M118 44L140 50L120 58Z" fill="#ddb563" /><circle cx="110" cy="40" r="3" fill="#354c4b" /><path d="M110 59Q123 81 104 77Z" fill="#c76d61" />
-      <path d="M66 111v18m25-18v18m-27 0h-13m15 0h11m12 0h-12m12 0h13" stroke="#c79b57" strokeWidth="4" />
+      <path d="M48 87Q2 69 20 31Q48 32 58 72Q22 43 31 20Q65 36 64 82" fill={ART.tealShade} />
+      <ellipse cx="78" cy="86" rx="36" ry="30" fill={ART.gold} /><path className="rooster-wing" d="M61 74Q100 68 97 100Q62 107 61 74Z" fill={ART.coral} />
+      <path d="M85 74Q92 62 90 44Q88 27 104 29Q123 31 119 53L106 88Z" fill={ART.cream} /><path d="M95 28Q89 12 99 13Q103 3 110 17Q124 5 124 24L117 35Z" fill={ART.coral} />
+      <path d="M118 44L140 50L120 58Z" fill={ART.gold} /><Eye x={110} y={40} r={3} /><path d="M110 59Q123 81 104 77Z" fill={ART.coral} />
+      <path d="M66 111v15m25-15v15m-27 0H53m13 0h11m12 0H78m11 0h13" stroke={ART.goldShade} strokeWidth="3" />
     </>}
     {type === 'chimes' && <>
-      <path d="M25 18H138M80 19v15" stroke="#827662" strokeWidth="6" /><path d="M49 39Q80 25 111 39" stroke="#b5976c" strokeWidth="8" />
-      <g className="chime-tubes">{[51,70,89,108].map((position,index) => <g key={position}><path d={`M${position} 40v${12 + index % 2 * 7}`} stroke="#837c67" strokeWidth="2" /><rect x={position-4} y={52 + index % 2 * 7} width="8" height={35 + index % 3 * 9} rx="3" fill="#adcbc7" stroke="#638b8a" strokeWidth="2" /></g>)}
-      <path d="M80 37v78" stroke="#837c67" strokeWidth="2" /><ellipse cx="80" cy="87" rx="11" ry="4" fill="#bf9271" /><path d="M72 116h16l-3 18h-10Z" fill="#d4a883" /></g>
+      <path d="M25 18H138M80 19v15" stroke={ART.woodShade} strokeWidth="5" /><path d="M49 39Q80 25 111 39" stroke={ART.wood} strokeWidth="7" />
+      <g className="chime-tubes">{[51,70,89,108].map((position,index) => <g key={position}><path d={`M${position} 40v${12 + index % 2 * 7}`} strokeWidth={ART_STROKE.detail} /><rect x={position-4} y={52 + index % 2 * 7} width="8" height={35 + index % 3 * 9} rx="3" fill={ART.teal} /></g>)}
+      <path d="M80 37v78" strokeWidth={ART_STROKE.detail} /><ellipse cx="80" cy="87" rx="11" ry="4" fill={ART.wood} /><path d="M72 116h16l-3 18h-10Z" fill={ART.gold} /></g>
     </>}
     {type === 'moo' && <>
-      <ellipse cx="79" cy="127" rx="57" ry="6" fill="#244f3633" /><path d="M37 89v31h12V93m49-4v31h12V89" stroke="#6b5550" strokeWidth="8" /><path d="M119 68q24 8 16 32" stroke="#6b5550" strokeWidth="5" />
-      <path d="M30 58q-12 23 1 44h77q18-16 8-39q-38-17-86-5Z" fill="#ffefdc" stroke="#796757" strokeWidth="3" /><path d="M50 57q-10 23 11 24q21-4 20-23 M101 69q-29 8-12 29h20" fill="#595456" />
-      <path d="M19 56L9 36L30 42m12-1L55 31L55 57" fill="#d6a7a0" stroke="#796757" strokeWidth="3" /><path d="M23 39l-4-12m23 11l5-12" stroke="#e5cb98" strokeWidth="7" /><path d="M19 43Q33 32 47 43l2 36q-16 17-34-1Z" fill="#ffefdc" stroke="#796757" strokeWidth="3" /><ellipse cx="31" cy="78" rx="21" ry="14" fill="#dfa6a0" /><circle cx="23" cy="77" r="3" fill="#796757" /><circle cx="39" cy="77" r="3" fill="#796757" /><path d="M23 54v3m16-3v3" stroke="#474249" strokeWidth="4" />
+      <path d="M37 89v34h12V93m49-4v34h12V89" stroke={ART.brownShade} strokeWidth="7" /><path d="M119 68q24 8 16 32" stroke={ART.brownShade} strokeWidth="4" />
+      <path d="M30 58q-12 23 1 44h77q18-16 8-39q-38-17-86-5Z" fill={ART.paper} /><path d="M50 57q-10 23 11 24q21-4 20-23 M101 69q-29 8-12 29h20" fill={ART.ink} stroke="none" />
+      <path d="M19 56L9 36L30 42m12-1L55 31L55 57" fill={ART.pink} /><path d="M23 39l-4-12m23 11l5-12" stroke={ART.gold} strokeWidth="6" /><path d="M19 43Q33 32 47 43l2 36q-16 17-34-1Z" fill={ART.paper} /><ellipse cx="31" cy="78" rx="21" ry="14" fill={ART.pink} /><circle cx="23" cy="77" r="2.5" fill={ART.ink} stroke="none" /><circle cx="39" cy="77" r="2.5" fill={ART.ink} stroke="none" /><Eye x={23} y={55} r={2.5} /><Eye x={39} y={55} r={2.5} />
     </>}
     {type === 'tractor' && <>
-      <path className="tractor-exhaust" d="M106 44q-13-12 1-19q17-10 6-21" stroke="#faf3d3" strokeWidth="11" opacity=".7" /><path d="M27 102V56h46v46" fill="#699aa1" stroke="#355e62" strokeWidth="5" /><path d="M22 51h57" stroke="#e7c67e" strokeWidth="9" /><path d="M77 68h48q14 0 14 17v23H56V89Z" fill="#d67657" stroke="#814f48" strokeWidth="3" /><path d="M105 65V42" stroke="#5e6060" strokeWidth="7" /><path d="M117 80v16m8-16v16m8-13v13" stroke="#8f5046" strokeWidth="3" /><path d="M31 57h37v27H31Z" fill="#c1e1dc" /><g className="tractor-wheel"><circle cx="42" cy="106" r="27" fill="#454e51" /><circle cx="42" cy="106" r="15" fill="#e4ba79" /><path d="M42 94v24m-12-12h24" stroke="#b08758" strokeWidth="4" /></g><g className="tractor-wheel"><circle cx="126" cy="114" r="18" fill="#454e51" /><circle cx="126" cy="114" r="9" fill="#e4ba79" /><path d="M126 108v12m-6-6h12" stroke="#b08758" strokeWidth="3" /></g>
+      <path className="tractor-exhaust" d="M106 39q-9-9 1-16q12-7 5-16" stroke={ART.cream} strokeWidth="9" opacity=".7" /><path d="M27 102V56h46v46" fill={ART.teal} /><path d="M22 51h57" stroke={ART.gold} strokeWidth="7" /><path d="M77 68h48q14 0 14 17v23H56V89Z" fill={ART.coral} /><path d="M105 65V42" stroke={ART.ink} strokeWidth="6" /><Detail stroke={ART.coralShade}><path d="M117 80v16m8-16v16m8-13v13" /></Detail><path d="M31 57h37v27H31Z" fill={ART.paper} />
+      <g className="tractor-wheel"><circle cx="42" cy="102" r="25" fill={ART.ink} /><circle cx="42" cy="102" r="14" fill={ART.gold} stroke="none" /><Detail stroke={ART.goldShade}><path d="M42 92v20m-10-10h20" /></Detail></g><g className="tractor-wheel"><circle cx="126" cy="110" r="17" fill={ART.ink} /><circle cx="126" cy="110" r="8" fill={ART.gold} stroke="none" /><Detail stroke={ART.goldShade}><path d="M126 105v10m-5-5h10" /></Detail></g>
     </>}
     {type === 'water' && <>
-      <ellipse cx="106" cy="130" rx="29" ry="5" fill="#8cd3db55" /><path d="M47 132V50q0-11 13-11h30q17 0 17 18v9" stroke="#49787d" strokeWidth="18" /><path d="M48 126V50q0-7 12-7h30q13 0 13 14" stroke="#a9ceca" strokeWidth="7" /><path d="M59 35V23m-17 0h34" stroke="#d59569" strokeWidth="7" /><path d="M93 68h26" stroke="#49787d" strokeWidth="8" />
+      <path d="M47 127V50q0-11 13-11h30q17 0 17 18v9" stroke={ART.ink} strokeWidth="18" /><path d="M47 127V50q0-11 13-11h30q17 0 17 18v9" stroke={ART.teal} strokeWidth="13" /><path d="M59 35V23m-17 0h34" stroke={ART.coral} strokeWidth="6" /><path d="M96 68h22" stroke={ART.ink} strokeWidth="8" /><path d="M97 68h20" stroke={ART.tealShade} strokeWidth="4" />
     </>}
     {type === 'bird' && <>
-      <path d="M22 99q50-25 107-10" stroke="#8a6853" strokeWidth="8" /><path d="M93 57l26-22l-2 40" fill="#547f97" /><ellipse cx="78" cy="67" rx="35" ry="29" fill="#81b4c8" /><path className="bird-wing" d="M77 57q-1 29 34 27q-12-28-34-27Z" fill="#527f9b" /><circle cx="49" cy="46" r="24" fill="#81b4c8" /><path d="M25 48L9 54L27 60" fill="#e5b369" /><circle cx="42" cy="43" r="4" fill="#384e5b" /><circle cx="43" cy="42" r="1.2" fill="#fff" /><path d="M65 91v12m17-11v10" stroke="#b5855c" strokeWidth="4" /><path d="M30 66q20 20 41 1" fill="#e9cead" />
+      <path d="M93 57l26-22l-2 40" fill={ART.blueShade} /><ellipse cx="78" cy="67" rx="35" ry="29" fill={ART.blue} /><path className="bird-wing" d="M77 57q-1 29 34 27q-12-28-34-27Z" fill={ART.blueShade} /><circle cx="49" cy="46" r="24" fill={ART.blue} /><path d="M25 48L9 54L27 60" fill={ART.gold} /><Eye x={42} y={43} r={4} /><path d="M65 91v11h-7m24-10v10h-7" stroke={ART.goldShade} strokeWidth="3" /><path d="M34 60Q49 70 64 60Q60 68 49 68Q39 68 34 60Z" fill={ART.cream} stroke="none" />
     </>}
     {type === 'frog' && <>
-      <ellipse cx="80" cy="121" rx="60" ry="11" fill="#3a8167" /><path d="M17 116q-7-37 29-35m68 0q36-2 30 35" fill="#699957" stroke="#3f754e" strokeWidth="4" /><ellipse cx="80" cy="86" rx="44" ry="32" fill="#89b966" /><circle cx="51" cy="53" r="20" fill="#89b966" /><circle cx="108" cy="53" r="20" fill="#89b966" /><circle cx="52" cy="51" r="12" fill="#fff5cf" /><circle cx="107" cy="51" r="12" fill="#fff5cf" /><circle cx="54" cy="52" r="6" fill="#334c43" /><circle cx="105" cy="52" r="6" fill="#334c43" /><ellipse className="frog-throat" cx="80" cy="100" rx="23" ry="13" fill="#d5df97" /><path d="M54 75q25 19 51 0" stroke="#3f754e" strokeWidth="3" /><path d="M30 118l-13 8m15-6l-1 12m96-14l13 8m-15-6l1 12" stroke="#699957" strokeWidth="6" />
+      <path d="M43 81Q14 78 17 113L32 121L47 107Z M117 81Q146 78 143 113L128 121L113 107Z" fill={ART.leafShade} /><ellipse cx="80" cy="86" rx="44" ry="32" fill={ART.leaf} /><circle cx="51" cy="53" r="20" fill={ART.leaf} /><circle cx="108" cy="53" r="20" fill={ART.leaf} /><circle cx="52" cy="51" r="12" fill={ART.cream} stroke="none" /><circle cx="107" cy="51" r="12" fill={ART.cream} stroke="none" /><Eye x={54} y={52} r={6} /><Eye x={105} y={52} r={6} /><ellipse className="frog-throat" cx="80" cy="100" rx="23" ry="13" fill={ART.cream} stroke="none" /><Detail><path d="M54 75q25 19 51 0" /></Detail><path d="M30 118l-13 8m15-6l-1 6m96-8l13 8m-15-6l1 6" stroke={ART.leafShade} strokeWidth="5" />
     </>}
     {type === 'windmill' && <>
-      <path d="M51 132L65 58h31l14 74Z" fill="#f5dfb4" stroke="#8c7c65" strokeWidth="3" /><path d="M60 59L81 30L103 59Z" fill="#c48268" /><path d="M75 132v-24q9-12 17 0v24" fill="#857b69" /><g className="windmill-sails" fill="#eec981" stroke="#a68257" strokeWidth="2"><path d="M81 65L53 10L69 4L89 62Z M81 65L137 37L144 54L85 73Z M81 65L108 123L91 129L73 69Z M81 65L24 95L17 77L77 58Z" /><circle cx="81" cy="65" r="8" fill="#ba8265" /></g>
+      <path d="M51 128L65 58h31l14 70Z" fill={ART.cream} /><path d="M60 59L81 30L103 59Z" fill={ART.coral} /><path d="M75 127v-23q9-12 17 0v23" fill={ART.woodShade} /><g className="windmill-sails" fill={ART.gold}><path d="M81 65L53 10L69 4L89 62Z M81 65L137 37L144 54L85 73Z M81 65L108 123L91 129L73 69Z M81 65L24 95L17 77L77 58Z" /><circle cx="81" cy="65" r="8" fill={ART.coral} /></g>
     </>}
     {type === 'bell' && <>
-      <path d="M31 19h102m-92 0v18" stroke="#947e6f" strokeWidth="7" /><g className="bell-body"><path d="M79 24v18" stroke="#b6a388" strokeWidth="5" /><path d="M43 99q13-16 13-39q0-23 24-23q25 0 25 23q0 23 13 39Z" fill="#ebbf69" stroke="#ae8050" strokeWidth="3" /><path d="M64 59q0-10 8-13v33" stroke="#ffe2a0" strokeWidth="6" /><path d="M79 102v15" stroke="#8e6746" strokeWidth="7" /><path d="M43 99h75" stroke="#f9d98a" strokeWidth="7" /></g>
+      <path d="M31 19h102" stroke={ART.woodShade} strokeWidth="6" /><g className="bell-body"><path d="M79 24v18" stroke={ART.wood} strokeWidth="4" /><path d="M43 99q13-16 13-39q0-23 24-23q25 0 25 23q0 23 13 39Z" fill={ART.gold} /><Detail stroke={ART.cream}><path d="M65 59q0-10 8-13v31" /></Detail><path d="M79 102v15" stroke={ART.goldShade} strokeWidth="6" /><path d="M43 99h75" stroke={ART.ink} strokeWidth="6" /><path d="M44 99h73" stroke={ART.goldShade} strokeWidth="3" /></g>
     </>}
     {type === 'owl' && <>
-      <path d="M20 125h122" stroke="#8e7664" strokeWidth="9" /><path d="M44 50L39 22L67 37 M92 37l27-15l-4 35" fill="#a5968a" /><ellipse cx="79" cy="79" rx="43" ry="45" fill="#a5968a" /><path d="M40 74q8 43 24 35V66m54 8q-8 43-24 35V66" fill="#756e72" /><path d="M79 47q-42-24-40 13q1 36 40 28q39 8 40-28q2-37-40-13Z" fill="#ebd9b9" /><g className="owl-eyes" fill="#4b5159"><circle cx="59" cy="62" r="10" /><circle cx="98" cy="62" r="10" /><g fill="#fff9df"><circle cx="61" cy="59" r="3" /><circle cx="100" cy="59" r="3" /></g></g><path d="M72 75l7 13l8-13" fill="#dca66a" /><path d="M62 119v9m33-9v9" stroke="#dca66a" strokeWidth="5" />
+      <path d="M44 50L39 22L67 37 M92 37l27-15l-4 35" fill={ART.brown} /><ellipse cx="79" cy="79" rx="43" ry="45" fill={ART.brown} /><path d="M40 74q8 43 24 35V66m54 8q-8 43-24 35V66" fill={ART.brownShade} /><path d="M79 47q-42-24-40 13q1 36 40 28q39 8 40-28q2-37-40-13Z" fill={ART.cream} /><g className="owl-eyes"><Eye x={59} y={62} r={9} /><Eye x={98} y={62} r={9} /></g><path d="M72 75l7 13l8-13Z" fill={ART.gold} /><path d="M62 119v7h-7m40-7v7h-7" stroke={ART.goldShade} strokeWidth="3" />
     </>}
   </svg>;
 }

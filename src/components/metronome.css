@@ -12,9 +12,9 @@
 .metronome-menu { position:relative;width:min(180px,calc((100dvh - 24px) * .714));height:min(252px,calc(100dvh - 24px));padding:0;background:transparent;border:0;filter:drop-shadow(0 5px 7px #16382b55); }
 .metronome-mechanism { position:absolute;inset:0; }
 .metronome-rail { position:absolute;left:50%;top:16%;height:46%;width:32px;translate:-50% 0;transform-origin:50% 138%; }
-.metronome-needle { position:absolute;left:50%;top:-8%;bottom:-43%;width:3px;background:#526d58;translate:-50% 0;pointer-events:none; }
-.metronome-weight { position:absolute;left:50%;translate:-50% -50%;width:36px;height:26px;padding:0;border:2px solid #624d40;background:linear-gradient(#f1ce86,#b68544);border-radius:4px;box-shadow:0 2px 4px #46332933; }
-.metronome-weight span { display:block;border-top:2px solid #624d4055;border-bottom:2px solid #624d4055;height:8px;margin:0 4px;pointer-events:none; }
+.metronome-needle { position:absolute;left:50%;top:-8%;bottom:-43%;width:3px;background:#38534f;translate:-50% 0;pointer-events:none; }
+.metronome-weight { position:absolute;left:50%;translate:-50% -50%;width:36px;height:26px;padding:0;border:2px solid #38534f;background:#e6bd69;border-radius:4px;box-shadow:0 1px 2px #38534f22; }
+.metronome-weight span { display:block;border-top:2px solid #38534f55;border-bottom:2px solid #38534f55;height:8px;margin:0 4px;pointer-events:none; }
 .metronome-tempo { position:absolute;top:84%;left:0;right:0;text-align:center;font-size:12px;color:#473b2b;pointer-events:none; }
 .metronome-sound { position:absolute;left:28%;width:44%;top:91%;height:8%;min-height:22px;translate:0 -10%;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 4px;border:1px solid #243f31;border-radius:4px;background:#3f5949;color:#fff5db!important;box-shadow:inset 0 2px 3px #14291f66; }
 .metronome-switch-track { position:relative;display:block;width:26px;height:12px;border:1px solid #b5bd9a;border-radius:3px;background:#253d30; }

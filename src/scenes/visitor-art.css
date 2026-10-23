@@ -50,7 +50,6 @@
 .visitor-art .visitor-fox-tail-tip { transform-origin: 97px 110px; }
 .visitor-art .visitor-badger-body { transform-origin: 80px 120px; }
 .visitor-art .visitor-badger-head { transform-origin: 60px 85px; }
-.visitor-art .visitor-badger-leaves { transform-origin: 80px 127px; }
 .visitor-art .visitor-moth-wing-left { transform-origin: 77px 60px; }
 .visitor-art .visitor-moth-wing-right { transform-origin: 83px 60px; }
 .visitor-art .visitor-moth-body { transform-origin: 80px 60px; }
@@ -92,7 +91,6 @@
 .visitor-object[data-sound='fox'] .reacting .visitor-fox-tail-tip { animation: visitorTailSwish 2s ease-in-out; }
 .visitor-object[data-sound='badger'] .reacting .visitor-badger-body { animation: visitorShuffle 2s ease-in-out; }
 .visitor-object[data-sound='badger'] .reacting .visitor-badger-head { animation: visitorNod 2s ease-in-out; }
-.visitor-object[data-sound='badger'] .reacting .visitor-badger-leaves { animation: visitorLeafRustle 2s ease-in-out; }
 .visitor-object[data-sound='moth'] .reacting .visitor-moth-wing-left,
 .visitor-object[data-sound='moth'] .reacting .visitor-moth-wing-right { animation: visitorMothFan .5s ease-in-out 4; }
 .visitor-object[data-sound='moth'] .reacting .visitor-moth-body { animation: visitorHover 2s ease-in-out; }
@@ -234,3 +232,8 @@
   }
   .scene .visitor-object .reacting { animation: visitorReaction .01ms linear !important; }
 }
+/* Idle water belongs to the pond; the animal owns its temporary response. */
+.visitor-duck-ripples, .visitor-duck-splash, .visitor-otter-ripples,
+.visitor-woodpecker-chips { opacity: 0; }
+.reacting .visitor-duck-ripples, .reacting .visitor-duck-splash,
+.reacting .visitor-otter-ripples, .reacting .visitor-woodpecker-chips { opacity: 1; }
