@@ -19,7 +19,7 @@ export function createFamilyStorage(storageProvider=()=>window.localStorage) {
     return {family,settings,saveError};
   }
 
-  function saveSnapshot({family,settings}) {
+  function saveSnapshot({family,settings},onFamilySaved=()=>{}) {
     if(loadError)return {ok:false,error:loadError};
     try {
       const normalizedFamily=normalizeChildren(family);
@@ -29,6 +29,7 @@ export function createFamilyStorage(storageProvider=()=>window.localStorage) {
       const settingsJSON=JSON.stringify(normalizedSettings);
       const storage=storageProvider();
       storage.setItem(CHILDREN_KEY,familyJSON);
+      onFamilySaved({family:normalizedFamily,settings:normalizedSettings});
       storage.setItem(SETTINGS_KEY,settingsJSON);
       return {ok:true,error:null};
     } catch(error) {
@@ -46,7 +47,7 @@ export function createFamilyStorage(storageProvider=()=>window.localStorage) {
     }
   }
 
-  function saveProfileSnapshot({family,settings}) {
+  function saveProfileSnapshot({family,settings},onFamilySaved=()=>{}) {
     if(loadError)return {ok:false,error:loadError};
     let storage,previousSettings,settingsWritten=false;
     try {
@@ -58,6 +59,7 @@ export function createFamilyStorage(storageProvider=()=>window.localStorage) {
       // The legacy settings key is written first for older readers; roll it back if the family write fails.
       storage.setItem(SETTINGS_KEY,settingsJSON);settingsWritten=true;
       storage.setItem(CHILDREN_KEY,familyJSON);
+      onFamilySaved({family:normalizedFamily,settings:selectedChild?.settings??normalizeSettings(settings)});
       return {ok:true,error:null};
     } catch(error) {
       if(settingsWritten){
@@ -68,7 +70,21 @@ export function createFamilyStorage(storageProvider=()=>window.localStorage) {
     }
   }
 
-  return {load,saveSnapshot,saveLegacySettings,saveProfileSnapshot};
+  function saveMergedSnapshot(base,next,profileEdit=false) {
+    if(loadError)return {ok:false,error:loadError,snapshot:next,acknowledged:null};
+    // Read again at the write boundary: a tab's in-memory family may be older
+    // than another tab's completed add, edit or deletion. Failed reads never save.
+    const current=structuredClone(next);
+    const latest=createFamilyStorage(storageProvider).load();
+    if(latest.saveError)return {ok:false,error:latest.saveError,snapshot:next,acknowledged:null};
+    const snapshot=mergeFamilySnapshot(base,current,latest,{profileEdit});
+    let acknowledged=null;
+    const remember=saved=>{acknowledged=saved;};
+    const result=profileEdit?saveProfileSnapshot(snapshot,remember):saveSnapshot(snapshot,remember);
+    return {...result,snapshot,acknowledged};
+  }
+
+  return {load,saveSnapshot,saveLegacySettings,saveProfileSnapshot,saveMergedSnapshot};
 }
 
 function recoverUnchangedFields(initial,current,recovered) {
@@ -79,6 +95,28 @@ function recoverUnchangedFields(initial,current,recovered) {
   return Object.fromEntries(Object.entries(current).map(([key,value])=>[
     key,recoverUnchangedFields(initial[key],value,recovered[key]),
   ]));
+}
+
+export function mergeFamilySnapshot(base,current,latest,{profileEdit=false}={}) {
+  const previous=new Map(base.family.children.map(child=>[child.id,child]));
+  const edited=new Map(current.family.children.map(child=>[child.id,child]));
+  const savedIds=new Set(latest.family.children.map(child=>child.id));
+  const children=latest.family.children.flatMap(saved=>{
+    const before=previous.get(saved.id),local=edited.get(saved.id);
+    // Only the explicit profile-edit path can delete a child. Ordinary saves
+    // and retries cannot infer a deletion from a stale or uncommitted UI list.
+    if(!local)return profileEdit&&before?[]:[saved];
+    return [before?recoverUnchangedFields(before,local,saved):saved];
+  });
+  for(const local of current.family.children){
+    // A saved deletion wins over stale edits. Only genuinely new local IDs append.
+    if(!previous.has(local.id)&&!savedIds.has(local.id))children.push(local);
+  }
+  const selectedId=children.some(child=>child.id===current.family.selectedId)?current.family.selectedId
+    :children.some(child=>child.id===latest.family.selectedId)?latest.family.selectedId:children[0]?.id??null;
+  const settings=children.find(child=>child.id===selectedId)?.settings
+    ??recoverUnchangedFields(base.settings,current.settings,latest.settings);
+  return {family:{children,selectedId},settings};
 }
 
 export function recoverFamilySnapshot(initial,current,recovered) {

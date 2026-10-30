@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createFamilyStorage,recoverFamilySnapshot} from '../src/utils/familyStorage.js';
+import {createFamilyStorage,recoverFamilySnapshot,mergeFamilySnapshot} from '../src/utils/familyStorage.js';
 import {CHILDREN_KEY,normalizeChildren} from '../src/utils/children.js';
 import {SETTINGS_KEY,defaultSettings,normalizeSettings} from '../src/utils/settings.js';
 
@@ -366,4 +366,120 @@ test('recovery uses saved selection when local selection is unchanged or no long
   assert.equal(recoverFamilySnapshot(initial,current,recovered).family.selectedId,'sibling');
   assert.deepEqual(recoverFamilySnapshot(initial,current,{family:{children:[],selectedId:null},settings:defaultSettings()}),
     {family:{children:[],selectedId:null},settings:defaultSettings()});
+});
+
+function sharedFamily() {
+  const family=normalizeChildren({children:[child,{...child,id:'sibling',name:'Sam'}],selectedId:child.id});
+  const local=storage({[CHILDREN_KEY]:JSON.stringify(family),[SETTINGS_KEY]:JSON.stringify(family.children[0].settings)});
+  return {local,first:createFamilyStorage(()=>local),second:createFamilyStorage(()=>local)};
+}
+
+test('stale tab selection retains a newly saved sibling and its independent settings',()=>{
+  const {local,first,second}=sharedFamily();
+  const beforeFirst=first.load(),beforeSecond=second.load();
+  const added=normalizeChildren({...beforeSecond.family,children:[...beforeSecond.family.children,{...child,id:'new-child',name:'New child',settings:{instruments:{piano:{complexity:.35}}}}],selectedId:'new-child'});
+  assert.equal(second.saveMergedSnapshot(beforeSecond,{family:added,settings:added.children.at(-1).settings}).ok,true);
+  const result=first.saveMergedSnapshot(beforeFirst,beforeFirst);
+  assert.equal(result.ok,true);
+  assert.deepEqual(result.snapshot.family.children.map(child=>child.id),['child-1','sibling','new-child']);
+  assert.equal(result.snapshot.family.selectedId,'child-1');
+  assert.equal(result.snapshot.family.children.at(-1).settings.instruments.piano.complexity,.35);
+  assert.deepEqual(JSON.parse(local.getItem(CHILDREN_KEY)),result.snapshot.family);
+});
+
+test('cross-tab rebase preserves remote edits to independent profile and instrument fields',()=>{
+  const {first,second}=sharedFamily();
+  const base=first.load(),remote=second.load(),local=structuredClone(base);
+  remote.family.children[0].name='Renamed';
+  remote.family.children[0].age='8plus';
+  remote.family.children[0].settings.instruments.guitar.noteLabels=true;
+  remote.family.children[1].settings.instruments.piano.complexity=.35;
+  assert.equal(second.saveMergedSnapshot(base,remote,true).ok,true);
+  local.family.children[0].settings.instruments.piano.complexity=1;
+  const result=first.saveMergedSnapshot(base,local);
+  assert.equal(result.ok,true);
+  const merged=result.snapshot.family.children[0];
+  assert.equal(merged.name,'Renamed');assert.equal(merged.age,'8plus');
+  assert.equal(merged.settings.instruments.piano.complexity,1);
+  assert.equal(merged.settings.instruments.guitar.noteLabels,true);
+  assert.equal(result.snapshot.family.children[1].settings.instruments.piano.complexity,.35);
+});
+
+test('remote deletion wins over a stale edit and explicit deletion keeps unknown siblings',()=>{
+  const {first,second}=sharedFamily();
+  const base=first.load(),remote=second.load();
+  remote.family.children=remote.family.children.filter(child=>child.id!=='child-1');
+  remote.family.children.push(normalizeChildren({children:[{...child,id:'new-child',name:'New child'}]}).children[0]);
+  remote.family.selectedId='sibling';
+  assert.equal(second.saveMergedSnapshot(base,remote,true).ok,true);
+  const stale=structuredClone(base);stale.family.children[0].name='Old tab edit';
+  const result=first.saveMergedSnapshot(base,stale,true);
+  assert.equal(result.ok,true);
+  assert.deepEqual(result.snapshot.family.children.map(child=>child.id),['sibling','new-child']);
+  assert.equal(result.snapshot.family.selectedId,'sibling');
+  const deleting=structuredClone(result.snapshot);deleting.family.children=[];
+  const newer=structuredClone(result.snapshot);newer.family.children.push(normalizeChildren({children:[{...child,id:'unknown',name:'Another child'}]}).children[0]);
+  const merged=mergeFamilySnapshot(result.snapshot,deleting,newer,{profileEdit:true});
+  assert.deepEqual(merged.family.children.map(child=>child.id),['unknown']);
+});
+
+test('a failed latest read blocks all cross-tab writes until storage can be reread',()=>{
+  const {local}=sharedFamily();let blocked=false,writes=0;
+  const adapter=createFamilyStorage(()=>({getItem(key){if(blocked)throw Error('read blocked');return local.getItem(key);},setItem(key,value){writes++;local.setItem(key,value);}}));
+  const base=adapter.load(),next=structuredClone(base);next.family.children[0].name='Changed';
+  const original=new Map(local.values);blocked=true;
+  assert.equal(adapter.saveMergedSnapshot(base,next).ok,false);
+  assert.equal(writes,0);assert.deepEqual(local.values,original);
+  blocked=false;
+  assert.equal(adapter.saveMergedSnapshot(base,next).ok,true);
+});
+
+test('mirror failure acknowledges the family write so retry preserves subsequent remote edits',()=>{
+  const {local,second}=sharedFamily();let blocked=true;
+  const first=createFamilyStorage(()=>({...local,setItem(key,value){if(blocked&&key===SETTINGS_KEY)throw Error('mirror blocked');local.setItem(key,value);}}));
+  const base=first.load(),next=structuredClone(base);
+  next.family.children[0].settings.instruments.piano.complexity=.35;
+  const failed=first.saveMergedSnapshot(base,next);
+  assert.equal(failed.ok,false);assert.ok(failed.acknowledged);
+  assert.equal(failed.acknowledged.settings.instruments.piano.complexity,.35);
+  const remote=second.load(),remoteNext=structuredClone(remote);
+  remoteNext.family.children[0].settings.instruments.piano.complexity=1;
+  remoteNext.family.children[1].name='Sam renamed';
+  assert.equal(second.saveMergedSnapshot(remote,remoteNext).ok,true);
+  blocked=false;
+  const retried=first.saveMergedSnapshot(failed.acknowledged,failed.snapshot);
+  assert.equal(retried.ok,true);
+  assert.equal(retried.snapshot.settings.instruments.piano.complexity,1);
+  assert.equal(retried.snapshot.family.children[1].name,'Sam renamed');
+  assert.deepEqual(JSON.parse(local.getItem(SETTINGS_KEY)),retried.snapshot.settings);
+});
+
+test('a partially saved creation is retained by ordinary retries and its ID is not duplicated',()=>{
+  const {local}=sharedFamily();let blocked=true;
+  const adapter=createFamilyStorage(()=>({...local,setItem(key,value){if(blocked&&key===SETTINGS_KEY)throw Error('mirror blocked');local.setItem(key,value);}}));
+  const base=adapter.load();
+  const family=normalizeChildren({...base.family,children:[...base.family.children,{...child,id:'pending-child',name:'Pending child'}],selectedId:'pending-child'});
+  const next={family,settings:family.children.at(-1).settings};
+  const failed=adapter.saveMergedSnapshot(base,next);
+  assert.equal(failed.ok,false);assert.ok(failed.acknowledged);
+  blocked=false;
+  const retry=adapter.saveMergedSnapshot(failed.acknowledged,base);
+  assert.equal(retry.ok,true);
+  assert.equal(retry.snapshot.family.children.filter(child=>child.id==='pending-child').length,1);
+  const finish=adapter.saveMergedSnapshot(retry.acknowledged,next);
+  assert.equal(finish.ok,true);
+  assert.equal(finish.snapshot.family.children.filter(child=>child.id==='pending-child').length,1);
+});
+
+test('cross-tab merge keeps ordered selections whole and local changes win field conflicts',()=>{
+  const {first}=sharedFamily();const base=first.load(),local=structuredClone(base),latest=structuredClone(base);
+  local.family.children[0].name='Local name';latest.family.children[0].name='Remote name';
+  local.family.children[0].settings.selected.reverse();
+  latest.family.children[0].settings.instruments.piano.noteLabels=true;
+  const before=structuredClone({base,local,latest});
+  const result=mergeFamilySnapshot(base,local,latest);
+  assert.equal(result.family.children[0].name,'Local name');
+  assert.deepEqual(result.settings.selected,local.family.children[0].settings.selected);
+  assert.equal(result.settings.instruments.piano.noteLabels,true);
+  assert.deepEqual({base,local,latest},before);
 });

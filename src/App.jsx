@@ -187,8 +187,8 @@ export default function App({developmentPreview}={}) {
   }
 
   function updateSettings(next) {
-    arrangeSelection(next);
-    profiles.updateSettings(next);
+    const saved=profiles.updateSettings(next);
+    arrangeSelection(saved.settings);
   }
 
   function resetInstruments(nextSettings) {

@@ -13,15 +13,20 @@ export function useFamily(developmentPreview) {
   const [snapshot,setSnapshot]=useState(()=>({family:initial.family,settings:initial.settings}));
   const [error,setError]=useState(Boolean(initial.saveError));
   const readFailed=useRef(Boolean(initial.saveError));
+  const acknowledged=useRef({family:initial.family,settings:initial.settings});
+  const pendingChild=useRef(null);
 
   useEffect(()=>{
     if(storage&&!initial.saveError&&!storage.saveLegacySettings(initial.settings).ok)setError(true);
   },[storage,initial]);
 
   function save(next,profileEdit=false) {
-    const result=storage?(profileEdit?storage.saveProfileSnapshot(next):storage.saveSnapshot(next)):{ok:true};
+    const result=storage?storage.saveMergedSnapshot(acknowledged.current,next,profileEdit):{ok:true,snapshot:next,acknowledged:next};
+    // The family write can succeed before its compatibility mirror fails. Do
+    // not replay an already-saved field over a newer tab's edit on Retry.
+    if(result.acknowledged)acknowledged.current=result.acknowledged;
     setError(!result.ok);
-    return result.ok;
+    return result;
   }
 
   function updateSettings(settings) {
@@ -29,33 +34,38 @@ export function useFamily(developmentPreview) {
       child.id===snapshot.family.selectedId?{...child,settings}:child)};
     const next={family,settings};
     // Settings and selection remain usable in this session even if storage fails.
-    save(next);setSnapshot(next);
+    const result=save(next);setSnapshot(result.snapshot);
+    return result.snapshot;
   }
 
   function selectChild(id) {
     const child=snapshot.family.children.find(value=>value.id===id);
     if(!child)return null;
     const next={family:{...snapshot.family,selectedId:id},settings:child.settings};
-    save(next);setSnapshot(next);
-    return next;
+    const result=save(next);setSnapshot(result.snapshot);
+    return result.snapshot;
   }
 
   function addChild(draft) {
-    const child=normalizeChild({...draft,id:crypto.randomUUID()});
+    if(!pendingChild.current)pendingChild.current={id:crypto.randomUUID()};
+    const child=normalizeChild({...draft,id:pendingChild.current.id});
     if(!child)return null;
     const next={family:{children:[...snapshot.family.children,child],selectedId:child.id},settings:child.settings};
     // Creation and profile edits commit to the UI only after a successful save.
-    if(!save(next))return null;
-    setSnapshot(next);
-    return next;
+    const result=save(next);
+    if(!result.ok)return null;
+    pendingChild.current=null;
+    setSnapshot(result.snapshot);
+    return result.snapshot;
   }
 
   function saveFamily(family) {
     if(!family)return null;
     const next={family,settings:family.children.find(child=>child.id===family.selectedId)?.settings??defaultSettings()};
-    if(!save(next,true))return null;
-    setSnapshot(next);
-    return next;
+    const result=save(next,true);
+    if(!result.ok)return null;
+    setSnapshot(result.snapshot);
+    return result.snapshot;
   }
 
   function retry() {
@@ -65,11 +75,12 @@ export function useFamily(developmentPreview) {
       const loaded=storage.load();
       if(loaded.saveError){setError(true);return null;}
       next=recoverFamilySnapshot(initial,snapshot,loaded);
+      acknowledged.current={family:loaded.family,settings:loaded.settings};
       readFailed.current=false;
-      setSnapshot(next);
     }
-    save(next);
-    return {snapshot:next,recovered};
+    const result=save(next);
+    setSnapshot(result.snapshot);
+    return {snapshot:result.snapshot,recovered:recovered||JSON.stringify(result.snapshot)!==JSON.stringify(snapshot)};
   }
 
   return {...snapshot,selectedChild:snapshot.family.children.find(child=>child.id===snapshot.family.selectedId)??null,
