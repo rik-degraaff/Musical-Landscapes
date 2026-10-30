@@ -431,7 +431,10 @@ export class AudioEngine {
     const name = this.manualInstrument;
     if (!this.ready || !name) return;
     const existing=this.manualVoices.get(token);
-    if(this.practiceSession&&(!['flute','melody','panflute'].includes(name)||existing?.note!==note))this.onPracticeInput?.({name,note,token,time:Tone.immediate(),ticks:Tone.Transport.ticks});
+    if(this.practiceSession&&(!['flute','melody','panflute'].includes(name)||existing?.note!==note)){
+      const time=Tone.immediate();
+      this.onPracticeInput?.({name,note,token,time,ticks:this.practiceTicks(time)});
+    }
     Tone.start().catch(console.error);
     if (['flute','melody','panflute'].includes(name)) {
       const current=this.manualVoices.get(token);
@@ -597,15 +600,33 @@ export class AudioEngine {
   holdTempo(held) {
     if(!this.ready||held===this.tempoHeld)return;
     this.tempoHeld=held;
+    const practiceRun=this.practiceSession&&this.practiceRun;
     if(held){
-      Tone.Transport.pause();
+      if(practiceRun){
+        // A run may still be waiting for its initial count-in start. Cancel that
+        // future start while held so it cannot begin underneath the tempo drag.
+        practiceRun.waitingForStart=Tone.immediate()<practiceRun.startTime;
+        practiceRun.resumeAfterHold=practiceRun.waitingForStart||Tone.Transport.state==='started';
+        if(practiceRun.waitingForStart)practiceRun.resetCountIn();
+      }
+      if(practiceRun?.waitingForStart)Tone.Transport.stop();
+      else Tone.Transport.pause();
       this.metronomeSynth.triggerRelease();
       this.stopManualVoices();
       this.manualAutoplayVersion++;
       this.onManualAutoplayEvent?.(null);
       for(const node of Object.values(this.nodes))node.gain.volume.rampTo(MIN_GAIN,.015);
     }else{
-      for(const [name,node] of Object.entries(this.nodes))node.gain.volume.rampTo(!this.backgrounded&&(this.active[name]||this.manualInstrument===name)?this.effectiveVolume(name):MIN_GAIN,.025);
+      for(const [name,node] of Object.entries(this.nodes)){
+        const level=practiceRun?.partners.includes(name)?this.volumes[name]-6:this.active[name]||this.manualInstrument===name?this.effectiveVolume(name):MIN_GAIN;
+        node.gain.volume.rampTo(this.backgrounded?MIN_GAIN:level,.025);
+      }
+      if(practiceRun?.resumeAfterHold&&!this.backgrounded&&!document.hidden){
+        const when=Tone.now()+.04;
+        if(practiceRun.waitingForStart){practiceRun.startTime=when;Tone.Transport.start(when,0);}
+        else Tone.Transport.start(when);
+        practiceRun.waitingForStart=false;practiceRun.resumeAfterHold=false;
+      }
       this.ensureTransport();
     }
   }
@@ -658,11 +679,12 @@ export class AudioEngine {
     this.stopPracticeRun();
     const version=this.practiceRunVersion;
     const ids=[];
-    this.practiceRun={ids};
-    const valid=()=>this.practiceSession&&version===this.practiceRunVersion&&!this.backgrounded;
-    const draw=(callback,time)=>Tone.Draw.schedule(()=>{if(valid())callback();},time);
+    this.practiceRun={ids,partners:[]};
+    const valid=()=>this.practiceSession&&version===this.practiceRunVersion&&!this.backgrounded&&!this.tempoHeld;
+    const draw=(callback,time)=>Tone.Draw.schedule(()=>{if(valid()&&time>=this.practiceRun.startTime)callback();},time);
     const beatSeconds=60/this.tempo;
     const startTime=Tone.now()+.12;
+    this.practiceRun.startTime=startTime;
     const ticksPerBeat=Tone.Transport.PPQ;
     const ticksPerBar=ticksPerBeat*4;
     // Phrase times become quarter-note beats, then Transport ticks; one bar is four beats.
@@ -670,6 +692,7 @@ export class AudioEngine {
     const repeat=(callback,interval,start)=>ids.push(Tone.Transport.scheduleRepeat(time=>{if(valid())callback(time);},interval,start));
     let beatCount=0;
     let lastBeatTime=-Infinity;
+    this.practiceRun.resetCountIn=()=>{beatCount=0;lastBeatTime=-Infinity;};
     repeat(time=>{
       if(time<=lastBeatTime+.001)return;
       lastBeatTime=time;
@@ -696,6 +719,7 @@ export class AudioEngine {
     }
     if(accompaniment){
       const partners=this.manualInstrument==='drums'?['piano','ukulele']:['drums',this.manualInstrument==='piano'?'ukulele':'piano'];
+      this.practiceRun.partners=partners;
       for(const name of partners){
         this.nodes[name].gain.volume.value=this.volumes[name]-6;
         const pool=compositionProfile(name,this.root,{role:name==='drums'?'rhythm':'accompaniment',degree:name==='drums'?0:phrase.degree??0,genre:this.genre});
@@ -716,7 +740,9 @@ export class AudioEngine {
   }
 
   practiceTime() {return Tone.immediate();}
-  practiceTicks() {return Tone.Transport.ticks;}
+  // Transport.ticks includes Tone's scheduling lookahead. Scoring and expiry
+  // follow the current audio time instead of judging inputs a lookahead early.
+  practiceTicks(time=Tone.immediate()) {return Tone.Transport.getTicksAtTime(time);}
 
   endPractice() {
     const saved=this.practiceSession;if(!saved)return;

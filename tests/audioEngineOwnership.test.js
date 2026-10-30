@@ -9,7 +9,7 @@ import * as samples from '../src/audio/sampleLibrary.js';
 import * as envelopes from '../src/audio/envelopes.js';
 import { STRING_INSTRUMENTS } from '../src/utils/guitar.js';
 import { equippedProfile } from '../src/utils/difficulty.js';
-import { beatOffset } from '../src/utils/practice.js';
+import { beatOffset, createTimingAttempt, scoreTimedInput, expireSteps } from '../src/utils/practice.js';
 import { releaseManualVoice } from '../src/audio/voiceCleanup.js';
 import { AudioResources } from '../src/audio/resources.js';
 import * as selection from '../src/audio/sampleSelection.js';
@@ -804,4 +804,79 @@ test('reversing genre during a blend starts tone and articulation from the curre
   const plan=engine.composition.planBar(6,'C',engine.compositionOptions());
   assert.equal(plan.genreBlend,0);
   assert.ok(Math.abs(plan.movement.performance.melody.cutoff/halfway.melody.cutoff-1)<.035);
+});
+
+test('tempo holds resume the owned practice run and restore its accompaniment without restarting landscape',async()=>{
+  const {engine,runtime,Tone}=setup();await engine.init();engine.beginPractice('piano');
+  const phrase={events:[{time:'0:0:0',note:'C4',dur:'4n'}]};
+  engine.startPracticeRun(phrase,true);
+  const run=engine.practiceRun,ids=[...run.ids],scheduleCount=runtime.schedules.size;
+  Tone.now=()=>2;Tone.immediate=()=>2;
+  engine.holdTempo(true);engine.holdTempo(true);
+  assert.equal(Tone.Transport.state,'paused');
+  for(const name of ['piano','drums','ukulele'])assert.equal(engine.nodes[name].gain.volume.value,-60);
+  engine.setTempo(208);engine.holdTempo(false);engine.holdTempo(false);
+  assert.equal(Tone.Transport.state,'started');assert.equal(engine.practiceRun,run);
+  assert.deepEqual(run.ids,ids);assert.equal(runtime.schedules.size,scheduleCount);
+  assert.equal(engine.nodes.piano.gain.volume.value,engine.effectiveVolume('piano'));
+  for(const name of ['drums','ukulele'])assert.equal(engine.nodes[name].gain.volume.value,engine.volumes[name]-6);
+  assert.equal(engine.nodes.guitar.gain.volume.value,-60);
+  assert.equal(engine.scheduledBars.size,0);assert.equal(engine.barIndex,0);
+  engine.dispose();
+});
+
+test('tempo holding a pending practice start cancels it and restarts the same count-in once on release',async()=>{
+  const {engine,runtime,Tone}=setup();await engine.init();engine.beginPractice('piano');
+  const beats=[],ticks=[];
+  engine.metronomeSynth.triggerAttackRelease=(...args)=>ticks.push(args);
+  engine.startPracticeRun({events:[]},false,undefined,undefined,(...beat)=>beats.push(beat));
+  const run=engine.practiceRun;
+  const beatCallback=runtime.schedules.get(run.ids[0]);
+  // Tone can deliver the first count-in callback within lookahead before the
+  // transport's actual start. Holding at that moment must discard its old draw.
+  beatCallback(run.startTime);
+  const staleDraw=runtime.draws.at(-1);
+  engine.holdTempo(true);assert.equal(Tone.Transport.state,'stopped');
+  beatCallback(run.startTime+.5);assert.equal(runtime.draws.at(-1),staleDraw);assert.equal(ticks.length,1);
+  Tone.now=()=>2;Tone.immediate=()=>1.9;
+  engine.holdTempo(false);assert.equal(Tone.Transport.state,'started');
+  staleDraw.callback();assert.deepEqual(beats,[]);
+  beatCallback(run.startTime);runtime.draws.at(-1).callback();
+  assert.deepEqual(beats,[[0,0,true]]);assert.equal(engine.practiceRun,run);
+  assert.deepEqual(ticks.map(args=>args[0]),['C6','C6']);
+  engine.dispose();
+});
+
+test('tempo release never starts idle, explicitly paused, stopped or interrupted practice',async()=>{
+  const {engine,Tone}=setup();await engine.init();engine.beginPractice('piano');
+  engine.holdTempo(true);engine.holdTempo(false);
+  assert.notEqual(Tone.Transport.state,'started');assert.equal(engine.practiceRun,null);
+  const phrase={events:[]};
+  engine.startPracticeRun(phrase,false);Tone.now=()=>3;Tone.immediate=()=>3;
+  Tone.Transport.pause();engine.holdTempo(true);engine.holdTempo(false);
+  assert.equal(Tone.Transport.state,'paused');
+  engine.startPracticeRun(phrase,false);engine.holdTempo(true);engine.stopPracticeRun();engine.holdTempo(false);
+  assert.equal(Tone.Transport.state,'stopped');assert.equal(engine.practiceRun,null);
+  engine.startPracticeRun(phrase,false);engine.holdTempo(true);engine.suspendPlayback();engine.holdTempo(false);
+  assert.equal(Tone.Transport.state,'stopped');assert.equal(engine.practiceRun,null);assert.equal(engine.backgrounded,true);
+  engine.dispose();
+});
+
+for(const tempo of [40,92,208])test(`practice inputs and expiry use the actual audio clock at ${tempo} BPM`,async()=>{
+  const {engine,Tone}=setup();await engine.init();engine.beginPractice('piano');engine.setTempo(tempo);
+  const startTick=Tone.Transport.PPQ*4,beat=.45,time=2;
+  Tone.immediate=()=>time;Tone.now=()=>time+.1;
+  Tone.Transport.getTicksAtTime=at=>startTick+Tone.Transport.PPQ*(beat+(at-time)*tempo/60);
+  Object.defineProperty(Tone.Transport,'ticks',{get:()=>Tone.Transport.getTicksAtTime(Tone.now())});
+  let input;engine.onPracticeInput=event=>input=event;
+  engine.manualNoteOn('C4','timed');
+  assert.equal(input.time,time);assert.equal(input.ticks,startTick+Tone.Transport.PPQ*beat);
+  assert.equal(engine.practiceTicks(),input.ticks);
+  const phrase={events:[{time:'0:0:0',note:'C4',dur:'4n'}]};
+  const attempt=createTimingAttempt(phrase);
+  expireSteps(attempt,(engine.practiceTicks()-startTick)/Tone.Transport.PPQ);
+  assert.equal(attempt[0].missed,false);
+  assert.equal(scoreTimedInput(attempt,input.note,(input.ticks-startTick)/Tone.Transport.PPQ).correct,true);
+  assert.equal(scoreTimedInput(createTimingAttempt(phrase),input.note,(Tone.Transport.ticks-startTick)/Tone.Transport.PPQ).correct,false);
+  engine.dispose();
 });
