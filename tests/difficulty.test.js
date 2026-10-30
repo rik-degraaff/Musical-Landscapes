@@ -5,7 +5,7 @@ import {buildEquippedProfile,equippedProfile} from '../src/utils/difficulty.js';
 import {STRING_INSTRUMENTS,voiceStringEvent} from '../src/utils/guitar.js';
 import {noteMidi,trumpetInput} from '../src/utils/autoplay.js';
 import {fluteInput} from '../src/utils/wind.js';
-import {midiNote,PIANO_NOTES,MARIMBA_NOTES,PANFLUTE_NOTES} from '../src/utils/performance.js';
+import {midiNote,PIANO_NOTES,MARIMBA_NOTES,PANFLUTE_NOTES,ACCORDION_NOTES,HARP_NOTES} from '../src/utils/performance.js';
 
 const ROOTS=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B','C#m','Am','Fm','Db'];
 
@@ -60,7 +60,9 @@ function referenceProfile(name,root,options={}) {
   const phrases=tier===0?simple:tier===1?[...simple,...standardOnly]:unique(prepare(2));
   const notes=name==='drums'?[]:[...new Set(phrases.flatMap(phrase=>phrase.events.flatMap(event=>event.notes??[event.note])))].sort((first,second)=>noteMidi(first)-noteMidi(second));
   const keyboardNotes=notes.length?Array.from({length:noteMidi(notes.at(-1))-noteMidi(notes[0])+1},(_,index)=>midiNote(noteMidi(notes[0])+index)):[];
-  return {level:['Simple','Standard','Advanced'][tier],phrases,chords:chordPools[tier],notes,keyboardNotes,hits:hitPools[tier],registers:(tier+1)*2,fluteRegisters:tier+1};
+  const touchBank={accordion:ACCORDION_NOTES,harp:HARP_NOTES}[name];
+  const controls=touchBank?(tier===2?[...touchBank]:notes):keyboardNotes;
+  return {level:['Simple','Standard','Advanced'][tier],phrases,chords:chordPools[tier],notes,keyboardNotes:controls,hits:hitPools[tier],registers:(tier+1)*2,fluteRegisters:tier+1};
 }
 function referenceNearest(bars,energy,complexity) {
   const ranked=bars.map((bar,index)=>({bar,index,distance:(bar.energy-energy)**2+(bar.complexity-complexity)**2}));
@@ -99,6 +101,10 @@ test('every key has distinct Simple phrases and at least two additional structur
 test('every equipped phrase is playable with its controls and chord pool in every key',()=>{
   for(const name of Object.keys(INSTRUMENTS))for(const root of ROOTS)for(const complexity of [.35,1,1.5]){
     const profile=equippedProfile(name,root,{complexity});assert.ok(profile.phrases.length);
+    if(['accordion','harp'].includes(name)){
+      assert.equal(profile.keyboardNotes.length,complexity<=.5?5:complexity<=1?8:25);
+      assert.ok(profile.keyboardNotes.every(note=>noteMidi(note)>=60&&noteMidi(note)<=84));
+    }
     if(['guitar','ukulele'].includes(name))assert.equal(profile.chords.length,complexity<=.5?3:complexity<=1?6:14);
     const fixedRange=name==='piano'?PIANO_NOTES:name==='marimba'?MARIMBA_NOTES:name==='panflute'?PANFLUTE_NOTES:null;
     if(fixedRange)for(const note of profile.notes)assert.ok(fixedRange.includes(note),`${name} ${root} ${complexity} out of range ${note}`);
@@ -135,7 +141,7 @@ test('Simple strings have I/IV/V, Standard has six triads, and Advanced retains 
 test('cached and uncached profiles match an independent reference for every instrument, supported key and normalized tier',()=>{
   const tonics=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B','Db','Eb','Gb','Ab','Bb'];
   const roots=tonics.flatMap(root=>[root,`${root}m`]);
-  assert.equal(Object.keys(INSTRUMENTS).length,8);
+  assert.equal(Object.keys(INSTRUMENTS).length,10);
   for(const name of Object.keys(INSTRUMENTS))for(const root of STRING_INSTRUMENTS[name]?Object.keys(STRING_INSTRUMENTS[name].library):roots){
     for(const complexity of [undefined,null,-Infinity,-1,0,.35,.5,.50001,1,1.00001,1.5,Infinity,NaN]){
       const options={complexity,noteLabels:false,playbackNotes:false,fingeringCharts:true};

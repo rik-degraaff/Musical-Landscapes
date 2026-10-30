@@ -39,10 +39,10 @@ export function instrumentDemonstration({instrument,elapsed=0,reduced=false,rout
     const note=instrument==='flute'?fluteNote(second.pressed?['Eb','L1']:['Eb'],0):trumpetNote([second.pressed,false,false],0);
     return {hands:[first,second],cue:first.pressed?{note}:null,caption:instrument==='melody'?'Hold the breath area, then add a valve':'Hold this key, then add the second key'};
   }
-  const gesture=instrument==='panflute'?'swipe':['drums','marimba'].includes(instrument)?'tap':'hold';
+  const gesture=['panflute','harp'].includes(instrument)?'swipe':['drums','marimba'].includes(instrument)?'tap':'hold';
   const hand=gestureTrack({elapsed,reduced,gesture,...route,duration:GUIDE_ACTION_DURATION});
-  const cue=instrument==='panflute'?{note:profile.notes[Math.min(profile.notes.length-1,Math.round(hand.travel*(profile.notes.length-1)))]}:instrument==='piano'?{note:profile.notes[0]}:profile.phrases[0].events[0];
-  return {hands:[hand],cue:hand.pressed?cue:null,caption:gesture==='swipe'?'Press and slide across the pipes':gesture==='hold'?'Press, hold, then let go':'Tap once, then let go'};
+  const cue=['panflute','harp'].includes(instrument)?{note:profile.notes[Math.min(profile.notes.length-1,Math.round(hand.travel*(profile.notes.length-1)))]}:['piano','accordion'].includes(instrument)?{note:profile.notes[0]}:profile.phrases[0].events[0];
+  return {hands:[hand],cue:hand.pressed?cue:null,caption:gesture==='swipe'?(instrument==='harp'?'Sweep across the strings':'Press and slide across the pipes'):gesture==='hold'?'Press, hold, then let go':'Tap once, then let go'};
 }
 
 /** Passive practice state; authored phrase events remain the only note source. */

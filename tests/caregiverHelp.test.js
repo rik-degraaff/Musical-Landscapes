@@ -11,8 +11,8 @@ test('discovery appears until each action is used, with familiarity-aware explan
   assert.equal(new Set(['new','some','confident'].map(level=>discoveryHelp({},level)[0][1])).size,3);
 });
 
-test('all eight instruments have distinct explanations for each familiarity level',()=>{
-  for(const instrument of ['piano','marimba','drums','guitar','ukulele','panflute','flute','melody']) {
+test('all ten instruments have distinct explanations for each familiarity level',()=>{
+  for(const instrument of ['piano','marimba','drums','guitar','ukulele','panflute','flute','melody','accordion','harp']) {
     const variants=['new','some','confident'].map(level=>instrumentHelp(instrument,level));
     assert.equal(new Set(variants.map(content=>content.note)).size,3);
     assert.ok(variants.every(content=>content.action));

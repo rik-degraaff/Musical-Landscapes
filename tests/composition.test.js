@@ -9,7 +9,7 @@ import {equippedProfile} from '../src/utils/difficulty.js';
 import {STRING_INSTRUMENTS} from '../src/utils/guitar.js';
 import {noteMidi,trumpetInput} from '../src/utils/autoplay.js';
 import {fluteInput} from '../src/utils/wind.js';
-import {PIANO_NOTES,MARIMBA_NOTES,PANFLUTE_NOTES} from '../src/utils/performance.js';
+import {PIANO_NOTES,MARIMBA_NOTES,PANFLUTE_NOTES,ACCORDION_NOTES,HARP_NOTES} from '../src/utils/performance.js';
 
 const roots=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B','C#m','Am','Fm','Db'];
 const names=Object.keys(INSTRUMENTS);
@@ -44,6 +44,8 @@ test('movement colour is stable inside movements, bounded below genre contrast a
       if(previous&&previous.movement.startBar===plan.movement.startBar&&!previous.movement.transitionFrom&&!plan.movement.transitionFrom)assert.deepEqual(plan.movement.performance,previous.movement.performance);
       for(const [name,settings] of Object.entries(plan.movement.performance)){
         const base=style.performance[name];
+        assert.equal(settings.gainDb,base.gainDb);
+        assert.ok(settings.gainDb>=-2&&settings.gainDb<=1.5);
         assert.ok(Math.abs(settings.cutoff/base.cutoff-1)<=.035001);
         assert.ok(Math.abs(settings.gate/base.gate-1)<=.025001);
         assert.ok(Math.abs(settings.accent/base.accent-1)<=.025001);
@@ -63,7 +65,7 @@ test('tone, gate and accents interpolate through genre and movement transitions'
   for(const from of Object.keys(COMPOSITION_STYLES))for(const to of Object.keys(COMPOSITION_STYLES).filter(genre=>genre!==from)){
     for(const mix of [0,.125,.5,.875,1]){
       const blended=blendCompositionStyles(from,to,mix);
-      for(const name of Object.keys(blended.performance))for(const key of ['cutoff','gate','accent']){
+      for(const name of Object.keys(blended.performance))for(const key of ['cutoff','gate','accent','gainDb']){
         const first=COMPOSITION_STYLES[from].performance[name][key],last=COMPOSITION_STYLES[to].performance[name][key];
         assert.ok(Math.abs(blended.performance[name][key]-(first+(last-first)*mix))<1e-9);
       }
@@ -71,7 +73,7 @@ test('tone, gate and accents interpolate through genre and movement transitions'
   }
   const first=movementPerformance(COMPOSITION_STYLES.jazz,7919),last=movementPerformance(COMPOSITION_STYLES.jazz,15838);
   const halfway=movementPerformance(COMPOSITION_STYLES.jazz,7919,15838,.5);
-  for(const name of Object.keys(first))for(const key of ['cutoff','gate','accent'])assert.ok(Math.abs(halfway[name][key]-(first[name][key]+last[name][key])/2)<1e-9);
+  for(const name of Object.keys(first))for(const key of ['cutoff','gate','accent','gainDb'])assert.ok(Math.abs(halfway[name][key]-(first[name][key]+last[name][key])/2)<1e-9);
 });
 function random(seed=13) {return ()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};}
 function assertPlayable(name,root,complexity,phrase,chord) {
@@ -82,7 +84,7 @@ function assertPlayable(name,root,complexity,phrase,chord) {
     const subdivision=Number(event.time.split(':')[2]);
     assert.ok(complexity<=.5?subdivision===0:complexity<=1?[0,2].includes(subdivision):[0,1,2,3].includes(subdivision));
     const notes=event.notes??[event.note];
-    assert.ok(notes.length<=(name==='piano'?(complexity<=.5?2:3):STRING_INSTRUMENTS[name]?4:1));
+    assert.ok(notes.length<=(['piano','accordion','harp'].includes(name)?(complexity<=.5?2:3):STRING_INSTRUMENTS[name]?4:1));
     if(name==='drums'){assert.ok(profile.hits.includes(event.note));continue;}
     for(const note of notes){
       if(chord)assert.ok(chord.tones.includes(noteMidi(note)%12));
@@ -90,7 +92,7 @@ function assertPlayable(name,root,complexity,phrase,chord) {
       else if(name==='flute')assert.ok((fluteInput(note)?.register??99)<profile.fluteRegisters);
       else if(!STRING_INSTRUMENTS[name]){
         if(complexity<=1||name==='panflute')assert.ok(profile.keyboardNotes.includes(note),`${name} ${root} ${note}`);
-        assert.ok(({piano:PIANO_NOTES,marimba:MARIMBA_NOTES,panflute:PANFLUTE_NOTES})[name].includes(note));
+        assert.ok(({piano:PIANO_NOTES,marimba:MARIMBA_NOTES,panflute:PANFLUTE_NOTES,accordion:ACCORDION_NOTES,harp:HARP_NOTES})[name].includes(note));
       }
     }
     if(STRING_INSTRUMENTS[name]){
@@ -106,7 +108,7 @@ function assertPlayable(name,root,complexity,phrase,chord) {
 }
 
 for(const root of roots)for(const complexity of [.35,1,1.5])test(`composition pools and plans: ${root} complexity ${complexity}, every instrument role`,()=>{
-    for(const name of names)for(const role of name==='drums'?['rhythm']:['melody',...( ['piano','guitar','ukulele'].includes(name)?['accompaniment']:[])]){
+    for(const name of names)for(const role of name==='drums'?['rhythm']:['melody',...( ['piano','guitar','ukulele','accordion','harp'].includes(name)?['accompaniment']:[])]){
       const pool=compositionProfile(name,root,{complexity,role});
       assert.ok(pool.length>=2);
       const states=new Set(pool.map(phrase=>phrase.name));
@@ -204,7 +206,7 @@ test('additional genres remain playable at every root, instrument role and tier'
   // The pools-and-plans matrix above already checks every Folk variant.
   for(const genre of Object.keys(COMPOSITION_STYLES).filter(genre=>genre!=='folk'))for(const root of roots)for(const complexity of [.35,1,1.5]){
     for(const name of names){
-      const roles=name==='drums'?['rhythm']:['melody',...( ['piano','guitar','ukulele'].includes(name)?['accompaniment']:[])];
+      const roles=name==='drums'?['rhythm']:['melody',...( ['piano','guitar','ukulele','accordion','harp'].includes(name)?['accompaniment']:[])];
       for(const role of roles){
         const pool=compositionProfile(name,root,{genre,complexity,role});
         assert.ok(pool.length>=2,`${genre} ${name} ${role} ${complexity}`);
@@ -402,7 +404,7 @@ test('movement idea windows persist, handoffs are queued early, and roles rotate
 });
 
 test('mixed active memberships and tiers constrain entire major and minor progression states',()=>{
-  for(const root of ['C','Am'])for(const active of [['piano'],['guitar'],['ukulele'],['piano','guitar'],['piano','ukulele'],['guitar','ukulele'],['piano','guitar','ukulele']]){
+  for(const root of ['C','Am'])for(const active of [['piano'],['guitar'],['ukulele'],['piano','guitar'],['piano','ukulele'],['guitar','ukulele'],['piano','guitar','ukulele','accordion','harp']]){
     const composer=new Composition({random:random(42)});
     const performanceSettings=Object.fromEntries(active.map((name,index)=>[name,{complexity:[.35,1,1.5][index]}]));
     for(let bar=0;bar<16;bar++){

@@ -4,7 +4,7 @@ import { InteractiveObject, SCENES, ScenePreviewContext } from '../scenes/Scene'
 import { InstrumentArt } from '../components/InstrumentArt';
 import { ParentGuide } from '../components/ParentGuide';
 import { LandscapeArt } from '../scenes/LandscapeArt';
-import { INSTRUMENTS } from '../utils/music';
+import { AVAILABLE_INSTRUMENTS as INSTRUMENTS } from '../utils/music';
 import { DEFAULT_AVATAR, normalizeChild } from '../utils/children';
 import { normalizeSettings } from '../utils/settings';
 import { SCENE_SOUNDS } from '../audio/sceneSounds';

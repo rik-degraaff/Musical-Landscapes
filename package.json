@@ -18,7 +18,8 @@
     "test:production:built": "playwright test --config=playwright.production.config.js",
     "samples:download": "node scripts/download-instruments.mjs",
     "scenery:download": "node scripts/download-scene-recordings.mjs",
-    "audio:analyze": "node scripts/analyze-audio.mjs"
+    "audio:analyze": "node scripts/analyze-audio.mjs",
+    "audio:balance": "node scripts/calibrate-mix.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.51.0",

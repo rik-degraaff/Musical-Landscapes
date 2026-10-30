@@ -1,9 +1,11 @@
+import {instrumentEnabled} from '../utils/featureFlags';
 import React from 'react';
 import {ART, ART_STROKE} from '../data/artStyle';
 import './instrument-art.css';
 
 /** Shared picture-book silhouettes. Playable keys and fingerings live in the real surfaces. */
 export function InstrumentArt({type}) {
+  if(!instrumentEnabled(type))return null;
   return <svg className={`instrument-illustration illustration-${type}`} viewBox="0 0 160 125" aria-hidden="true" fill="none" stroke={ART.ink} strokeWidth={ART_STROKE.outline} strokeLinecap="round" strokeLinejoin="round">
     {type==='piano'&&<>
       <path d="M35 82v25m89-25v25" strokeWidth="7"/>
@@ -70,6 +72,26 @@ export function InstrumentArt({type}) {
       {[48,62,76,90,104,118].map((position,index)=><g key={position}><path d={`M${position} ${index%2?48:45}v18`} strokeWidth="3"/><ellipse cx={position} cy={index%2?48:45} rx="6" ry="5" fill={ART.cream} strokeWidth={ART_STROKE.detail}/></g>)}
       <path d="M45 78h67m8 0h15" stroke={ART.tealShade} strokeWidth="2"/>
     </g>}
+    {type==='accordion'&&<g transform="rotate(-5 80 65)">
+      <path d="M31 36q45-25 91 0" stroke={ART.brownShade} strokeWidth="5"/>
+      <rect x="26" y="32" width="30" height="72" rx="9" fill={ART.coral}/>
+      <path d="M54 39h51v60H54Z" fill={ART.cream}/>
+      {[58,67,76,85,94].map(x=><path key={x} d={`M${x} 40v58l5-5V45Z`} fill={ART.coralShade} strokeWidth={ART_STROKE.detail}/>)}
+      <rect x="103" y="28" width="35" height="79" rx="8" fill={ART.coral}/>
+      <rect x="111" y="36" width="20" height="63" rx="3" fill={ART.paper} strokeWidth={ART_STROKE.detail}/>
+      {[45,54,63,72,81,90].map(y=><path key={y} d={`M112 ${y}h18`} strokeWidth="1"/>)}
+      {[45,54,72,81,90].map(y=><rect key={y} x="112" y={y-3} width="10" height="5" rx="1" fill={ART.tealShade} stroke="none"/>)}
+      {[48,61,74,87].map(y=><g key={y}><circle cx="37" cy={y} r="2.5" fill={ART.cream} stroke="none"/><circle cx="46" cy={y+4} r="2.5" fill={ART.cream} stroke="none"/></g>)}
+    </g>}
+    {type==='harp'&&<>
+      <path d="M45 105Q76 65 122 29l9 76Z" fill={ART.cream} stroke="none"/>
+      {[0,1,2,3,4,5,6,7].map(index=><path key={index} d={`M${55+index*9} ${91-index*8}v${13+index*8}`} stroke={index%3===0?ART.coral:ART.goldShade} strokeWidth={ART_STROKE.detail}/>)}
+      <path d="M39 104Q72 65 118 22q10-6 16 4l-4 80" stroke={ART.ink} strokeWidth="13"/>
+      <path d="M39 104Q72 65 118 22q10-6 16 4l-4 80" stroke={ART.gold} strokeWidth="8"/>
+      <path d="M35 107h100l-5 9H40Z" fill={ART.wood}/>
+      <path d="M41 103Q55 79 68 70l8 7-25 28Z" fill={ART.wood}/>
+      <circle cx="127" cy="27" r="4" fill={ART.coral} strokeWidth={ART_STROKE.detail}/>
+    </>}
     {type==='panflute'&&<g transform="rotate(-6 80 65)">
       {Array.from({length:8},(_,index)=>{
         const left=31+index*12;

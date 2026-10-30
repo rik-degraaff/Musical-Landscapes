@@ -10,7 +10,7 @@ const root = new URL('../', import.meta.url);
 const rate = 48000;
 const requested = process.argv.find(argument => argument.startsWith('--sounds='))?.slice(9).split(',');
 if (requested?.some(name => !SCENE_SOUNDS.includes(name))) throw new Error('Unknown scenery sound requested');
-const shouldRender = type => !requested || requested.includes(type);
+const shouldRender = type => !process.argv.includes('--instruments-only') && (!requested || requested.includes(type));
 const path = relative => fileURLToPath(new URL(relative, root));
 const run = args => {
   const result = spawnSync(ffmpeg, args, { maxBuffer: 32 * 1024 * 1024 });

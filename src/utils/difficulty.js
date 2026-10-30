@@ -2,7 +2,7 @@ import {patterns,transposeEvents} from './music.js';
 import {STRING_INSTRUMENTS,voiceStringEvent} from './guitar.js';
 import {noteMidi,trumpetInput} from './autoplay.js';
 import {fluteInput} from './wind.js';
-import {midiNote,PANFLUTE_NOTES} from './performance.js';
+import {midiNote,PANFLUTE_NOTES,ACCORDION_NOTES,HARP_NOTES} from './performance.js';
 
 function phraseSignature(phrase) {
   return JSON.stringify(phrase.events.map(event=>[event.time,event.dur,event.notes??event.note]));
@@ -128,7 +128,8 @@ export function buildEquippedProfile(name,root,options={}) {
   const phrases=level==='Simple'?simple:level==='Standard'?[...simple,...standardOnly]:uniquePhrases(compatible);
   const played=phrases.flatMap(phrase=>phrase.events.flatMap(event=>event.notes??[event.note]));
   const notes=name==='drums'?[]:[...new Set(played)].sort((first,second)=>noteMidi(first)-noteMidi(second));
-  const keyboardNotes=notes.length?Array.from({length:noteMidi(notes.at(-1))-noteMidi(notes[0])+1},(_,index)=>midiNote(noteMidi(notes[0])+index)):[];
+  const touchBank={accordion:ACCORDION_NOTES,harp:HARP_NOTES}[name];
+  const keyboardNotes=touchBank?(level==='Advanced'?[...touchBank]:notes):notes.length?Array.from({length:noteMidi(notes.at(-1))-noteMidi(notes[0])+1},(_,index)=>midiNote(noteMidi(notes[0])+index)):[];
   return structuredClone({level,phrases,chords,notes,keyboardNotes,hits,registers,fluteRegisters});
 }
 

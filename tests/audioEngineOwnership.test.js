@@ -777,7 +777,7 @@ test('shared owned tone routing applies gated events and replaces future automat
   const {engine}=setup();
   await engine.init();
   const node=engine.nodes.melody;
-  assert.equal(node.synth.output,node.tone);assert.equal(node.tone.output,node.gain);
+  assert.equal(node.synth.output,node.tone);assert.equal(node.tone.output,node.styleGain);assert.equal(node.styleGain.output,node.gain);
   assert.equal(engine.nodes.drums.tone,null);assert.equal(engine.nodes.drums.synth.output,engine.nodes.drums.gain);
   engine.setManualInstrument('melody');engine.manualNoteOn('C4','brass');
   assert.equal(engine.manualVoices.get('brass').envelope.output,node.tone);
@@ -789,8 +789,12 @@ test('shared owned tone routing applies gated events and replaces future automat
   assert.deepEqual(frequency.automation.slice(-2),[['cancel',3],['ramp',engine.scheduledBars.get(0).plan.movement.performance.melody.cutoff,3.12]]);
   engine.applyPerformance({movement:{performance:{melody:{cutoff:8500}}}},3);
   assert.deepEqual(frequency.automation.slice(-2),[['cancel',3],['ramp',8500,3.12]]);
+  engine.applyPerformance({movement:{performance:{melody:{cutoff:8500,gainDb:20}}}},4);
+  assert.deepEqual(node.styleGain.volume.automation.slice(-2),[['cancel',4],['ramp',1.5,4.12]]);
+  assert.equal(engine.volumes.melody,music.INSTRUMENTS.melody.volume);
   engine.clearPendingEvents();assert.deepEqual(frequency.automation.at(-1),['cancel',1]);
-  engine.dispose();assert.equal(node.tone.disposals,1);
+  assert.deepEqual(node.styleGain.volume.automation.at(-1),['cancel',1]);
+  engine.dispose();assert.equal(node.tone.disposals,1);assert.equal(node.styleGain.disposals,1);
 });
 
 test('reversing genre during a blend starts tone and articulation from the current intermediate style',async()=>{

@@ -39,7 +39,7 @@ test('parent profile storage validates age bands and remains local and non-ident
 test('instrument arrays validate IDs, deduplicate and discard obsolete or identifying fields',()=>{
   const local=storage();
   saveParentProfile(local,{age:'8plus',music:'familiar',parent:'some',instrument:'familiar',instruments:['piano','piano','invalid',null,'flute'],name:'discard'});
-  assert.deepEqual(JSON.parse(local.getItem(PARENT_GUIDE_KEY)),{age:'8plus',music:'familiar',parent:'some',instruments:['piano','flute']});
+  assert.deepEqual(JSON.parse(local.getItem(PARENT_GUIDE_KEY)),{age:'8plus',music:'familiar',parent:'some',instruments:['piano']});
   local.setItem(PARENT_GUIDE_KEY,'{"instruments":"piano"}');
   assert.deepEqual(loadParentProfile(local).instruments,[]);
   local.setItem(PARENT_GUIDE_KEY,'broken');

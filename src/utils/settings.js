@@ -1,8 +1,8 @@
-import {INSTRUMENTS,DEFAULT_INSTRUMENTS} from './music.js';
+import {INSTRUMENTS,AVAILABLE_INSTRUMENTS,DEFAULT_INSTRUMENTS} from './music.js';
 
 export const SETTINGS_KEY='farmjam-settings-v1';
 export function defaultSoundMix() {
-  return {volumes:Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,instrument])=>[name,instrument.volume])),sceneVolume:-4};
+  return {volumes:Object.fromEntries(Object.entries(AVAILABLE_INSTRUMENTS).map(([name,instrument])=>[name,instrument.volume])),sceneVolume:-4};
 }
 export function resetSoundMix(instruments) {
   const defaults=defaultSoundMix();
@@ -13,7 +13,14 @@ export function defaultSettings() {
 }
 export function normalizeSettings(value) {
   const result=defaultSettings();
-  if(Array.isArray(value?.selected)&&value.selected.length===6&&new Set(value.selected).size===6&&value.selected.every(name=>Object.hasOwn(INSTRUMENTS,name)))result.selected=[...value.selected];
+  if(Array.isArray(value?.selected)&&value.selected.length===6&&new Set(value.selected).size===6&&value.selected.every(name=>Object.hasOwn(INSTRUMENTS,name))){
+    const occupied=new Set(value.selected.filter(name=>Object.hasOwn(AVAILABLE_INSTRUMENTS,name)));
+    result.selected=value.selected.map(name=>{
+      if(Object.hasOwn(AVAILABLE_INSTRUMENTS,name))return name;
+      const replacement=[...DEFAULT_INSTRUMENTS,...Object.keys(AVAILABLE_INSTRUMENTS)].find(candidate=>!occupied.has(candidate));
+      occupied.add(replacement);return replacement;
+    });
+  }
   for(const [name,options] of Object.entries(result.instruments)) {
     const saved=value?.instruments?.[name];
     if(!saved)continue;

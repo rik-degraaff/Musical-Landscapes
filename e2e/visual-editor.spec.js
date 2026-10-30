@@ -58,9 +58,9 @@ test('object library, real character dialog, replay, responsive viewport, and vi
   const preview=page.frameLocator('iframe');
   await page.getByRole('button',{name:'Objects',exact:true}).click();
   await expect(preview.locator('.interactive-object')).toHaveCount(28);
-  await expect(preview.locator('.instrument')).toHaveCount(8);
+  await expect(preview.locator('.instrument')).toHaveCount(9);
   await page.getByLabel('Instrument animations').check();
-  await expect(preview.locator('.instrument.playing')).toHaveCount(8);
+  await expect(preview.locator('.instrument.playing')).toHaveCount(9);
   await page.getByRole('button',{name:'Interact',exact:true}).click();
   await preview.getByRole('button',{name:'frog',exact:true}).click();
   await expect(preview.locator('.art-frog').locator('..')).toHaveClass(/reacting/);

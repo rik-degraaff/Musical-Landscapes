@@ -8,13 +8,13 @@ import {SCENE_ROOTS} from '../src/utils/dayCycle.js';
 import {STRING_INSTRUMENTS} from '../src/utils/guitar.js';
 import {noteMidi,trumpetInput} from '../src/utils/autoplay.js';
 import {fluteInput} from '../src/utils/wind.js';
-import {PIANO_NOTES,MARIMBA_NOTES,PANFLUTE_NOTES} from '../src/utils/performance.js';
+import {PIANO_NOTES,MARIMBA_NOTES,PANFLUTE_NOTES,ACCORDION_NOTES,HARP_NOTES} from '../src/utils/performance.js';
 import {learningSteps,createTimingAttempt,scoreTimedInput,attemptSummary,beatOffset} from '../src/utils/practice.js';
 
 const roots=[...new Set(['C',...Object.values(SCENE_ROOTS)])];
 const names=Object.keys(INSTRUMENTS);
-const chordInstruments=['piano','guitar','ukulele'];
-const fixedBanks={piano:PIANO_NOTES,marimba:MARIMBA_NOTES,panflute:PANFLUTE_NOTES};
+const chordInstruments=['piano','guitar','ukulele','accordion','harp'];
+const fixedBanks={piano:PIANO_NOTES,marimba:MARIMBA_NOTES,panflute:PANFLUTE_NOTES,accordion:ACCORDION_NOTES,harp:HARP_NOTES};
 
 for(const root of roots)for(const complexity of [.35,1,1.5])test(`practice motifs preserve legacy indices and are learnable: ${root} ${complexity}`,()=>{
   for(const name of names){
@@ -28,7 +28,7 @@ for(const root of roots)for(const complexity of [.35,1,1.5])test(`practice motif
     assert.deepEqual(appended,expected);
     assert.ok(appended.length>0);
     for(const field of ['level','chords','hits','registers','fluteRegisters'])assert.equal(profile[field],legacy[field]);
-    assert.deepEqual(profile.keyboardNotes,complexity>1&&['piano','marimba'].includes(name)?fixedBanks[name]:legacy.keyboardNotes);
+    assert.deepEqual(profile.keyboardNotes,complexity>1&&['piano','marimba','accordion','harp'].includes(name)?fixedBanks[name]:legacy.keyboardNotes);
     const roles=name==='drums'?['rhythm']:chordInstruments.includes(name)?['accompaniment','melody']:['melody'];
     assert.deepEqual([...new Set(appended.map(phrase=>phrase.role))].sort(),roles.sort());
     for(const role of roles){
@@ -46,7 +46,7 @@ for(const root of roots)for(const complexity of [.35,1,1.5])test(`practice motif
       for(const [index,event] of phrase.events.entries()){
         const notes=event.notes??[event.note];
         assert.deepEqual(steps[index].notes,notes);
-        assert.ok(notes.length<=(name==='piano'?(complexity<=.5?2:3):STRING_INSTRUMENTS[name]?4:1));
+        assert.ok(notes.length<=(['piano','accordion','harp'].includes(name)?(complexity<=.5?2:3):STRING_INSTRUMENTS[name]?4:1));
         assert.ok((complexity<=.5?[0]:complexity<=1?[0,2]:[0,1,2,3]).includes(Number(event.time.split(':')[2])));
         for(const note of notes){
           if(name==='drums')assert.ok(profile.hits.includes(note));

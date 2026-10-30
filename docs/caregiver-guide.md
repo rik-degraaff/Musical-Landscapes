@@ -21,6 +21,8 @@ From the child menu, open **Settings** without starting audio. The tabs are:
 
 Instrument and display preferences are saved for each child. Caregiver familiarity is shared on this browser/device. Sound mix levels are session controls. Existing data is retained when these preferences change.
 
+Accordion and harp are available in every instrument selector. Their Simple controls offer five notes; Standard adds an octave of scale notes; Advanced opens two chromatic octaves in two rows. Accordion keys sustain while held, with automatic bellows. Harp strings ring after a tap and can be swept. The Sound tab starts with balanced instrument levels and slightly more prominent percussion; **Restore defaults**, above the sliders, resets all instrument and scenery volumes immediately.
+
 ## Guides and help
 
 Tap a sky cloud during play to cycle through **Folk → Jazz → Rock → Folk**. Pale clouds show Folk, blue-gray clouds show Jazz, and peach clouds show Rock. Rock brings a bouncy acoustic strum, repeating tunes and a steady backbeat with gentle accents. Style changes blend gradually while the band keeps playing.

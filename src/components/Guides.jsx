@@ -3,7 +3,7 @@ import {ArrowLeft,ArrowRight,BookOpen,Check,Download,Play,RotateCcw} from 'lucid
 import {GUIDES,guideStatus} from '../utils/learning';
 import {guidePages,guidePageNote} from '../utils/guidePages';
 import {instrumentHelp} from '../utils/caregiverHelp';
-import {INSTRUMENTS} from '../utils/music';
+import {AVAILABLE_INSTRUMENTS as INSTRUMENTS} from '../utils/music';
 import {installationGuide} from '../utils/installation';
 import {CaregiverDialog} from './CaregiverDialog';
 import {GuideIllustration} from './GuideIllustration';
@@ -81,7 +81,7 @@ export function GuideReader({id,learning,familiarity,child,onOpen,onRead,onClose
   },[id,index]);
   const read=guide&&!saveError&&guideStatus(learning,guide)==='Read';
   const playing=page?.id==='surface'?instrumentHelp(instrument,familiarity):null;
-  const illustration=playing?{...page.illustration,gesture:['guitar','ukulele','panflute'].includes(instrument)?'swipe':['flute','melody'].includes(instrument)?'hold':'tap'}:page?.illustration;
+  const illustration=playing?{...page.illustration,gesture:['guitar','ukulele','panflute','harp'].includes(instrument)?'swipe':['flute','melody','accordion'].includes(instrument)?'hold':'tap'}:page?.illustration;
   const note=page?guidePageNote(page,familiarity):null;
   return <CaregiverDialog title={guide?.title??'Guides'} onClose={onClose} footer={guide&&page?<div className="guide-reader-footer">
     <button onClick={()=>onOpen('index')}>All guides</button>

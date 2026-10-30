@@ -9,6 +9,7 @@ export function movementPerformance(style,fromSeed,toSeed=fromSeed,mix=0) {
       cutoff:settings.cutoff*(1+colour*.035),
       gate:Math.min(1,settings.gate*(1+colour*.025)),
       accent:settings.accent*(1+colour*.025),
+      gainDb:settings.gainDb??0,
     }];
   }));
 }

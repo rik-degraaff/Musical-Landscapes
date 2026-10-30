@@ -1,4 +1,4 @@
-import {INSTRUMENTS} from './music.js';
+import {AVAILABLE_INSTRUMENTS as INSTRUMENTS} from './music.js';
 
 export const PARENT_GUIDE_KEY='farmjam-parent-guide-v1';
 export const GUIDE_INSTRUMENTS=Object.entries(INSTRUMENTS).map(([id,{label}])=>[id,label]);

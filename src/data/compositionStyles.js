@@ -45,7 +45,7 @@ const folkPhrases={
   ],
 };
 
-// Acoustic, straight-ahead rock: clear backbeats and little hooks, without extra gain.
+// Acoustic, straight-ahead rock: clear backbeats and little hooks.
 const rockPhrases={
   accompaniment:[
     authoredMotif('rockStrum',0,.48,.28,[[0,[0,2],1],[1,[0,2],1],[2,[0,2],1],[3,[0,2],1]],[.04,-.03,.03,-.03]),
@@ -123,8 +123,9 @@ export const COMPOSITION_STYLES={
     movementControls:{shapeVariation:.09,lengthVariation:2,ideaCountVariation:1,melodicSimilarity:[.36,.58,.82],transitionBars:2,ideaOverlap:.16,ideaPhaseVariation:.035,ideaStickiness:2.7,ideaContinuity:3.6,ideaHoldWeight:.12,anchorStickiness:5},accompanimentStickiness:7,
     swing:0,variation:{maxToneStep:.18,registerSemitones:2},
     performance:{
-      piano:{cutoff:12000,gate:1,accent:1},guitar:{cutoff:12000,gate:1,accent:1},ukulele:{cutoff:12000,gate:1,accent:1},
-      melody:{cutoff:6200,gate:1,accent:1},marimba:{cutoff:12000,gate:1,accent:1},flute:{cutoff:12000,gate:1,accent:1},panflute:{cutoff:12000,gate:1,accent:1},
+      accordion:{cutoff:10000,gate:1,accent:1,gainDb:1},harp:{cutoff:12000,gate:1,accent:1,gainDb:.5},
+      piano:{cutoff:12000,gate:1,accent:1,gainDb:0},guitar:{cutoff:12000,gate:1,accent:1,gainDb:0},ukulele:{cutoff:12000,gate:1,accent:1,gainDb:0},
+      melody:{cutoff:6200,gate:1,accent:1,gainDb:0},marimba:{cutoff:12000,gate:1,accent:1,gainDb:0},flute:{cutoff:12000,gate:1,accent:1,gainDb:0},panflute:{cutoff:12000,gate:1,accent:1,gainDb:0},
     },
   },
   jazz:{
@@ -147,8 +148,9 @@ export const COMPOSITION_STYLES={
     movementControls:{shapeVariation:.15,lengthVariation:2,ideaCountVariation:1,melodicSimilarity:[.12,.38,.66],transitionBars:2,ideaOverlap:.24,ideaPhaseVariation:.07,ideaStickiness:1.8,ideaContinuity:2.4,ideaHoldWeight:.1,anchorStickiness:3},accompanimentStickiness:4.8,
     swing:.16,variation:{maxToneStep:.42,registerSemitones:4},
     performance:{
-      piano:{cutoff:6800,gate:.72,accent:1.3},guitar:{cutoff:7200,gate:.8,accent:1.2},ukulele:{cutoff:7600,gate:.8,accent:1.2},
-      melody:{cutoff:9500,gate:.7,accent:1.25},marimba:{cutoff:8500,gate:.8,accent:1.2},flute:{cutoff:8000,gate:.82,accent:1.15},panflute:{cutoff:8500,gate:.82,accent:1.15},
+      accordion:{cutoff:7800,gate:.8,accent:1.15,gainDb:0},harp:{cutoff:9000,gate:.85,accent:1.15,gainDb:0},
+      piano:{cutoff:6800,gate:.72,accent:1.3,gainDb:1},guitar:{cutoff:7200,gate:.8,accent:1.2,gainDb:0},ukulele:{cutoff:7600,gate:.8,accent:1.2,gainDb:0},
+      melody:{cutoff:9500,gate:.7,accent:1.25,gainDb:1.5},marimba:{cutoff:8500,gate:.8,accent:1.2,gainDb:0},flute:{cutoff:8000,gate:.82,accent:1.15,gainDb:0},panflute:{cutoff:8500,gate:.82,accent:1.15,gainDb:0},
     },
   },
   rock:{
@@ -169,8 +171,9 @@ export const COMPOSITION_STYLES={
     movementControls:{shapeVariation:.07,lengthVariation:2,ideaCountVariation:1,melodicSimilarity:[.6,.76,.9],transitionBars:2,ideaOverlap:.18,ideaPhaseVariation:.03,ideaStickiness:3.2,ideaContinuity:4,ideaHoldWeight:.15,anchorStickiness:6},accompanimentStickiness:8,
     swing:0,variation:{maxToneStep:.12,registerSemitones:1.5},
     performance:{
-      piano:{cutoff:10000,gate:.88,accent:1.12},guitar:{cutoff:10000,gate:.88,accent:1.12},ukulele:{cutoff:10000,gate:.88,accent:1.12},
-      melody:{cutoff:7600,gate:.88,accent:1.12},marimba:{cutoff:10000,gate:.9,accent:1.1},flute:{cutoff:10000,gate:.9,accent:1.08},panflute:{cutoff:10000,gate:.9,accent:1.08},
+      accordion:{cutoff:9000,gate:.88,accent:1.1,gainDb:0},harp:{cutoff:10000,gate:.9,accent:1.08,gainDb:0},
+      piano:{cutoff:10000,gate:.88,accent:1.12,gainDb:0},guitar:{cutoff:10000,gate:.88,accent:1.12,gainDb:1.5},ukulele:{cutoff:10000,gate:.88,accent:1.12,gainDb:1.5},
+      melody:{cutoff:7600,gate:.88,accent:1.12,gainDb:0},marimba:{cutoff:10000,gate:.9,accent:1.1,gainDb:0},flute:{cutoff:10000,gate:.9,accent:1.08,gainDb:0},panflute:{cutoff:10000,gate:.9,accent:1.08,gainDb:0},
     },
   },
 };

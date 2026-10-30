@@ -1,5 +1,23 @@
 # Release validation
 
+## Flute availability flag � 2026-10-30
+
+`FEATURE_FLAGS.flute=false` hides the retained flute implementation from the runtime catalog, audio initialization, landscape, Sound controls, instrument/practice/guide selectors, guide illustrations and visual editor. Pan flute stays enabled. Existing flute slots fall back individually to an unused enabled instrument; saved flute options remain readable for re-enabling.
+
+Focused verification covered 88 Node cases (87 initially passed; an obsolete setup-profile expectation was corrected and its four-test suite passed on retry), a successful production build, and desktop/compact-touch browser checks of actual audio-node absence, no flute recording requests, saved-slot recovery and all selector/editor surfaces. The browser run needed local-server access outside the sandbox; the desktop editor-navigation fixture was corrected and passed on targeted retry. These checks do not constitute a full release gate.
+
+## Accordion, harp and balanced session mix — 2026-10-29
+
+Accordion and harp join the ten-instrument catalog without changing existing six-slot selections or storage formats. Each has 25 local FluidR3 recordings, authored exercises, deterministic melody/accompaniment roles, genre tone/articulation, shared manual/sampler routing, practice, harmony hints, silent guides, live hints, picture-book artwork and visual-editor entries. Simple offers five notes, Standard eight diatonic notes, and Advanced 25 chromatic notes in two rows. Accordion supports polyphonic held keys with automatic bellows; harp supports individual plucks and native sweeps with owned ringing tails.
+
+Sample measurements retain the existing peak headroom. A reproducible `npm run audio:balance` model renders representative Folk phrases across C, A and F minor, including both roles for chord instruments. The selected defaults put modeled pitched parts between −35.49 and −34.70 LUFS before genre/master effects; modeled percussion is −33.48 LUFS. The model excludes tone shelves, reverb, limiting and speaker response. Genre trims add at most 1.5 dB, blend through existing transitions and leave user sliders unchanged. The existing Sound **Restore defaults** action is now above the sliders and resets the complete ten-instrument/scenery mix.
+
+Current Node evidence is a split run: the initial 357-test run passed 356 and exposed one fixture fixed to an obsolete guide revision. After that correction and subsequent gain/profile assertions, 162 focused music/audio/settings tests and 33 child/storage tests passed. Passed unrelated suites were not rerun. The final production build passed with the existing large JavaScript chunk warning; 50 new recordings add about 1 MB to the asset bank.
+
+Across split runs, **25 unique development browser cases passed** on desktop and compact landscape Chromium, plus **two production offline cases**. Coverage includes all ten instruments in practice, real sampled output, native multitouch/sweeps and cleanup, all levels and saved selections, silent guides, composition ownership, genre tone, gain/reset behavior, guide/Settings layouts and editor libraries. The final changed-surface run passed 13 cases with one intentional skip: the responsive matrix runs once in the desktop project with its own five viewports, all seven landscapes and both new panels. Earlier retries corrected test-harness mistakes, an outdated scene-control selector, and one development-reload interruption. At the minimum size a moving sun can pass behind a corner control, so the instrument matrix uses supported keyboard scene navigation and asserts the new playable targets directly; it does not establish full scene pointer reachability.
+
+The two production cases verify every cached recording against local hashes, decode the complete bank offline and exercise accordion/harp through the real practice surfaces without a network connection. This is focused feature validation, not the full production update/release gate. Physical-device listening, touch comfort, latency and output routing remain unverified.
+
 ## Audio startup and missing-sound help — 2026-10-23
 
 FarmJam now requests a playback audio session where supported to address iOS Silent-mode muting, bounds browser audio unlock/recovery to five seconds, and retries pending automatic resumes inside fresh user gestures. Closed contexts and Audio Session interruptions use the existing owned stop/release path. An always-available speaker symbol opens optional troubleshooting, a quiet retry/test note, and session sound-level restoration. The scenery slider also resets with the engine when returning to the menu.

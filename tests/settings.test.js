@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {SETTINGS_KEY,defaultSettings,normalizeSettings,loadSettings,defaultSoundMix,resetSoundMix} from '../src/utils/settings.js';
-import {INSTRUMENTS,DEFAULT_INSTRUMENTS} from '../src/utils/music.js';
+import {INSTRUMENTS,AVAILABLE_INSTRUMENTS,DEFAULT_INSTRUMENTS} from '../src/utils/music.js';
 
 test('defaults include the full catalog, six unique slots, advanced complexity and hidden display details',()=>{
   const defaults=defaultSettings();
@@ -34,11 +34,11 @@ test('legacy numeric complexity migrates to the three buckets at their boundarie
 });
 
 test('normalization preserves valid six-slot choices and rejects unsafe selections',()=>{
-  const valid=['piano','drums','guitar','melody','marimba','flute'];
+  const valid=['piano','drums','guitar','melody','marimba','harp'];
   const result=normalizeSettings({selected:valid});
   assert.deepEqual(result.selected,valid);
   assert.notEqual(result.selected,valid);
-  const catalogSelection=Object.keys(INSTRUMENTS).slice(-6);
+  const catalogSelection=Object.keys(AVAILABLE_INSTRUMENTS).slice(-6);
   assert.deepEqual(normalizeSettings({selected:catalogSelection}).selected,catalogSelection);
   for(const invalid of [[],valid.slice(1),[...valid,'ukulele'],['piano',...valid.slice(0,5)],[...valid.slice(0,5),'unknown'],[...valid.slice(0,5),'toString'],null,'piano']){
     assert.deepEqual(normalizeSettings({selected:invalid}).selected,DEFAULT_INSTRUMENTS);
@@ -88,11 +88,23 @@ test('harmony hints migrate to subtle notes and preserve only supported per-inst
 
 test('sound reset restores current catalog gains without changing instrument state or settings',()=>{
   const settings=defaultSettings();settings.instruments.piano.harmonyHints='name';settings.instruments.guitar.complexity=.35;
-  const instruments=Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,value])=>[name,{...value,volume:-18,active:name==='piano'}]));
+  const instruments=Object.fromEntries(Object.entries(AVAILABLE_INSTRUMENTS).map(([name,value])=>[name,{...value,volume:-18,active:name==='piano'}]));
   const snapshot=structuredClone({settings,instruments});
   const reset=resetSoundMix(instruments);
   assert.equal(reset.sceneVolume,-4);
   assert.deepEqual(reset.volumes,defaultSoundMix().volumes);
   for(const [name,instrument] of Object.entries(reset.instruments))assert.deepEqual(instrument,{...instruments[name],volume:INSTRUMENTS[name].volume});
   assert.deepEqual({settings,instruments},snapshot);
+});
+
+test('disabled flute slots recover individually without losing saved flute preferences',()=>{
+  assert.equal(AVAILABLE_INSTRUMENTS.flute,undefined);
+  assert.ok(INSTRUMENTS.flute);
+  const saved={selected:['piano','drums','guitar','melody','marimba','flute'],instruments:{flute:{complexity:.35,noteLabels:true}}};
+  const snapshot=structuredClone(saved),result=normalizeSettings(saved);
+  assert.deepEqual(result.selected,['piano','drums','guitar','melody','marimba','ukulele']);
+  assert.equal(result.instruments.flute.complexity,.35);
+  assert.equal(result.instruments.flute.noteLabels,true);
+  assert.deepEqual(normalizeSettings(result),result);
+  assert.deepEqual(saved,snapshot);
 });

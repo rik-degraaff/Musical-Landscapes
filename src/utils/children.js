@@ -1,4 +1,5 @@
 import {normalizeSettings} from './settings.js';
+import {INSTRUMENTS} from './music.js';
 
 export const CHILDREN_KEY='farmjam-children-v1';
 export const AGE_SIZES={under3:.72,'3to4':.82,'5to7':.92,'8plus':1};
@@ -19,7 +20,7 @@ export function normalizeAvatar(value={}) {
 
 export function normalizeChild(value) {
   if(!value||typeof value.id!=='string'||!value.id.trim()||typeof value.name!=='string'||!value.name.trim()||!Object.hasOwn(AGE_SIZES,value.age))return null;
-  return {id:value.id.slice(0,100),name:value.name.trim().slice(0,40),age:value.age,avatar:normalizeAvatar(value.avatar),profile:{age:value.age,parent:['new','some','confident'].includes(value.profile?.parent)?value.profile.parent:'some',music:['new','some','familiar'].includes(value.profile?.music)?value.profile.music:'new',instruments:Array.isArray(value.profile?.instruments)?[...new Set(value.profile.instruments.filter(id=>['piano','guitar','ukulele','flute','melody','drums','marimba','panflute'].includes(id)))]:[]},settings:normalizeSettings(value.settings)};
+  return {id:value.id.slice(0,100),name:value.name.trim().slice(0,40),age:value.age,avatar:normalizeAvatar(value.avatar),profile:{age:value.age,parent:['new','some','confident'].includes(value.profile?.parent)?value.profile.parent:'some',music:['new','some','familiar'].includes(value.profile?.music)?value.profile.music:'new',instruments:Array.isArray(value.profile?.instruments)?[...new Set(value.profile.instruments.filter(id=>Object.hasOwn(INSTRUMENTS,id)))]:[]},settings:normalizeSettings(value.settings)};
 }
 
 export function normalizeChildren(value) {

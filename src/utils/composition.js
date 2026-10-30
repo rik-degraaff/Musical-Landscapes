@@ -1,14 +1,14 @@
-import {INSTRUMENTS,musicalKey} from './music.js';
+import {INSTRUMENTS,musicalKey,CHORD_INSTRUMENTS} from './music.js';
 import {equippedProfile} from './difficulty.js';
 import {STRING_INSTRUMENTS,voiceStringEvent} from './guitar.js';
 import {noteMidi,trumpetInput} from './autoplay.js';
 import {fluteInput} from './wind.js';
-import {midiNote,PIANO_NOTES,MARIMBA_NOTES,PANFLUTE_NOTES} from './performance.js';
+import {midiNote,PIANO_NOTES,MARIMBA_NOTES,PANFLUTE_NOTES,ACCORDION_NOTES,HARP_NOTES} from './performance.js';
 import {COMPOSITION_PHRASES,PHRASE_TRANSITIONS,COMPOSITION_PROGRESSIONS} from '../data/compositionPhrases.js';
 import {blendCompositionStyles,compositionStyle} from '../data/compositionStyles.js';
 import {blendMovementFrames,distributeTension,ideaScheduleWeights,movementFrame,movementPerformance,planIdeaSchedule,smoothNoise,varyMovementShape} from './movementPlanner.js';
 
-const chordInstruments=['piano','guitar','ukulele'];
+const chordInstruments=CHORD_INSTRUMENTS;
 const levels=['Simple','Standard','Advanced'];
 const pitches=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const banks=new WeakMap();
@@ -32,8 +32,8 @@ function chordAt(root,degree) {
 function bank(name,profile,chord) {
   if(STRING_INSTRUMENTS[name])return profile.chords.find(value=>value.degree===chord.degree&&value.size===3)?.notes??[];
   if(banks.has(profile))return banks.get(profile);
-  const fixed={piano:PIANO_NOTES,marimba:MARIMBA_NOTES,panflute:PANFLUTE_NOTES}[name];
-  const fullKeyboard=profile.level==='Advanced'&&['piano','marimba'].includes(name);
+  const fixed={piano:PIANO_NOTES,marimba:MARIMBA_NOTES,panflute:PANFLUTE_NOTES,accordion:ACCORDION_NOTES,harp:HARP_NOTES}[name];
+  const fullKeyboard=profile.level==='Advanced'&&['piano','marimba','accordion','harp'].includes(name);
   const notes=fullKeyboard?fixed:fixed?profile.keyboardNotes.filter(note=>fixed.includes(note)):Array.from({length:60},(_,index)=>midiNote(48+index)).filter(note=>name==='melody'?(trumpetInput(note)?.partial??99)<profile.registers:(fluteInput(note)?.register??99)<profile.fluteRegisters);
   banks.set(profile,notes);
   return notes;
@@ -68,11 +68,11 @@ function render(name,root,role,motif,chord,nextChord,profile,previous,{tension=m
     const sustained={2:'2n',1:'4n',.5:'8n',.25:'16n'};
     const breath={2:'4n.',1:'8n.',.5:'16n.',.25:'32n.'};
     const plucked={2:'4n',1:'8n',.5:'16n',.25:'32n'};
-    const durations=['flute','melody','panflute'].includes(name)?breath:name==='marimba'||STRING_INSTRUMENTS[name]?plucked:sustained;
+    const durations=['flute','melody','panflute'].includes(name)?breath:['marimba','harp'].includes(name)||STRING_INSTRUMENTS[name]?plucked:sustained;
     // Event time is bars:beats:sixteenths; duration is a Tone note value, and pitches are note names.
     const event={time:`0:${Math.floor(beat)}:${Math.round((beat%1)*4)}`,dur:durations[length],gate:performance?.gate??1,velocity:Math.min(.72,.35+motif.energy*.25+(motif.dynamics[index]??0)*(performance?.accent??1)),swingOffset:style.swing&&Math.abs(beat%1-.5)<.001?style.swing:0};
     if(name==='drums')return {...event,note:contour};
-    const maxNotes=name==='piano'?(profile.level==='Simple'?2:3):STRING_INSTRUMENTS[name]?4:1;
+    const maxNotes=['piano','accordion','harp'].includes(name)?(profile.level==='Simple'?2:3):STRING_INSTRUMENTS[name]?4:1;
     const shape=role==='accompaniment'?contour.slice(0,maxNotes):contour.slice(0,1);
     const previousTone=steps[index-1]?.[1]?.[0]??shape[0];
     const primaryTarget=anchor+interval(shape[0])-interval(previousTone)+(tension-.5)*style.variation.registerSemitones;

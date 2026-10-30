@@ -27,7 +27,7 @@ Each owned startup load has a 15-second deadline. A stalled recording returns th
 
 Landscape changes update the requested key. The current bar completes in its captured key; the latest requested key takes effect on the next downbeat. The transport is shared and is not restarted for scene changes.
 
-Composition styles also own per-instrument tone cutoff, articulation gate and accent depth. The movement planner derives a small, fixed colour from each movement seed and blends it at movement handoffs; genre interpolation supplies the larger change. Immutable bar plans carry the resulting performance settings and gated events. The engine schedules gentle high-frequency shelf automation at the bar's audio timestamp and routes both sampler and manual voices through the same resource-owned filter before the existing mixer/reverb. The shelf only attenuates (up to 4 dB); it never boosts. Replanning replaces future automation, and playback cleanup cancels it.
+Composition styles also own per-instrument tone cutoff, articulation gate and accent depth. The movement planner derives a small, fixed colour from each movement seed and blends it at movement handoffs; genre interpolation supplies the larger change. Immutable bar plans carry the resulting performance settings and gated events. The engine schedules gentle high-frequency shelf automation at the bar's audio timestamp and routes both sampler and manual voices through the same resource-owned filter before the existing mixer/reverb. The shelf only attenuates (up to 4 dB); it never boosts. A separate resource-owned style gain node follows the shelf and precedes the user mixer. It applies the genre’s bounded −2 to +1.5 dB trim to both sampled and manual pitched voices; bar-time automation and cancellation follow the same ownership as tone. User volume values and mute state are not changed. Replanning replaces future automation, and playback cleanup cancels it.
 
 ## State ownership
 
@@ -54,3 +54,7 @@ Practice previews additionally share `PracticeRoomHeader` and `PracticeRoomLayou
 ## Development visual editor
 
 The local-only visual editor previews real application components and saves validated visual overrides to `src/data/visual-overrides.json`. It does not replace source work for behavioral or audio changes. See [visual-editor.md](visual-editor.md).
+
+## Instrument availability
+
+`src/utils/featureFlags.js` owns instrument availability. `FEATURE_FLAGS.flute` is currently false. Set it to true to restore the retained flute implementation. `INSTRUMENTS` remains the complete definition catalog for persistence and implementation tests; runtime UI, editor and audio entry points enumerate `AVAILABLE_INSTRUMENTS`. Saved disabled slots are replaced individually with an unused enabled default, preserving the other five slots and the hidden instrument�s saved options. Pan flute remains available.

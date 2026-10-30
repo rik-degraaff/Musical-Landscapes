@@ -1,0 +1,43 @@
+import {test,expect,doubleActivate} from './fixtures.js';
+
+test('disabled flute is absent from runtime, selectors, guides, practice and editor',async({page},testInfo)=>{
+  const errors=[],recordings=[];
+  page.on('pageerror',error=>errors.push(error.message));
+  page.on('request',request=>{if(request.url().includes('/audio/instruments/flute/'))recordings.push(request.url());});
+  await page.addInitScript(()=>localStorage.setItem('farmjam-settings-v1',JSON.stringify({selected:['piano','drums','guitar','melody','marimba','flute'],instruments:{flute:{complexity:.35,noteLabels:true}}})));
+  await page.goto('/');
+  await page.evaluate(async()=>{
+    const app=await(await fetch('/src/App.jsx')).text();
+    const url=/from\s+["']([^"']*\/audio\/AudioEngine[^"']*)["']/.exec(app)[1];
+    const {AudioEngine}=await import(url),initialize=AudioEngine.prototype.initialize;
+    AudioEngine.prototype.initialize=async function(){await initialize.call(this);window.audioEngine=this;};
+  });
+  await page.getByRole('button',{name:'Tap to play',exact:true}).click();
+  await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});
+  expect(await page.evaluate(()=>Object.keys(window.audioEngine.nodes))).not.toContain('flute');
+  expect(recordings).toEqual([]);
+  await expect(page.locator('#instrument-flute')).toHaveCount(0);
+  await expect(page.locator('#instrument-ukulele')).toBeVisible();
+  await doubleActivate(page.getByRole('button',{name:'Open settings',exact:true}),testInfo);
+  await expect(page.getByRole('slider',{name:'Flute volume',exact:true})).toHaveCount(0);
+  await expect(page.getByRole('slider',{name:'Pan flute volume',exact:true})).toBeVisible();
+  await page.getByRole('tab',{name:'Instruments',exact:true}).click();
+  await expect(page.locator('select option[value="flute"]')).toHaveCount(0);
+  await expect(page.getByRole('combobox',{name:'Instrument slot 6',exact:true})).toHaveValue('ukulele');
+  await page.getByRole('tab',{name:/^Guides/}).click();
+  await page.getByRole('button',{name:'Read play an instrument',exact:true}).click();
+  await page.getByRole('combobox',{name:'Choose a guide page',exact:true}).selectOption('2');
+  await expect(page.locator('select option[value="flute"]')).toHaveCount(0);
+  await page.keyboard.press('Escape');await page.keyboard.press('Escape');
+  await page.locator('#young-musician').focus();await page.keyboard.press('Enter');
+  await expect(page.getByRole('combobox',{name:'Practice instrument',exact:true})).toBeVisible();
+  await expect(page.locator('select option[value="flute"]')).toHaveCount(0);
+  await page.getByRole('combobox',{name:'Practice instrument',exact:true}).selectOption('panflute');
+  await expect(page.locator('.panflute-pipe').first()).toBeVisible();
+  await page.unroute('**/src/utils/sceneVisitors.js*');
+  await page.goto('/__editor');await page.getByRole('button',{name:'Objects',exact:true}).click();
+  const preview=page.frameLocator('iframe');
+  await expect(preview.locator('.instrument')).toHaveCount(9);
+  await expect(preview.locator('.illustration-flute')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});

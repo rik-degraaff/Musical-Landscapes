@@ -172,11 +172,11 @@ test('live all-instrument plans own audible events, cap accompaniment and carry 
     for(const name of Object.keys(engine.active))engine.setInstrumentActive(name,true);
     window.compositionBars=[];window.compositionEvents=[];
   });
-  await expect.poll(()=>page.evaluate(()=>window.compositionBars.filter(record=>record.active.length===8&&Object.keys(record.plan.phrases).length===8).length),{timeout:20000}).toBeGreaterThanOrEqual(10);
-  const initial=await page.evaluate(()=>({bars:window.compositionBars.filter(record=>record.active.length===8&&Object.keys(record.plan.phrases).length===8),events:window.compositionEvents}));
+  await expect.poll(()=>page.evaluate(()=>window.compositionBars.filter(record=>record.active.length===9&&Object.keys(record.plan.phrases).length===9).length),{timeout:20000}).toBeGreaterThanOrEqual(10);
+  const initial=await page.evaluate(()=>({bars:window.compositionBars.filter(record=>record.active.length===9&&Object.keys(record.plan.phrases).length===9),events:window.compositionEvents}));
   assertBars(initial.bars);
   expect(initial.bars.every(record=>Object.values(record.plan.roles).filter(role=>role==='accompaniment').length===2)).toBe(true);
-  expect(new Set(initial.events.map(event=>event.name)).size).toBe(8);
+  expect(new Set(initial.events.map(event=>event.name)).size).toBe(9);
   for(const actual of initial.events){
     expect(actual.ownsEvent).toBe(true);
     if(actual.name!=='drums')for(const note of actual.event.notes??[actual.event.note])expect(actual.chord.tones).toContain(noteMidi(note)%12);

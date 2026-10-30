@@ -6,7 +6,7 @@ import {InstrumentArt} from './InstrumentArt';
 import {HelpButton} from './CaregiverHelp';
 import {SoundHelpButton} from './SoundHelp';
 import {PracticeSelectors,PracticeExit,PracticeStageTabs} from './PracticeRoomControls';
-import {INSTRUMENTS} from '../utils/music';
+import {AVAILABLE_INSTRUMENTS as INSTRUMENTS} from '../utils/music';
 import './practice.css';
 
 /** One header and spatial arrangement for live practice and passive guide state. */

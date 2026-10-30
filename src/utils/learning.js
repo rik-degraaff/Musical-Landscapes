@@ -1,7 +1,7 @@
 // This catalog owns revisions and discovery rules. Progress never changes playable features.
 export const LEARNING_KEY = 'farmjam-learning-v1';
 export const GUIDES = [
-  {id:'instruments',version:3,title:'Play an instrument',summary:'Start the band, then try the real playing controls.'},
+  {id:'instruments',version:4,title:'Play an instrument',summary:'Start the band, then try the real playing controls.'},
   {id:'landscape',version:4,title:'Explore the landscape',summary:'Change the scene, musical style and speed.'},
   {id:'practice',version:3,title:'Use the practice room',summary:'Find your way around, then choose Listen, Learn, Rhythm or Together.'},
   {id:'settings',version:3,title:'Choose instruments and settings',summary:'Set up instruments, sound and learning hints.'},

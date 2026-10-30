@@ -1,11 +1,12 @@
 import {equippedProfile,difficultyLevel} from './difficulty.js';
 import {compositionProfile} from './composition.js';
 import {noteMidi} from './autoplay.js';
-import {PIANO_NOTES,MARIMBA_NOTES} from './performance.js';
+import {PIANO_NOTES,MARIMBA_NOTES,ACCORDION_NOTES,HARP_NOTES} from './performance.js';
+import {CHORD_INSTRUMENTS} from './music.js';
 
 const profileCache=new Map();
 const PROFILE_CACHE_LIMIT=96;
-const chordInstruments=['piano','guitar','ukulele'];
+const chordInstruments=CHORD_INSTRUMENTS;
 
 export function practiceProfile(name,root,options={}) {
   const level=difficultyLevel(options);
@@ -23,7 +24,7 @@ export function practiceProfile(name,root,options={}) {
   const phrases=Object.freeze([...legacy.phrases,...motifs]);
   // Event pitches are note names; normalize ordering through MIDI pitch numbers, not string order.
   const played=name==='drums'?[]:motifs.flatMap(phrase=>phrase.events.flatMap(event=>event.notes??[event.note]));
-  const fullKeyboard=level==='Advanced'?{piano:PIANO_NOTES,marimba:MARIMBA_NOTES}[name]:undefined;
+  const fullKeyboard=level==='Advanced'?{piano:PIANO_NOTES,marimba:MARIMBA_NOTES,accordion:ACCORDION_NOTES,harp:HARP_NOTES}[name]:undefined;
   const notes=Object.freeze([...new Set([...legacy.notes,...played])].sort((first,second)=>noteMidi(first)-noteMidi(second)));
   const keyboardNotes=fullKeyboard?Object.freeze([...fullKeyboard]):legacy.keyboardNotes;
   const profile=Object.freeze({...legacy,phrases,notes,keyboardNotes});

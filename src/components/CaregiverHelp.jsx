@@ -3,7 +3,7 @@ import {BookOpen,CircleHelp} from 'lucide-react';
 import {CaregiverDialog} from './CaregiverDialog';
 import {contextualHelp,instrumentHelp} from '../utils/caregiverHelp';
 import {GUIDES} from '../utils/learning';
-import {INSTRUMENTS} from '../utils/music';
+import {AVAILABLE_INSTRUMENTS as INSTRUMENTS} from '../utils/music';
 import {GestureDemo} from './GestureDemo';
 import {GuideIllustration} from './GuideIllustration';
 import {PlayActions} from './LearningHint';

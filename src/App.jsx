@@ -1,5 +1,5 @@
 import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
-import { INSTRUMENTS,INSTRUMENT_SLOTS } from './utils/music';
+import { AVAILABLE_INSTRUMENTS as INSTRUMENTS,INSTRUMENT_SLOTS } from './utils/music';
 import { Instrument } from './components/Instrument';
 import { Mixer } from './components/Mixer';
 import { StartScreen } from './components/StartScreen';

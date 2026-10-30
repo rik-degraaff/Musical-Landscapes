@@ -142,10 +142,10 @@ test('switching instrument or phrase and leaving cancels timed guidance and back
   await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});
 });
 
-test('all eight instruments guide playable notes and fit the practice surface',async({page},testInfo)=>{
+test('all enabled instruments guide playable notes and fit the practice surface',async({page},testInfo)=>{
   const errors=await start(page);await enter(page);
   await page.getByRole('button',{name:'2. Learn',exact:true}).click();
-  for(const name of ['piano','marimba','drums','guitar','ukulele','panflute','flute','melody']){
+  for(const name of ['piano','marimba','drums','guitar','ukulele','panflute','melody','accordion','harp']){
     await page.getByRole('combobox',{name:'Practice instrument'}).selectOption(name);
     await expect.poll(()=>page.evaluate(()=>window.audioEngine.manualInstrument)).toBe(name);
     await expect(page.locator('.practice-feedback-display')).toHaveText('Ready');
@@ -156,7 +156,7 @@ test('all eight instruments guide playable notes and fit the practice surface',a
       const bounds=await button.boundingBox();expect(bounds.y+bounds.height).toBeLessThanOrEqual(surfaceTop+1);
       expect(bounds.x).toBeGreaterThanOrEqual(0);expect(bounds.x+bounds.width).toBeLessThanOrEqual(page.viewportSize().width);
     }
-    if(['piano','marimba','drums','guitar','ukulele','panflute'].includes(name)){
+    if(['piano','marimba','drums','guitar','ukulele','panflute','accordion','harp'].includes(name)){
       const guided=page.locator('.practice-surface-host .note-key[aria-pressed="true"],.practice-surface-host .drum-pad[aria-pressed="true"],.practice-surface-host .playable-string[aria-pressed="true"],.practice-surface-host .panflute-pipe[aria-pressed="true"]');
       await expect(guided.first()).toBeVisible();expect(await guided.count()).toBeGreaterThanOrEqual(1);
       const targets=await guided.evaluateAll(items=>items.map(item=>item.getAttribute('aria-label')));
@@ -183,7 +183,7 @@ test('all eight instruments guide playable notes and fit the practice surface',a
       await client.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:points});await expect(page.locator('.practice-feedback-display')).toHaveText(/Correct!|Phrase learned!/);await client.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await client.detach();
     }
     await page.screenshot({path:`test-results/${testInfo.project.name}-practice-${name}.png`});
-    expect(await page.evaluate(()=>window.audioEngine.manualVoices.size)).toBeLessThanOrEqual(1);
+    expect(await page.evaluate(()=>[...window.audioEngine.manualVoices.values()].filter(voice=>voice.name!=='harp').length)).toBeLessThanOrEqual(1);
   }
   await page.getByRole('button',{name:'3. Rhythm'}).click();await expect(page.getByRole('button',{name:'Start repeating'})).toBeVisible();
   const ready=await page.getByRole('button',{name:'Start repeating'}).boundingBox();const board=await page.locator('.practice-surface-host').boundingBox();expect(ready.y+ready.height).toBeLessThanOrEqual(board.y+1);

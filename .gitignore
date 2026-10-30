@@ -6,3 +6,5 @@ playwright-report/
 .env*
 !.env.example
 *.local
+.codex-remote-attachments/
+debug.log

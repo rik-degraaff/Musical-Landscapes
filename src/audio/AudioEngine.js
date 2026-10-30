@@ -1,10 +1,10 @@
 import * as Tone from 'tone';
-import { BPM, BAR, INSTRUMENTS } from '../utils/music';
+import { BPM, BAR, AVAILABLE_INSTRUMENTS as INSTRUMENTS, CHORD_INSTRUMENTS } from '../utils/music';
 import { Composition, compositionProfile } from '../utils/composition';
 import {compositionStyle,blendCompositionStyles} from '../data/compositionStyles.js';
 import { SCENE_SOUNDS } from './sceneSounds';
 import audioLevels from './audioLevels.json';
-import { DRUM_NOTES, DRUM_SAMPLES, SAMPLE_LIBRARY, sampleUrls } from './sampleLibrary';
+import { DRUM_NOTES, DRUM_DURATIONS, DRUM_SAMPLES, SAMPLE_LIBRARY, sampleUrls } from './sampleLibrary';
 import { createSustainLoop, MANUAL_RELEASE } from './envelopes';
 import { STRING_INSTRUMENTS } from '../utils/guitar';
 import {beatOffset} from '../utils/practice';
@@ -115,8 +115,9 @@ export class AudioEngine {
     const loads = [resources.load(attempt.reverb, () => attempt.reverb.ready)];
     for (const name of instrumentNames) {
       const gain = resources.own(new Tone.Volume(MIN_GAIN)).connect(name === 'drums' ? attempt.master : attempt.reverb);
-      const tone = name==='drums'?null:resources.own(new Tone.Filter({type:'highshelf',frequency:compositionStyle(this.genre).performance[name].cutoff,gain:-4,rolloff:-12})).connect(gain);
-      attempt.nodes[name] = { gain, tone };
+      const styleGain = name==='drums'?null:resources.own(new Tone.Volume(compositionStyle(this.genre).performance[name].gainDb??0)).connect(gain);
+      const tone = name==='drums'?null:resources.own(new Tone.Filter({type:'highshelf',frequency:compositionStyle(this.genre).performance[name].cutoff,gain:-4,rolloff:-12})).connect(styleGain);
+      attempt.nodes[name] = { gain, tone, styleGain };
       loads.push(this.createSampledInstrument(name, attempt));
     }
     await Promise.all(loads);
@@ -263,7 +264,7 @@ export class AudioEngine {
         const waveform = decoded.getChannelData(channel);
         for (let index = 0; index < waveform.length; index++) waveform[index] *= correction;
       }
-      if (['melody','flute','panflute'].includes(name)) {
+      if (['melody','flute','panflute','accordion'].includes(name)) {
         const midi = parseMidi(note);
         const channels = Array.from({length:decoded.numberOfChannels},(_,channel)=>decoded.getChannelData(channel));
         const loop = createSustainLoop(channels, decoded.sampleRate, 440 * 2 ** ((midi - 69) / 12));
@@ -459,7 +460,7 @@ export class AudioEngine {
     const loop = this.nodes[name].sustainLoops?.[selected.note];
     source.buffer = loop?.buffer ?? this.nodes[name].buffers[selected.note].get();
     source.playbackRate.value = 2 ** ((pitch - selected.midi) / 12);
-    if (['melody','flute','panflute'].includes(name)) {
+    if (['melody','flute','panflute','accordion'].includes(name)) {
       source.loop = true;
       source.loopStart = loop.loopStart;
       source.loopEnd = loop.loopEnd;
@@ -556,7 +557,10 @@ export class AudioEngine {
     }
     if(!instrumentName){
       this.scheduledBars.clear();
-      for(const node of Object.values(this.nodes))node.tone?.frequency.cancelAndHoldAtTime(Tone.immediate());
+      for(const node of Object.values(this.nodes)){
+        node.tone?.frequency.cancelAndHoldAtTime(Tone.immediate());
+        node.styleGain?.volume.cancelAndHoldAtTime(Tone.immediate());
+      }
     }
   }
 
@@ -763,7 +767,7 @@ export class AudioEngine {
   }
 
   compositionRole(name,active=this.active) {
-    const accompaniment=['piano','guitar','ukulele'].filter(instrument=>active[instrument]).slice(0,2);
+    const accompaniment=CHORD_INSTRUMENTS.filter(instrument=>active[instrument]).slice(0,2);
     return name==='drums'?'rhythm':accompaniment.includes(name)?'accompaniment':'melody';
   }
 
@@ -893,8 +897,7 @@ export class AudioEngine {
     const velocity = event.velocity ?? 0.55;
     const sampler = this.nodes[name].synth;
     if (name === 'drums') {
-      const durations = { kick: 0.5, snare: 0.3, hat: 0.12, tom: 0.5, clap: 0.23, rim: 0.045, shaker: 0.045, crash:2.4,ride:1.4,floorTom:.9 };
-      sampler.triggerAttackRelease(DRUM_NOTES[event.note], durations[event.note], time, velocity);
+      sampler.triggerAttackRelease(DRUM_NOTES[event.note], DRUM_DURATIONS[event.note], time, velocity);
       return;
     }
     const notes = event.notes ?? [event.note];
@@ -912,10 +915,16 @@ export class AudioEngine {
   applyPerformance(plan,time) {
     for(const [name,settings] of Object.entries(plan.movement.performance)){
       const frequency=this.nodes[name]?.tone?.frequency;
-      if(!frequency)continue;
       // Replanning replaces automation at the same boundary, including manual voices.
-      frequency.cancelAndHoldAtTime(time);
-      frequency.linearRampToValueAtTime(settings.cutoff,time+.12);
+      if(frequency){
+        frequency.cancelAndHoldAtTime(time);
+        frequency.linearRampToValueAtTime(settings.cutoff,time+.12);
+      }
+      const gain=this.nodes[name]?.styleGain?.volume;
+      if(gain){
+        gain.cancelAndHoldAtTime(time);
+        gain.linearRampToValueAtTime(Math.max(-2,Math.min(1.5,settings.gainDb??0)),time+.12);
+      }
     }
   }
 

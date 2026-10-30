@@ -1,6 +1,6 @@
 import React from 'react';
 import {Headphones,Footprints,Timer,Users,Play,Pause,RotateCcw,DoorOpen,ArrowRight,Music,Check,CircleAlert} from 'lucide-react';
-import {INSTRUMENTS} from '../utils/music';
+import {AVAILABLE_INSTRUMENTS as INSTRUMENTS} from '../utils/music';
 import {PRACTICE_STAGES} from '../utils/practice';
 import {InstrumentArt} from './InstrumentArt';
 

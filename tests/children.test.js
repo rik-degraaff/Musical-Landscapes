@@ -28,6 +28,8 @@ test('children require a name and age, preserve independent avatars, and select 
   const result=normalizeChildren({children:[child,{...child,id:'child-2',name:'Sam',age:'8plus'},{...child,name:' '},child],selectedId:'missing'});
   assert.equal(result.children.length,2);assert.equal(result.selectedId,'child-1');assert.equal(result.children[0].name,'Alex');
   assert.deepEqual(result.children[0].profile.instruments,['piano']);assert.equal(result.children[0].avatar.hair,'curls');
+  const expanded=normalizeChildren({children:[{...child,profile:{...child.profile,instruments:['accordion','harp','accordion','invalid']}}]});
+  assert.deepEqual(expanded.children[0].profile.instruments,['accordion','harp']);
   assert.ok(AGE_SIZES.under3<AGE_SIZES['3to4']&&AGE_SIZES['3to4']<AGE_SIZES['5to7']&&AGE_SIZES['5to7']<AGE_SIZES['8plus']);
   assert.deepEqual(normalizeAvatar({hair:'script',eyes:'url(bad)'}),DEFAULT_AVATAR);
 });

@@ -6,6 +6,8 @@ export const PIANO_NOTES = Array.from({ length: 19 }, (_, index) => midiNote(60 
 export const PANFLUTE_NOTES = Array.from({ length: 22 }, (_, index) => midiNote(60 + index));
 export const FLUTE_NOTES = Array.from({ length: 26 }, (_, index) => midiNote(60 + index));
 export const MARIMBA_NOTES = Array.from({ length: 22 }, (_, index) => midiNote(72 + index));
+export const ACCORDION_NOTES = Array.from({ length: 25 }, (_, index) => midiNote(60 + index));
+export const HARP_NOTES = Array.from({ length: 25 }, (_, index) => midiNote(60 + index));
 export const GUITAR_CHORDS = {
   Open: ['E2','A2','D3','G3','B3','E4'],
   C: [null,'C3','E3','G3','C4','E4'],

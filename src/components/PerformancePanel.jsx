@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import {InstrumentActions} from './GameButtons';
-import { INSTRUMENTS } from '../utils/music';
+import { AVAILABLE_INSTRUMENTS as INSTRUMENTS } from '../utils/music';
 import { PIANO_NOTES, MARIMBA_NOTES } from '../utils/performance';
 import './performance.css';
 import { useSwipeNotes } from './useSwipeNotes';
@@ -9,6 +9,7 @@ import { guitarInputs } from '../utils/autoplay';
 import {Flute as KeyFlute,Trumpet as LipTrumpet} from './WindControls';
 import {Guitar as FretboardGuitar} from './Guitar';
 import {PanFlute} from './PanFlute';
+import {TouchInstrument} from './TouchInstruments';
 import {useInputReset} from './useInputReset';
 import {equippedProfile} from '../utils/difficulty';
 import {HarmonyHints} from './HarmonyHints';
@@ -70,10 +71,12 @@ function Drums({ audio, options, profile, cue }) {
 }
 
 export function InstrumentSurface({ name, audio, root, options={complexity:1.5}, profile, cue, practice=false }) {
+  if(!INSTRUMENTS[name])return null;
   profile=profile??equippedProfile(name,root,options);
   const playableKey=`${name}:${root}:${profile.level}`;
   return <div className="performance-surface">
     {name==='piano'&&<Keyboard key={playableKey} audio={audio} notes={profile.level==='Advanced'?PIANO_NOTES:profile.keyboardNotes} kind="piano" options={options} cue={cue}/>}
+    {['accordion','harp'].includes(name)&&<TouchInstrument key={playableKey} name={name} audio={audio} cue={cue} profile={profile} PressControl={PressControl} options={options}/>}
     {name==='flute'&&<KeyFlute key={playableKey} audio={audio} cue={cue} profile={profile} PressControl={PressControl} options={options}/>}
     {name==='panflute'&&<PanFlute key={playableKey} audio={audio} cue={cue} profile={profile} PressControl={PressControl} options={options}/>}
     {name==='marimba'&&<Keyboard key={playableKey} audio={audio} notes={profile.level==='Advanced'?MARIMBA_NOTES:profile.keyboardNotes} kind="marimba" options={options} cue={cue}/>}

@@ -1,7 +1,7 @@
 import React,{useId} from 'react';
 import {Hand,Sprout,Layers,Sparkles,Tag,AudioLines,Trees} from 'lucide-react';
 import {InstrumentArt} from './InstrumentArt';
-import {INSTRUMENTS} from '../utils/music';
+import {AVAILABLE_INSTRUMENTS as INSTRUMENTS} from '../utils/music';
 
 export function InstrumentSlots({selected,instruments=INSTRUMENTS,onSelect}) {
   return <div className="instrument-slots">{selected.map((name,index)=><label key={index} className="settings-instrument"><i className="settings-art slot-art" aria-hidden="true"><InstrumentArt type={name}/></i><span className="slot-number">{index+1}</span><select aria-label={`Instrument slot ${index+1}`} value={name} onChange={event=>onSelect(index,event.target.value)}>{Object.entries(instruments).map(([id,instrument])=><option value={id} key={id}>{instrument.label}</option>)}</select></label>)}</div>;

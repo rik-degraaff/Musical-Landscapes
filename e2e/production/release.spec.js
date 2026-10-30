@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { test as base, expect } from '@playwright/test';
+import {AVAILABLE_INSTRUMENTS as INSTRUMENTS} from '../../src/utils/music.js';
 
 function recordings(directory, prefix = '/audio') {
   return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
@@ -15,7 +16,7 @@ const audioHashes = new Map(audioPaths.map(path => [
   path,
   createHash('sha256').update(readFileSync(new URL(`../../public${path}`, import.meta.url))).digest('hex'),
 ]));
-const instrumentNames = ['piano', 'drums', 'guitar', 'melody', 'marimba', 'flute', 'ukulele', 'panflute'];
+const instrumentNames = Object.keys(INSTRUMENTS);
 const selected = instrumentNames.slice(0, 6);
 const failedRecording = '/audio/instruments/piano/C3.mp3';
 
@@ -161,6 +162,14 @@ async function verifyOfflineSession(page, context, testInfo, { decodeRecordings 
     await expect(note).toHaveAttribute('aria-pressed', 'true');
     await page.keyboard.up('Space');
     await expect(note).toHaveAttribute('aria-pressed', 'false');
+    await page.locator('#young-musician').focus();await page.keyboard.press('Enter');
+    for(const name of ['accordion','harp']){
+      await page.getByRole('combobox',{name:'Practice instrument',exact:true}).selectOption(name);
+      const key=page.locator(`.touch-${name} .note-key`).first();
+      await key.focus();await page.keyboard.down('Space');
+      await expect(key).toHaveAttribute('aria-pressed','true');await page.keyboard.up('Space');
+    }
+    await page.getByRole('button',{name:'Leave practice through the open door',exact:true}).click();
     await page.getByRole('button', { name: 'Open settings', exact: true }).dblclick();
     await expect(page.getByRole('dialog', { name: 'Settings', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Return to main menu', exact: true }).click();

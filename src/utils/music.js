@@ -1,3 +1,4 @@
+import {instrumentEnabled} from './featureFlags.js';
 export const BPM = 92;
 export const BEATS_PER_BAR = 4;
 export const BAR = '1m';
@@ -30,11 +31,11 @@ export function transposeEvents(events, root, {preserveUnisons=false}={}) {
     ...e,
     notes: e.notes ? ((notes)=>preserveUnisons?notes:[...new Set(notes)])(e.notes.map(n => {
       const transposed=transposeNote(n,root);
-      return e.compactPiano?compactPianoNote(transposed):e.compactMarimba?compactMarimbaNote(transposed):e.compactPanflute?compactPanfluteNote(transposed):transposed;
+      return e.compactTouch?compactNote(transposed,60,84):e.compactPiano?compactPianoNote(transposed):e.compactMarimba?compactMarimbaNote(transposed):e.compactPanflute?compactPanfluteNote(transposed):transposed;
     })) : undefined,
     note: e.note && !DRUM_HITS.has(e.note) ? (()=>{
       const transposed=transposeNote(e.note,root);
-      return e.compactMarimba?compactMarimbaNote(transposed):e.compactPanflute?compactPanfluteNote(transposed):transposed;
+      return e.compactTouch?compactNote(transposed,60,84):e.compactMarimba?compactMarimbaNote(transposed):e.compactPanflute?compactPanfluteNote(transposed):transposed;
     })() : e.note,
   }));
 }
@@ -164,15 +165,42 @@ patterns.panflute = [
   P(.85,.85,[{time:'0:0:0',note:'C4',dur:'8n',velocity:.48},{time:'0:0:2',note:'E4',dur:'8n',velocity:.34},{time:'0:1:0',note:'G4',dur:'8n',velocity:.42},{time:'0:1:2',note:'A4',dur:'8n',velocity:.35},{time:'0:2:0',note:'C5',dur:'4n',velocity:.44},{time:'0:3:0',note:'G4',dur:'8n',velocity:.38},{time:'0:3:2',note:'E4',dur:'8n',velocity:.32}])
 ].map(phrase=>({...phrase,events:phrase.events.map(event=>({...event,compactPanflute:true}))}));
 
+// Single-note exercises keep the five-note introduction playable with one finger.
+// Standard adds the remaining scale notes; Advanced adds range and faster rhythms.
+patterns.accordion = [
+  P(.1,.1,[{time:'0:0:0',note:'C4',dur:'2n',velocity:.5},{time:'0:2:0',note:'G4',dur:'2n',velocity:.46}]),
+  P(.25,.25,[{time:'0:0:0',note:'D4',dur:'4n',velocity:.5},{time:'0:1:0',note:'E4',dur:'4n',velocity:.46},{time:'0:2:0',note:'A4',dur:'4n',velocity:.5},{time:'0:3:0',note:'G4',dur:'4n',velocity:.44}]),
+  P(.45,.45,[{time:'0:0:0',note:'C5',dur:'4n',velocity:.52},{time:'0:1:0',note:'B4',dur:'8n',velocity:.44},{time:'0:1:2',note:'A4',dur:'8n',velocity:.46},{time:'0:2:0',note:'G4',dur:'4n',velocity:.5},{time:'0:3:0',note:'F4',dur:'4n',velocity:.44}]),
+  P(.6,.6,[{time:'0:0:0',note:'E4',dur:'8n',velocity:.52},{time:'0:0:2',note:'F4',dur:'8n',velocity:.44},{time:'0:1:0',note:'G4',dur:'4n',velocity:.5},{time:'0:2:0',note:'B4',dur:'4n',velocity:.48},{time:'0:3:0',note:'C5',dur:'4n',velocity:.44}]),
+  P(.75,.75,[{time:'0:0:0',note:'C5',dur:'8n',velocity:.54},{time:'0:0:2',note:'E5',dur:'8n',velocity:.46},{time:'0:1:0',note:'G5',dur:'4n',velocity:.5},{time:'0:2:0',note:'F5',dur:'8n',velocity:.48},{time:'0:2:2',note:'E5',dur:'8n',velocity:.44},{time:'0:3:0',note:'C5',dur:'4n',velocity:.5}]),
+  P(.9,.9,[{time:'0:0:0',note:'C4',dur:'8n',velocity:.56},{time:'0:0:2',note:'E4',dur:'8n',velocity:.45},{time:'0:1:0',note:'G4',dur:'8n',velocity:.5},{time:'0:1:2',note:'B4',dur:'8n',velocity:.44},{time:'0:2:0',note:'C5',dur:'8n',velocity:.54},{time:'0:2:2',note:'B4',dur:'8n',velocity:.45},{time:'0:3:0',note:'A4',dur:'8n',velocity:.48},{time:'0:3:2',note:'G4',dur:'8n',velocity:.44}]),
+].map(phrase=>({...phrase,events:phrase.events.map(event=>({...event,compactTouch:true}))}));
+patterns.harp = [
+  P(.1,.1,[{time:'0:0:0',note:'C4',dur:'2n',velocity:.56},{time:'0:2:0',note:'E4',dur:'2n',velocity:.5}]),
+  P(.25,.25,[{time:'0:0:0',note:'D4',dur:'4n',velocity:.54},{time:'0:1:0',note:'G4',dur:'4n',velocity:.5},{time:'0:2:0',note:'A4',dur:'4n',velocity:.56},{time:'0:3:0',note:'E4',dur:'4n',velocity:.48}]),
+  P(.45,.45,[{time:'0:0:0',note:'C4',dur:'4n',velocity:.58},{time:'0:1:0',note:'F4',dur:'8n',velocity:.5},{time:'0:1:2',note:'A4',dur:'8n',velocity:.48},{time:'0:2:0',note:'B4',dur:'4n',velocity:.54},{time:'0:3:0',note:'C5',dur:'4n',velocity:.5}]),
+  P(.6,.6,[{time:'0:0:0',note:'C5',dur:'8n',velocity:.58},{time:'0:0:2',note:'B4',dur:'8n',velocity:.48},{time:'0:1:0',note:'G4',dur:'4n',velocity:.52},{time:'0:2:0',note:'F4',dur:'4n',velocity:.5},{time:'0:3:0',note:'D4',dur:'4n',velocity:.48}]),
+  P(.75,.75,[{time:'0:0:0',note:'C4',dur:'8n',velocity:.6},{time:'0:0:2',note:'E4',dur:'8n',velocity:.5},{time:'0:1:0',note:'G4',dur:'8n',velocity:.54},{time:'0:1:2',note:'C5',dur:'8n',velocity:.5},{time:'0:2:0',note:'E5',dur:'4n',velocity:.58},{time:'0:3:0',note:'G5',dur:'4n',velocity:.52}]),
+  P(.9,.9,[{time:'0:0:0',note:'G5',dur:'8n',velocity:.62},{time:'0:0:2',note:'E5',dur:'8n',velocity:.5},{time:'0:1:0',note:'C5',dur:'8n',velocity:.54},{time:'0:1:2',note:'B4',dur:'8n',velocity:.48},{time:'0:2:0',note:'A4',dur:'8n',velocity:.58},{time:'0:2:2',note:'G4',dur:'8n',velocity:.5},{time:'0:3:0',note:'E4',dur:'8n',velocity:.54},{time:'0:3:2',note:'C4',dur:'8n',velocity:.48}]),
+].map(phrase=>({...phrase,events:phrase.events.map(event=>({...event,compactTouch:true}))}));
+
+export const CHORD_INSTRUMENTS = ['piano','guitar','ukulele','accordion','harp'];
 export const DEFAULT_INSTRUMENTS = ['piano','drums','ukulele','melody','marimba','panflute'];
 export const INSTRUMENT_SLOTS = [{x:15,y:35},{x:50,y:35},{x:85,y:35},{x:15,y:67},{x:50,y:67},{x:85,y:67}];
+// Representative rendered parts target roughly -35 LUFS, percussion -33 LUFS.
+// Reproduce the approximation with npm run audio:balance, then audition the mix.
 export const INSTRUMENTS = {
-  piano:{label:'Piano', icon:'🎹', volume:-9, x:15, y:35, seed:11},
-  drums:{label:'Drums', icon:'🥁', volume:-6, x:50, y:35, seed:23},
-  guitar:{label:'Acoustic guitar', icon:'🎸', volume:-9, x:85, y:35, seed:37},
-  melody:{label:'Trumpet', icon:'🎺', volume:-4, x:15, y:67, seed:51},
-  marimba:{label:'Marimba', icon:'🎶', volume:-14, x:50, y:67, seed:63},
-  flute:{label:'Flute', icon:'🪈', volume:-3, x:85, y:67, seed:77},
-  ukulele:{label:'Ukulele',icon:'🎸',volume:-13,x:85,y:35,seed:89},
-  panflute:{label:'Pan flute',icon:'🪈',volume:-6,x:85,y:67,seed:101},
+  piano:{label:'Piano', icon:'🎹', volume:-10, x:15, y:35, seed:11},
+  drums:{label:'Drums', icon:'🥁', volume:0, x:50, y:35, seed:23},
+  guitar:{label:'Acoustic guitar', icon:'🎸', volume:-11, x:85, y:35, seed:37},
+  melody:{label:'Trumpet', icon:'🎺', volume:-7, x:15, y:67, seed:51},
+  marimba:{label:'Marimba', icon:'🎶', volume:-11, x:50, y:67, seed:63},
+  flute:{label:'Flute', icon:'🪈', volume:-6, x:85, y:67, seed:77},
+  ukulele:{label:'Ukulele',icon:'🎸',volume:-9,x:85,y:35,seed:89},
+  panflute:{label:'Pan flute',icon:'🪈',volume:-7,x:85,y:67,seed:101},
+  accordion:{label:'Accordion',icon:'🪗',volume:-9,x:15,y:67,seed:113},
+  harp:{label:'Harp',icon:'🎵',volume:-9,x:85,y:35,seed:127},
 };
+
+// Runtime entry points must enumerate this catalog, not the retained definitions.
+export const AVAILABLE_INSTRUMENTS = Object.fromEntries(Object.entries(INSTRUMENTS).filter(([name])=>instrumentEnabled(name)));

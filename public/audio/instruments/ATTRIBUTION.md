@@ -36,3 +36,11 @@ Reproduce only the new banks: `node scripts/download-instruments.mjs --only ukul
 Kick, snare, closed hi-hat, high tom, floor tom, crash and ride: MuldjordKit drum recordings by Lars Muldjord; FreePats stereo version assembled by <roberto@zenvoid.org>. Drum samples provided by DrumGizmo.org. Licensed under CC BY 4.0, <https://creativecommons.org/licenses/by/4.0/>. Source: <https://github.com/freepats/muldjordkit>. Original FLAC files are bundled unchanged. Shortened snare and hi-hat playback is also used for rim/shaker accents. The original README and license are included beside this file.
 
 Hand clap: "Clap-9.wav" by Sorinious_Genious, CC0, <https://freesound.org/people/Sorinious_Genious/sounds/561119/>. The publicly available HQ MP3 preview is bundled unchanged.
+
+## Accordion and harp
+
+Accordion (`accordion`) and orchestral harp (`orchestral_harp`) are FluidR3 GM recordings distributed by MIDI.js Soundfonts, under the same CC-BY 3.0 US notice as the other FluidR3 instruments above. Each bundles 25 chromatic recordings C4–C6, extracted unchanged from the MP3 soundfont maps.
+
+- https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/accordion-mp3.js
+- https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/orchestral_harp-mp3.js
+- https://creativecommons.org/licenses/by/3.0/us/

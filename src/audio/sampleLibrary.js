@@ -2,6 +2,8 @@ import { midiNote } from '../utils/performance.js';
 
 const range = (start, count, existing) => [...new Set([...existing, ...Array.from({length:count},(_,index)=>midiNote(start+index))])];
 export const SAMPLE_LIBRARY = {
+  accordion: { source: 'accordion', notes: range(60,25,[]), release: 0.18 },
+  harp: { source: 'orchestral_harp', notes: range(60,25,[]), release: 0.9 },
   piano: { source: 'acoustic_grand_piano', notes: range(60,17,['C3','E3','G#3','G#5','C6']), release: 0.65 },
   guitar: { source: 'acoustic_guitar_nylon', notes: range(40,28,['G#4','C5','E5']), release: 0.4 },
   melody: { source: 'trumpet', notes: range(54,26,['G#5','C6']), release: 0.15 },
@@ -40,6 +42,7 @@ export const DRUM_SAMPLES = {
 };
 
 export const DRUM_NOTES = { kick: 'C2', snare: 'D2', hat: 'F#2', tom: 'G2', clap: 'D#2', rim: 'C#2', shaker: 'A#2', crash:'C#3',ride:'D#3',floorTom:'F2' };
+export const DRUM_DURATIONS = { kick:.5,snare:.3,hat:.12,tom:.5,clap:.23,rim:.045,shaker:.045,crash:2.4,ride:1.4,floorTom:.9 };
 
 export function sampleUrls(name) {
   const instrument = SAMPLE_LIBRARY[name];

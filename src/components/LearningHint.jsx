@@ -3,7 +3,7 @@ import {Lightbulb} from 'lucide-react';
 import {GesturePointer} from './GesturePointer';
 import {gestureFrame} from '../utils/gestures';
 import './live-coach.css';
-import {INSTRUMENTS} from '../utils/music';
+import {AVAILABLE_INSTRUMENTS as INSTRUMENTS} from '../utils/music';
 
 export function LearningBeacon({hint,onOpen}) {
   return <button key={hint.id} className="learning-beacon" aria-label={`Learn something new: ${hint.title}`} onClick={onOpen}><Lightbulb size={21}/><span>Something to try</span></button>;
@@ -24,8 +24,8 @@ export function LearningHint({hint,instruments,equipped,practice,suspended,onCom
     if(!equipped){step='drag';selector=`#instrument-${instrument}`;endSelector='#young-musician';}
     else {
       step=stringed&&phase===0?'chord':'play';gesture=stringed?(phase>0?'swipe':'hold'):['drums','marimba'].includes(instrument)?'tap':'hold';
-      selector=stringed?(phase===0?'.performance-panel .chord-control':'.performance-panel .playable-string'):'.performance-panel .natural-key, .performance-panel .drum-pad, .performance-panel .panflute-pipe, .performance-panel .flute-key-Eb, .performance-panel .trumpet-embouchure';
-      text=stringed?(phase===0?'Hold a chord here.':'Keep holding the chord and sweep across the strings.'):instrument==='drums'?'Tap this drum.':instrument==='marimba'?'Tap this bar.':instrument==='flute'?'Hold this key to play a note.':instrument==='melody'?'Hold the lip control to blow a note.':'Hold this key or pipe to play a note.';
+      selector=stringed?(phase===0?'.performance-panel .chord-control':'.performance-panel .playable-string'):'.performance-panel .natural-key, .performance-panel .accordion-key, .performance-panel .harp-string, .performance-panel .drum-pad, .performance-panel .panflute-pipe, .performance-panel .flute-key-Eb, .performance-panel .trumpet-embouchure';
+      text=stringed?(phase===0?'Hold a chord here.':'Keep holding the chord and sweep across the strings.'):instrument==='drums'?'Tap this drum.':instrument==='harp'?'Tap a string or sweep across the strings.':instrument==='marimba'?'Tap this bar.':instrument==='flute'||instrument==='accordion'?'Hold this key to play a note.':instrument==='melody'?'Hold the lip control to blow a note.':'Hold this key or pipe to play a note.';
     }
   }
   if(hint.id==='practice') {

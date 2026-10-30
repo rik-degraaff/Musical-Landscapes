@@ -6,7 +6,7 @@ test('guides distinguish unread, changed revisions and completed revisions',()=>
   const state=emptyLearning(),guide=GUIDES[0];
   assert.equal(guideStatus(state,guide),'Unread');state.guides[guide.id]=1;
   assert.equal(guideStatus(state,guide),'New');state.guides[guide.id]=guide.version;assert.equal(guideStatus(state,guide),'Read');
-  state.guides[guide.id]=3;assert.equal(guideStatus(state,guide),'Read');
+  state.guides[guide.id]=guide.version+1;assert.equal(guideStatus(state,guide),'Read');
 });
 test('automatic suggestions respect age, active time, prerequisites and child isolation',()=>{
   let state=emptyLearning();const child={id:'a',age:'5to7'};
