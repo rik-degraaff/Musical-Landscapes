@@ -59,6 +59,12 @@ export function useFamily(developmentPreview) {
     return result.snapshot;
   }
 
+  function cancelChildSetup() {
+    // Retries share an ID only within one setup. A canceled, partially saved
+    // creation must not become the identity of a later, different child.
+    pendingChild.current=null;
+  }
+
   function saveFamily(family) {
     if(!family)return null;
     const next={family,settings:family.children.find(child=>child.id===family.selectedId)?.settings??defaultSettings()};
@@ -84,5 +90,5 @@ export function useFamily(developmentPreview) {
   }
 
   return {...snapshot,selectedChild:snapshot.family.children.find(child=>child.id===snapshot.family.selectedId)??null,
-    initial,error,updateSettings,selectChild,addChild,saveFamily,retry};
+    initial,error,updateSettings,selectChild,addChild,cancelChildSetup,saveFamily,retry};
 }

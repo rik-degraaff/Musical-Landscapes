@@ -135,3 +135,26 @@ test('a mirror-only retry preserves edits saved by another tab after the family 
   await expect(page.getByRole('radio',{name:'Standard',exact:true})).toBeChecked();
   expect((await readFamily(page)).children[0].settings.instruments.piano.complexity).toBe(1);
 });
+
+test('canceling a partially saved creation gives the next setup a distinct child ID',async({page})=>{
+  await seed(page);
+  const firstAdd=await prepareChild(page,'First sibling');
+  await page.evaluate(key=>{
+    const write=Storage.prototype.setItem;
+    Storage.prototype.setItem=function(name,value){if(name===key)throw new DOMException('Test quota','QuotaExceededError');return write.call(this,name,value);};
+    window.restoreFamilyWrites=()=>{Storage.prototype.setItem=write;};
+  },SETTINGS_KEY);
+  await firstAdd.click();
+  await expect(page.getByRole('alert')).toContainText('save');
+  const firstSaved=(await readFamily(page)).children.find(child=>child.name==='First sibling');
+  expect(firstSaved).toBeTruthy();
+  await page.getByRole('button',{name:'Cancel child setup',exact:true}).click();
+  await expect(page.getByRole('dialog',{name:'Add a child',exact:true})).toHaveCount(0);
+  await page.evaluate(()=>window.restoreFamilyWrites());
+  await (await prepareChild(page,'Second sibling')).click();
+  await expect(page.getByRole('dialog',{name:'Add a child',exact:true})).toHaveCount(0);
+  const saved=await readFamily(page);
+  expect(saved.children.map(child=>child.name)).toEqual(['Player','First sibling','Second sibling']);
+  expect(saved.children.find(child=>child.name==='First sibling')).toEqual(firstSaved);
+  expect(saved.children.find(child=>child.name==='Second sibling').id).not.toBe(firstSaved.id);
+});
