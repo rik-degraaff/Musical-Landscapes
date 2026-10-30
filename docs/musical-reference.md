@@ -14,6 +14,8 @@ Changing the landscape changes both the tonic and mode: Morning (Sunny Farm) **A
 
 ## Instrument sounds
 
+Click-only activation of a note control plays one short note through the same owned voice path as held input. Guitar and ukulele chord activation selects a shape for subsequent string plucks; activating that chord again or resetting input clears the selection. Pointer and keyboard holds retain their existing release behavior.
+
 Rock uses the existing acoustic samples with straight eighths, a kick/snare backbeat on alternating quarter beats, soft hi-hat offbeats and occasional small tom turns. Nine tiered authored motifs add bouncy chord strums and repeating sing-along hooks; repeated contours keep their exact pitches. Verse/chorus and sing-along movement shapes favor shared melodic ideas, modest register variation and familiar I–V–IV–I / I–V–vi–IV progressions (diatonic equivalents in minor scenes). Simple parts keep four or fewer quarter-beat events. Rock tone gently rounds the acoustic samples and shortens their gates, with bounded accents and the existing .72 velocity ceiling. It adds no distortion or mixer gain. Its motifs also enter the existing phrase selector and composition-derived practice pool.
 
 Jazz adds `brassCall` (Simple and above) and `brassRiff` (Standard and above): authored repeated chord tones, modest alternating accents, short gaps and a resolving answer. Trumpet is more likely to select them than the softer winds. Repeated contours retain their exact pitch through deterministic voicing; they do not gain random chromatic dissonance. Jazz eighth-note offbeats are delayed by .16 beats. Folk retains its straight pulse, open strums and lyrical phrases.

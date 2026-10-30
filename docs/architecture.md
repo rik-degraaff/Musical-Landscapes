@@ -21,6 +21,10 @@ The UI sends active instrument, key, tempo, and equipped-instrument preferences 
 
 Practice owns the shared transport while its session is active. The landscape bar callback remains registered but cannot advance composition history, publish harmony, or queue tone automation during practice. Leaving practice restores the landscape state and starts a fresh composition timeline at bar zero.
 
+Tempo holds resume only the active practice run, preserving its transport position and accompaniment. Holds before its scheduled start restart one complete count-in; idle or stopped practice stays stopped. Practice input and expiry use transport ticks at the current audio time rather than the scheduler's lookahead time.
+
+Each owned startup load has a 15-second deadline. A stalled recording returns the menu to its retryable error state. The failed attempt retains ownership of any unfinished browser decode until it settles, preventing late completion from changing or disposing a newer attempt.
+
 Landscape changes update the requested key. The current bar completes in its captured key; the latest requested key takes effect on the next downbeat. The transport is shared and is not restarted for scene changes.
 
 Composition styles also own per-instrument tone cutoff, articulation gate and accent depth. The movement planner derives a small, fixed colour from each movement seed and blends it at movement handoffs; genre interpolation supplies the larger change. Immutable bar plans carry the resulting performance settings and gated events. The engine schedules gentle high-frequency shelf automation at the bar's audio timestamp and routes both sampler and manual voices through the same resource-owned filter before the existing mixer/reverb. The shelf only attenuates (up to 4 dB); it never boosts. Replanning replaces future automation, and playback cleanup cancels it.
