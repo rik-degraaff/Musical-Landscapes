@@ -107,3 +107,30 @@ test('fast practice accepts a late note within the timing window using the curre
   await expect(page.locator('.practice-feedback-display')).toHaveAttribute('data-tone','correct');
   await expect(page.locator('.practice-phrase-track span').first()).toHaveClass(/is-complete/);
 });
+
+test('restarting practice ignores previous transport ticks before the new count-in',async({page})=>{
+  await startPractice(page);
+  await page.getByRole('button',{name:'3. Rhythm',exact:true}).click();
+  await page.evaluate(()=>{
+    const engine=window.audioEngine;engine.setTempo(208);
+    const start=engine.startPracticeRun;
+    engine.startPracticeRun=function(...args){window.repeatExercise=args;return start.apply(this,args);};
+    const capture=engine.onPracticeInput;
+    engine.onPracticeInput=input=>{window.lastRestartInput=input;capture(input);};
+  });
+  await page.getByRole('button',{name:'Start repeating',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.practiceTicks())).toBeGreaterThan(192*8);
+  const restart=await page.evaluate(()=>{
+    const engine=window.audioEngine,Tone=window.testTone;
+    const feedbackBefore=document.querySelector('.practice-feedback-display').textContent;
+    const session=engine.startPracticeRun(...window.repeatExercise);
+    const time=Tone.immediate(),oldTicks=Tone.Transport.getTicksAtTime(time);
+    engine.manualNoteOn('C4','before-new-count-in');engine.manualNoteOff('before-new-count-in');
+    return {beforeStart:time<engine.practiceRun.startTime,oldTicks,startTick:session.startTick,
+      ticks:engine.practiceTicks(time),inputTicks:window.lastRestartInput.ticks,feedbackBefore};
+  });
+  expect(restart.beforeStart).toBe(true);expect(restart.oldTicks).toBeGreaterThan(restart.startTick);
+  expect(restart.ticks).toBe(0);expect(restart.inputTicks).toBe(0);
+  await expect(page.locator('.practice-feedback-display')).toHaveText(restart.feedbackBefore);
+  await expect.poll(()=>page.evaluate(()=>window.audioEngine.practiceTicks())).toBeGreaterThan(96);
+});

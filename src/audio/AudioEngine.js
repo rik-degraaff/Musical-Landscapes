@@ -742,7 +742,12 @@ export class AudioEngine {
   practiceTime() {return Tone.immediate();}
   // Transport.ticks includes Tone's scheduling lookahead. Scoring and expiry
   // follow the current audio time instead of judging inputs a lookahead early.
-  practiceTicks(time=Tone.immediate()) {return Tone.Transport.getTicksAtTime(time);}
+  practiceTicks(time=Tone.immediate()) {
+    // Stop/start commands take effect in Tone's lookahead. Until this run's
+    // real start, the audio clock can still expose the previous run's ticks.
+    if(this.practiceRun&&(this.practiceRun.waitingForStart||time<this.practiceRun.startTime))return 0;
+    return Tone.Transport.getTicksAtTime(time);
+  }
 
   endPractice() {
     const saved=this.practiceSession;if(!saved)return;

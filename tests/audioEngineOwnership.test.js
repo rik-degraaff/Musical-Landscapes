@@ -880,3 +880,25 @@ for(const tempo of [40,92,208])test(`practice inputs and expiry use the actual a
   assert.equal(scoreTimedInput(createTimingAttempt(phrase),input.note,(Tone.Transport.ticks-startTick)/Tone.Transport.PPQ).correct,false);
   engine.dispose();
 });
+
+test('a restarted practice run hides old transport ticks and ignores input until its actual count-in starts',async()=>{
+  const {engine,runtime,Tone}=setup();await engine.init();engine.beginPractice('piano');
+  const phrase={events:[{time:'0:0:0',note:'C4',dur:'4n'}]};
+  engine.startPracticeRun(phrase,false);
+  Tone.immediate=()=>2;Tone.now=()=>2.1;runtime.ticks=Tone.Transport.PPQ*8;
+  assert.ok(engine.practiceTicks()>Tone.Transport.PPQ*4);
+  const session=engine.startPracticeRun(phrase,false),run=engine.practiceRun;
+  assert.ok(Tone.Transport.getTicksAtTime(Tone.immediate())>session.startTick);
+  assert.equal(engine.practiceTicks(),0);
+  let input,scored=0;
+  engine.onPracticeInput=event=>{input=event;if(event.ticks>=session.startTick)scored++;};
+  engine.manualNoteOn('C4','before-count-in');engine.manualNoteOff('before-count-in');
+  assert.equal(input.ticks,0);assert.equal(scored,0);
+  const previousTicks=runtime.ticks;
+  Tone.Transport.getTicksAtTime=time=>time<run.startTime?previousTicks:(time-run.startTime)*Tone.Transport.PPQ*engine.tempo/60;
+  assert.equal(engine.practiceTicks(run.startTime-.001),0);
+  Tone.immediate=()=>run.startTime+.25;
+  assert.equal(engine.practiceTicks(),Tone.Transport.getTicksAtTime(Tone.immediate()));
+  assert.ok(engine.practiceTicks()>0);assert.ok(engine.practiceTicks()<session.startTick);
+  engine.dispose();
+});
