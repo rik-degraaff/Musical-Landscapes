@@ -18,6 +18,7 @@ async function start(page){
   return errors;
 }
 async function enter(page){
+  await waitForInstrumentSettling(page);
   const musician=page.locator('#young-musician');
   let position;
   await expect.poll(async()=>{

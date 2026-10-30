@@ -121,6 +121,7 @@ test('a manual wake gesture is retained while held but canceled if released befo
 test('sound help stays available with running audio and retries blocked audio through the real output',async({page},testInfo)=>{
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await start(page);
+  const initialMix=await page.evaluate(()=>({piano:window.audioEngine.volumes.piano,scenery:window.audioEngine.sceneVolume}));
   const button=page.locator('.sound-help-corner');
   await expect(button).toHaveAttribute('data-attention','false');
   await button.click();
@@ -162,7 +163,7 @@ test('sound help stays available with running audio and retries blocked audio th
   await page.getByRole('slider',{name:'Scenery sounds volume',exact:true}).fill('-60');
   await page.getByRole('button',{name:'Close settings',exact:true}).click();
   await button.click();await help.getByRole('button',{name:'Restore sound levels',exact:true}).click();
-  expect(await page.evaluate(()=>({piano:window.audioEngine.volumes.piano,scenery:window.audioEngine.sceneVolume}))).toEqual({piano:-9,scenery:-4});
+  expect(await page.evaluate(()=>({piano:window.audioEngine.volumes.piano,scenery:window.audioEngine.sceneVolume}))).toEqual(initialMix);
   await help.getByRole('button',{name:'Open Sound settings',exact:true}).click();
   await expect(page.getByRole('tab',{name:'Sound',exact:true})).toHaveAttribute('aria-selected','true');
   await expect(page.getByRole('slider',{name:'Scenery sounds volume',exact:true})).toHaveValue('-4');
