@@ -15,17 +15,33 @@ export class AudioResources {
     if (this.closed) throw new Error('Audio initialization cancelled');
   }
 
-  async load(resource, load) {
+  async load(resource, load, {timeoutMs = 15000} = {}) {
     this.own(resource);
     const entry = this.entries.get(resource);
     entry.pending++;
+    // The caller may stop waiting before a browser decode finishes. Keep that
+    // work owned until it settles, so a retry cannot dispose its resources.
+    const loading = (async () => {
+      try {
+        await load();
+      } finally {
+        entry.pending--;
+        if (this.closed) this.release(entry);
+      }
+    })();
+    let timer;
     try {
-      await load();
+      await Promise.race([
+        loading,
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error('Audio loading timed out; tap to retry')), timeoutMs);
+        }),
+        this.cancelled.then(() => { throw new Error('Audio initialization cancelled'); }),
+      ]);
       this.check();
       return resource;
     } finally {
-      entry.pending--;
-      if (this.closed) this.release(entry);
+      clearTimeout(timer);
     }
   }
 

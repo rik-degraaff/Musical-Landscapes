@@ -50,3 +50,40 @@ test('failed and successful siblings both release their owned resources', async 
   await assert.rejects(delayed, /cancelled/);
   assert.deepEqual(counts, [1, 1]);
 });
+
+test('a stalled load times out and retains ownership until late completion', async () => {
+  const scope = new AudioResources();
+  const retry = new AudioResources();
+  let complete;
+  let disposals = 0;
+  let retryDisposals = 0;
+  const resource = { dispose: () => disposals++ };
+  const loading = scope.load(resource, () => new Promise(resolve => { complete = resolve; }), {timeoutMs: 10});
+  await assert.rejects(loading, /timed out/);
+  scope.dispose();
+  assert.equal(disposals, 0);
+  const fresh = { dispose: () => retryDisposals++ };
+  await retry.load(fresh, () => Promise.resolve());
+  complete();
+  await Promise.resolve();
+  assert.equal(disposals, 1);
+  assert.equal(retryDisposals, 0);
+  scope.dispose();
+  assert.equal(disposals, 1);
+  retry.dispose();
+  assert.equal(retryDisposals, 1);
+});
+
+test('cancelling a stalled load rejects promptly without waiting for its deadline', async () => {
+  const scope = new AudioResources();
+  let complete;
+  let disposals = 0;
+  const loading = scope.load({ dispose: () => disposals++ }, () => new Promise(resolve => { complete = resolve; }));
+  const cancelled = assert.rejects(loading, /cancelled/);
+  scope.dispose();
+  await cancelled;
+  assert.equal(disposals, 0);
+  complete();
+  await Promise.resolve();
+  assert.equal(disposals, 1);
+});
