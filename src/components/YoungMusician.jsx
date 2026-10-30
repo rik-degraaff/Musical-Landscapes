@@ -28,7 +28,7 @@ export function YoungMusician({ child,equipped, accepting,onPractice }) {
     document.addEventListener('pointerdown',down,true);document.addEventListener('pointerup',up,true);document.addEventListener('pointercancel',cancel,true);
     return ()=>{document.removeEventListener('pointerdown',down,true);document.removeEventListener('pointerup',up,true);document.removeEventListener('pointercancel',cancel,true);};
   },[]);
-  return <div ref={element} id="young-musician" data-child-name={child?.name} style={{scale:AGE_SIZES[child?.age]??1}} className={`young-musician ${equipped?'equipped':''} ${accepting?'accepting':''}`} role="button" tabIndex={0} aria-label={equipped?`Practice with ${equipped}`:'Enter practice room'} title="Double-tap to practice" onKeyDown={event=>{if(!event.repeat&&['Enter',' '].includes(event.key)){event.preventDefault();onPractice?.();}}}>
+  return <div ref={element} id="young-musician" data-child-name={child?.name} style={{scale:AGE_SIZES[child?.age]??1}} className={`young-musician ${equipped?'equipped':''} ${accepting?'accepting':''}`} role="button" tabIndex={0} aria-label={equipped?`Practice with ${equipped}`:'Enter practice room'} title="Double-tap to practice" onClick={event=>{if(event.detail===0)onPractice?.();}} onKeyDown={event=>{if(!event.repeat&&['Enter',' '].includes(event.key)){event.preventDefault();onPractice?.();}}}>
     <YoungMusicianArt child={child}/>
   </div>;
 }

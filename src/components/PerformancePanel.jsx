@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import {InstrumentActions} from './GameButtons';
 import { INSTRUMENTS } from '../utils/music';
 import { PIANO_NOTES, MARIMBA_NOTES } from '../utils/performance';
@@ -13,10 +13,12 @@ import {useInputReset} from './useInputReset';
 import {equippedProfile} from '../utils/difficulty';
 import {HarmonyHints} from './HarmonyHints';
 
-export function PressControl({ label, className='', onPress, onRelease=()=>{}, children, style, swipeNote, demoPressed=false }) {
+export function PressControl({ label, className='', onPress, onRelease=()=>{}, onActivate, children, style, swipeNote, demoPressed=false }) {
   const owners=useRef(new Set());
   const [pressed,setPressed]=useState(false);
   const buttonRef=useRef(null);
+  const activationTimer=useRef(null);
+  const activationToken=`activation-${useId()}`;
   function down(token) { if(owners.current.has(token))return;flashInput(buttonRef.current); owners.current.add(token);setPressed(true);onPress(token); }
   function up(token) { if(!owners.current.delete(token))return;onRelease(token);setPressed(owners.current.size>0); }
   const releaseRef=useRef(up);releaseRef.current=up;
@@ -24,10 +26,18 @@ export function PressControl({ label, className='', onPress, onRelease=()=>{}, c
     const end=event=>releaseRef.current(`pointer-${event.pointerId}`);
     const lostMouse=event=>{if(event.pointerType==='mouse'&&event.buttons===0)end(event);};
     window.addEventListener('pointerup',end,true);window.addEventListener('pointercancel',end,true);window.addEventListener('pointermove',lostMouse,true);
-    return ()=>{window.removeEventListener('pointerup',end,true);window.removeEventListener('pointercancel',end,true);window.removeEventListener('pointermove',lostMouse,true);};
+    return ()=>{window.clearTimeout(activationTimer.current);for(const token of [...owners.current])releaseRef.current(token);window.removeEventListener('pointerup',end,true);window.removeEventListener('pointercancel',end,true);window.removeEventListener('pointermove',lostMouse,true);};
   },[]);
-  useInputReset(()=>{const held=[...owners.current];owners.current.clear();setPressed(false);held.forEach(onRelease);});
+  useInputReset(()=>{window.clearTimeout(activationTimer.current);const held=[...owners.current];owners.current.clear();setPressed(false);held.forEach(onRelease);});
   return <button ref={buttonRef} type="button" aria-label={label} aria-pressed={pressed||demoPressed} data-swipe-note={swipeNote} className={`${className} ${pressed||demoPressed?'pressed':''}`} style={style}
+    onClick={event=>{
+      // Pointer/swipe and held-key paths already played. Accessibility activation
+      // sends a click without either path, so give it one bounded owned pulse.
+      if(event.detail!==0)return;
+      if(onActivate){flashInput(buttonRef.current);onActivate();return;}
+      window.clearTimeout(activationTimer.current);up(activationToken);down(activationToken);
+      activationTimer.current=window.setTimeout(()=>releaseRef.current(activationToken),160);
+    }}
     onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();if(swipeNote!==undefined)return;event.currentTarget.setPointerCapture(event.pointerId);down(`pointer-${event.pointerId}`);}}
     onPointerUp={event=>up(`pointer-${event.pointerId}`)} onPointerCancel={event=>up(`pointer-${event.pointerId}`)} onLostPointerCapture={event=>up(`pointer-${event.pointerId}`)}
     onKeyDown={event=>{if(!event.repeat&&['Enter',' '].includes(event.key)){event.preventDefault();down(`key-${event.key}`);}}}

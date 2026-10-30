@@ -27,6 +27,7 @@ export function Instrument({
       aria-label={label}
       aria-pressed={active}
       title={equipped?'Tap to toggle music; double-tap to practice; drag away to put down':label}
+      onClick={event=>{if(event.detail===0)onToggle(name);}}
       onKeyDown={event => {
         if(!event.repeat&&event.key.toLowerCase()==='e'){event.preventDefault();onEquip();return;}
         if (!event.repeat && (event.key === 'Enter' || event.key === ' ')) {

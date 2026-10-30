@@ -2,6 +2,7 @@ import React, {useEffect,useRef,useState} from 'react';
 import {STRING_INSTRUMENTS,fretPosition,guitarEvent,voiceStringEvent} from '../utils/guitar';
 import {useSwipeNotes} from './useSwipeNotes';
 import {flashInput} from './inputFeedback';
+import {useInputReset} from './useInputReset';
 import './strings.css';
 
 function ChordDiagram({chord}) {
@@ -39,6 +40,7 @@ export function Guitar({audio,cue,root,profile,PressControl,options={},name='gui
   const heldFrets=chord?.frets??tuning.map(()=>0);
   const notesRef=useRef(notes);notesRef.current=notes;
   useEffect(()=>{owners.current.clear();selection.current=null;setManual(null);setPlayed(null);},[root,name,practice]);
+  useInputReset(()=>{owners.current.clear();selection.current=null;setManual(null);setPlayed(null);});
   function choose(token,chordName) {
     const previousNotes=notesRef.current;
     if(chordName)owners.current.set(token,chordName);else owners.current.delete(token);
@@ -71,10 +73,10 @@ export function Guitar({audio,cue,root,profile,PressControl,options={},name='gui
       <div className="guitar-soundhole" aria-hidden="true"/>
       {notes.map((note,string)=>{
         const demoPressed=practice&&Boolean(highlighted?.fingering?.some(input=>input.string===string));
-        return <button key={string} data-swipe-note={string} className={`playable-string${demoPressed?' pressed':''}`} aria-pressed={demoPressed} aria-label={`${label} string ${string+1} ${note}`} style={{'--string-weight':`${3-string*.3}px`}} onKeyDown={event=>{if(!event.repeat&&[' ','Enter'].includes(event.key)){event.preventDefault();flashInput(event.currentTarget);pluck(string);}}}><i/></button>;
+        return <button key={string} data-swipe-note={string} className={`playable-string${demoPressed?' pressed':''}`} aria-pressed={demoPressed} aria-label={`${label} string ${string+1} ${note}`} style={{'--string-weight':`${3-string*.3}px`}} onClick={event=>{if(event.detail===0){flashInput(event.currentTarget);pluck(string);}}} onKeyDown={event=>{if(!event.repeat&&[' ','Enter'].includes(event.key)){event.preventDefault();flashInput(event.currentTarget);pluck(string);}}}><i/></button>;
       })}
       <div className={`guitar-chords neck-chord-controls ${options.fingeringCharts?'with-charts':''}`} role="group" aria-label="Chords in the current key">
-        {buttons.map(value=><PressControl key={value.name} demoPressed={practice&&demo?.chord===value.name} label={`Hold ${name} chord ${value.name}`} className={`chord-control ${shown===value.name?'playing-chord':''}`} onPress={token=>choose(token,value.name)} onRelease={token=>choose(token,null)}><span className="chord-name">{value.name}</span>{options.fingeringCharts&&<ChordDiagram chord={value}/>}</PressControl>)}
+        {buttons.map(value=><PressControl key={value.name} demoPressed={selected===value.name||(practice&&demo?.chord===value.name)} label={`Hold ${name} chord ${value.name}`} className={`chord-control ${shown===value.name?'playing-chord':''}`} onActivate={()=>choose('activation',owners.current.get('activation')===value.name?null:value.name)} onPress={token=>choose(token,value.name)} onRelease={token=>choose(token,null)}><span className="chord-name">{value.name}</span>{options.fingeringCharts&&<ChordDiagram chord={value}/>}</PressControl>)}
       </div>
       <div className="guitar-fingering-overlay" aria-hidden="true">
         {heldFrets.map((fret,string)=><i className={`fingering-dot ${fret===0?'open-string-dot':''}`} key={string} data-string={string+1} data-fret={fret} style={{left:`${position(fret)}%`,top:`${(string+.5)/tuning.length*100}%`}}/>)}
