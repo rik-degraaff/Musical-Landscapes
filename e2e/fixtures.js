@@ -47,3 +47,26 @@ export async function waitForInstrumentSettling(page) {
     await Promise.allSettled(finite.map(animation=>animation.finished));
   });
 }
+
+export async function openFullPractice(page) {
+  const room=page.getByRole('dialog',{name:'Farm practice room'});
+  await room.getByRole('button',{name:'Choose an activity'}).click();
+  await room.getByRole('button',{name:'Full practice'}).click();
+}
+
+export async function seedPracticeDisplays(page) {
+  await page.addInitScript(()=>{
+    const key='farmjam-children-v1';
+    const state=JSON.parse(localStorage.getItem(key)??'null')??{
+      children:[{id:'player',name:'Player',age:'5to7',profile:{age:'5to7',parent:'some'}}],selectedId:'player',
+    };
+    for(const child of state.children){
+      const instruments=child.settings?.instruments??{};
+      for(const id of ['piano','marimba','drums','guitar','ukulele','panflute','melody','accordion','harp']){
+        instruments[id]={...instruments[id],noteLabels:true,playbackNotes:true,fingeringCharts:true,fretDots:true};
+      }
+      child.settings={...child.settings,instruments};
+    }
+    localStorage.setItem(key,JSON.stringify(state));
+  });
+}

@@ -1,9 +1,9 @@
-import {test,expect} from './fixtures.js';
+import {test,expect,openFullPractice} from './fixtures.js';
 
 test('note feedback coexists, floats from played controls and expires without blocking input',async({page},testInfo)=>{
   const size=page.viewportSize();if(size.height>size.width)await page.setViewportSize({width:size.height,height:size.width});
   await page.goto('/');await page.getByRole('button',{name:'Tap to play'}).click();await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});
-  await page.locator('#young-musician').focus();await page.keyboard.press('Enter');await page.getByRole('button',{name:'2. Learn',exact:true}).click();
+  await page.locator('#young-musician').focus();await page.keyboard.press('Enter');await openFullPractice(page);await page.getByRole('button',{name:'2. Learn',exact:true}).click();
   for(const note of ['D4','F4','A4']){
     const control=page.getByRole('button',{name:`Piano key ${note}`,exact:true});await control.focus();await page.keyboard.press('Space');
   }

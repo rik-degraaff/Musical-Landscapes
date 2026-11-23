@@ -80,6 +80,6 @@
 .guide-practice-preview [data-guide-focus="transport"] .practice-control-dock,
 .guide-practice-preview [data-guide-focus="progress"] .practice-tools,
 .guide-practice-preview [data-guide-focus="exit"] :is(.practice-control-dock,.practice-exit) { outline:3px solid #bc602a;outline-offset:-3px; }
-.guide-art-practice-room { height:290px; }
-@media(max-height:550px) { .guide-art-practice-room { height:250px; } }
-@media(max-height:350px) and (orientation:landscape) { .guide-art-practice-room { height:132px;min-height:132px; } }
+.guide-art-practice-room,.guide-art-practice-guided { height:290px; }
+@media(max-height:550px) { .guide-art-practice-room,.guide-art-practice-guided { height:250px; } }
+@media(max-height:350px) and (orientation:landscape) { .guide-art-practice-room,.guide-art-practice-guided { height:132px;min-height:132px; } }

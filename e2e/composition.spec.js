@@ -1,4 +1,4 @@
-import {test,expect} from './fixtures.js';
+import {test,expect,openFullPractice} from './fixtures.js';
 import {noteMidi} from '../src/utils/autoplay.js';
 
 async function start(page) {
@@ -111,6 +111,7 @@ test('clouds cycle into gentle Rock, keep it across landscapes, and return to Fo
   await page.screenshot({path:testInfo.outputPath('rock-landscape.png')});
   await page.locator('#young-musician').focus();await page.keyboard.press('Enter');
   await expect(page.getByRole('dialog',{name:'Farm practice room'})).toBeVisible();
+  await openFullPractice(page);
   await page.getByRole('combobox',{name:'Practice instrument'}).selectOption('drums');
   const phrases=page.getByRole('combobox',{name:'Practice phrase'});
   const rockIndex=await phrases.locator('option').evaluateAll(options=>options.find(option=>option.textContent.startsWith('RockBackbeat'))?.value);

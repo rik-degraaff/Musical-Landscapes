@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {beatOffset,durationBeats,learningSteps,createTimingAttempt,scoreTimedInput,expireSteps,attemptSummary,PRACTICE_TIMING_TOLERANCE} from '../src/utils/practice.js';
+import {beatOffset,durationBeats,learningSteps,createTimingAttempt,scoreTimedInput,expireSteps,attemptSummary,timingInvitation,PRACTICE_TIMING_TOLERANCE} from '../src/utils/practice.js';
 
 const phrase={events:[{time:'0:0:0',notes:['C4','E4'],dur:'4n'},{time:'0:1:0',note:'C4',dur:'8n'},{time:'0:2:2',note:'G4',dur:'4n'}]};
 test('learn stage keeps each chord as one grouped action and preserves its full fingering',()=>{
@@ -26,4 +26,18 @@ test('timed practice scores each chord and repeated pitch once inside the timing
   expireSteps(attempt,4,PRACTICE_TIMING_TOLERANCE);assert.equal(attempt[2].missed,true);
   assert.equal(scoreTimedInput(attempt,'G4',2.5).correct,false);
   assert.deepEqual(attemptSummary(attempt),{hits:3,total:4,percent:75});
+});
+test('timed cue previews, separates the scoring window from the hold, and counts whole actions',()=>{
+  const phrase={events:[{time:'0:1:0',notes:['C4','E4'],dur:'2n'},{time:'0:3:0',note:'G4',dur:'4n'}]};
+  const attempt=createTimingAttempt(phrase);
+  assert.equal(timingInvitation(attempt,.3).open,false);
+  assert.equal(timingInvitation(attempt,.5).open,true);
+  assert.equal(scoreTimedInput(attempt,'C4',1).correct,true);
+  assert.deepEqual(timingInvitation(attempt,1).cue.notes,['E4']);
+  assert.deepEqual(attemptSummary(attempt,true),{hits:0,total:2,percent:0});
+  expireSteps(attempt,1.51);
+  assert.equal(timingInvitation(attempt,1.51),null);
+  assert.equal(scoreTimedInput(attempt,'E4',1.51).correct,false);
+  assert.equal(scoreTimedInput(attempt,'G4',3).correct,true);
+  assert.deepEqual(attemptSummary(attempt,true),{hits:1,total:2,percent:50});
 });

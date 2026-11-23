@@ -32,6 +32,7 @@
 
 .practice-room, .practice-room * { box-sizing: border-box; }
 .practice-room [hidden] { display: none !important; }
+.practice-sr-only { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 .practice-room-art { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
 .practice-room > :not(.practice-room-art) { position: relative; min-width: 0; }
 .practice-room button, .practice-room select { font: inherit; color: inherit; }
@@ -89,7 +90,6 @@
 .practice-progress progress::-webkit-progress-bar { background: #c0dfcf; }
 .practice-progress progress::-webkit-progress-value { background: #238152; }
 .practice-progress progress::-moz-progress-bar { background: #238152; }
-.practice-score { flex: none; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 .practice-main { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; }
 .practice-guide { display: grid; grid-template-columns:minmax(0,1fr) minmax(180px,420px) minmax(0,1fr); align-items: center; gap: 12px; flex: none; width: 100%; min-height: 70px; padding: 6px 20px; background: #e4fff2df; }
@@ -184,7 +184,6 @@
   .practice-feedback-display svg { width: 16px!important; height: 16px!important; }
   .practice-progress { gap: 3px; flex-basis: 65px; min-width: 50px; padding: 1px; font-size: 9px; }
   .practice-progress progress { height: 5px; max-width: 30px; }
-  .practice-score { font-size: 9px; }
   .practice-tools { gap: 2px; }
   .practice-actions { gap: 2px; }
   .practice-actions button { min-width: 24px; min-height: 24px; padding: 2px; }
@@ -240,3 +239,162 @@
 @media (prefers-reduced-motion: reduce) {
   .practice-room *, .practice-room *::before, .practice-room *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Guided play keeps the instrument and its current action in the same view. */
+.practice-room .practice-exit,
+.practice-room .caregiver-help-button,
+.practice-room .sound-help-button { min-width:44px; min-height:44px; flex-shrink:0; }
+.guided-header { min-height:54px; height:auto; gap:6px; padding:4px 8px; }
+.guided-instrument { display:flex; gap:8px; align-items:center; flex:1; min-width:0; font-weight:750; }
+.guided-instrument .instrument-illustration { width:52px; height:39px; flex:none; pointer-events:none; }
+.guided-practice .practice-main {
+  display:grid;
+  grid-template-columns:minmax(235px, 28%) minmax(0, 1fr);
+  align-items:stretch;
+  flex:1;
+  padding:clamp(6px, 2vw, 22px);
+  gap:clamp(6px, 2vw, 22px);
+}
+.guided-sidebar {
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:10px;
+  overflow:auto;
+  padding:6px;
+  min-height:0;
+  min-width:0;
+  background:#f3fff5e8;
+  border:1px solid #519e8c;
+  border-radius:12px;
+}
+.guided-prompt { display:flex; align-items:center; justify-content:center; gap:8px; min-height:24px; font-size:clamp(14px, 2vw, 24px); }
+.guided-prompt svg { flex:none; }
+.guided-note-name { text-align:center; font-weight:750; color:#843916; }
+.guided-actions,.guided-choices,.guided-tools { display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
+.guided-actions > button { flex:1 1 104px; }
+.guided-action,.practice-guided-switch {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-height:44px;
+  min-width:44px;
+  padding:4px 8px;
+  background:#f3fff5;
+  border:1px solid #397762;
+  border-radius:8px;
+  font-weight:750!important;
+  line-height:1.1;
+}
+.guided-action.is-primary { background:#21785e; border-color:#195d4a; color:white; font-size:1.1em; min-height:54px; }
+.guided-action[aria-pressed="true"] { background:#ffdaa1; border-color:#975120; }
+.guided-chooser { grid-column:1/-1; display:grid; align-content:center; justify-items:center; gap:12px; overflow:auto; padding:8px; background:#effff5ed; border:1px solid #519e8c; border-radius:12px; }
+.guided-choices > button { flex:1 1 138px; }
+.guided-tools > label { flex:1 1 92px; max-width:135px; }
+.guided-tools select { height:44px; }
+.guided-tools .practice-instrument-tools { display:none; }
+.guided-steps { display:flex; justify-content:center; gap:6px; }
+.guided-steps > span { display:grid; place-items:center; width:24px; height:24px; border:1px solid #6b9a88; border-radius:50%; background:#f3fff5; font-weight:800; }
+.guided-steps > [data-state="current"] { border:2px solid #934522; background:#ffc778; }
+.guided-steps > [data-state="complete"] { border-color:#327a52; background:#c5efca; }
+.guided-practice .guided-surface { justify-content:center; min-height:0; max-height:none; height:100%; border:1px solid #519e8c; border-radius:12px; }
+.guided-practice .performance-surface { min-height:0; }
+.guided-pad { display:grid; justify-items:center; align-content:center; gap:8px; width:min(86%, 350px); height:86%; min-height:44px; padding:8px; touch-action:none; background:#e8d5a5; border:3px solid #806846; border-radius:28px; box-shadow:inset 0 -5px #b7a272; font-weight:800!important; }
+.guided-pad svg { width:clamp(24px, 6vw, 54px)!important; height:auto!important; }
+.practice-room [data-practice-cue="true"] { outline:4px solid #9d4a15; outline-offset:-5px; }
+.practice-room .guided-pad.pressed { background:#ffd17d; }
+.focused-keyboard .sharp-key { position:relative; top:auto; height:100%; }
+.guided-practice .focused-strings .chord-diagram { position:absolute; top:6px; left:8px; width:70px; height:54px; background:#f3fff5e8; border-radius:6px; }
+.focused-embouchure { grid-auto-flow:column; grid-template-columns:none; grid-auto-columns:minmax(44px,1fr); width:44%; }
+.focused-embouchure .lip-segment { pointer-events:auto; touch-action:none; min-height:44px; min-width:44px; border:1px solid #819d91; background:#f0dc9e; }
+.focused-embouchure .lip-segment.pressed { background:#ffae4b; }
+.practice-room .manual-drums .pad-kick { top:auto; bottom:8px; width:min(24%, 120px, calc(64cqh - 6px)); min-width:44px; }
+.practice-room .manual-drums { container-type:size; }
+.guided-practice:not([data-activity="band"]) .manual-drums .drum-pad { min-height:44px; min-width:44px; }
+.guided-practice:not([data-activity="band"]) .manual-drums .pad-kick { bottom:8%; }
+.practice-room .manual-drums .drum-pad { min-width:44px; min-height:44px; }
+
+.full-practice .practice-stages { height:auto; min-height:44px; }
+.full-practice .practice-stages button,.full-practice .practice-control-dock button,.full-practice .practice-select select { min-height:44px; }
+.full-practice .practice-topbar { min-height:54px; height:auto; }
+.full-practice .practice-control-dock { height:auto; min-height:44px; padding-block:1px; }
+.full-practice .practice-main { overflow:auto; }
+.practice-attempt-details { padding:3px 8px; background:#e4fff2; }
+.practice-attempt-details summary { cursor:pointer; }
+.practice-room .practice-full-strings {
+  grid-template-columns:minmax(0, 2fr) minmax(132px, 1fr);
+  gap:6px;
+}
+.practice-room .practice-full-strings .guitar-stringboard {
+  min-height:0;
+  grid-template-rows:repeat(var(--string-count), minmax(44px,1fr));
+  overflow-y:auto;
+  touch-action:pan-y;
+  border-radius:12px;
+}
+.practice-full-strings .playable-string { touch-action:none; }
+.practice-room .practice-full-strings :is(.guitar-neck,.guitar-fingering-overlay) {
+  bottom:auto;
+  height:max(100%, calc(var(--string-count) * 44px));
+}
+.practice-string-tools { display:flex; flex-direction:column; gap:4px; min-height:0; min-width:0; }
+.practice-room .practice-full-strings .neck-chord-controls {
+  position:relative;
+  inset:auto;
+  grid-template-columns:repeat(auto-fit,minmax(44px,1fr));
+  grid-auto-rows:minmax(44px,auto);
+  align-content:start;
+  overflow:auto;
+  width:100%;
+  flex:1;
+  min-height:0;
+  padding:3px;
+  border-radius:8px;
+  background:#a48160;
+}
+.practice-room .practice-full-strings .neck-chord-controls .chord-control { min-height:44px; height:100%; }
+.practice-room .practice-full-strings .neck-chord-controls.with-charts { grid-auto-rows:minmax(58px,auto); }
+.practice-string-scroll { display:none; }
+.practice-string-scroll button {
+  flex:1;
+  display:grid;
+  place-items:center;
+  min-width:44px;
+  min-height:44px;
+  border:1px solid #397762;
+  border-radius:6px;
+  background:#f3fff5;
+}
+.practice-room .focused-strings .guitar-stringboard { border-radius:12px; }
+
+@media(max-height:420px) and (orientation:landscape) {
+  .guided-practice .practice-main { grid-template-columns:minmax(150px, 31%) minmax(0, 1fr); gap:6px; padding:6px; }
+  .guided-sidebar { gap:4px; justify-content:safe center; }
+  .guided-actions > button { flex-basis:86px; }
+  .guided-instrument .instrument-illustration { width:39px; height:34px; }
+  .guided-instrument > span { display:none; }
+  .guided-header > button.guided-action { flex-shrink:0; max-width:145px; }
+  .full-practice .practice-neighbors,.full-practice .practice-musician { display:none; }
+  .full-practice .practice-lineup { flex:0 0 0; }
+  .full-practice .practice-topbar .metronome-widget:not(.is-open),
+  .full-practice .practice-topbar .metronome-widget:not(.is-open) .metronome-mini { min-width:44px; min-height:44px; }
+  .full-practice .practice-surface-host { flex:1 0 136px; }
+}
+@media(max-width:460px) {
+  .guided-header > button.guided-action span { font-size:11px; }
+  .guided-instrument { justify-content:center; }
+  .full-practice .practice-topbar { gap:3px; padding-inline:3px; }
+  .guided-practice .practice-full-strings { grid-template-columns:minmax(0,1fr) 96px; }
+}
+.guided-pad.is-ready { outline:4px solid #30775f; outline-offset:-6px; }
+.practice-room .practice-surface-host > .performance-surface:has(.manual-keyboard:not(.focused-keyboard),.panflute-pipes) { overflow-x:auto; }
+.practice-room .manual-keyboard:not(.focused-keyboard):has(.sharp-key) { min-width:calc(var(--white-count) * 70px + 18px); }
+.full-practice .panflute-pipes,.guided-practice[data-activity="band"] .panflute-pipes { min-width:calc(var(--pipe-count) * 47px + 5px); }
+@media(max-height:420px) {
+  .practice-room .manual-drums:has(.pad-ride,.pad-clap) { display:grid; grid-template-columns:repeat(auto-fit,minmax(44px,1fr)); gap:3px; padding:4px; }
+  .practice-room .manual-drums:has(.pad-ride,.pad-clap) .drum-pad { position:relative; inset:auto; translate:none; width:100%; height:100%; aspect-ratio:auto; box-shadow:inset 0 -3px #925951; }
+  .practice-string-scroll { display:flex; gap:4px; }
+}
+
+.practice-phrase-track > .is-preview { border:2px dashed #8d4d24; background:#fff1d7; }

@@ -30,7 +30,7 @@ export function PressControl({ label, className='', onPress, onRelease=()=>{}, o
     return ()=>{window.clearTimeout(activationTimer.current);for(const token of [...owners.current])releaseRef.current(token);window.removeEventListener('pointerup',end,true);window.removeEventListener('pointercancel',end,true);window.removeEventListener('pointermove',lostMouse,true);};
   },[]);
   useInputReset(()=>{window.clearTimeout(activationTimer.current);const held=[...owners.current];owners.current.clear();setPressed(false);held.forEach(onRelease);});
-  return <button ref={buttonRef} type="button" aria-label={label} aria-pressed={pressed||demoPressed} data-swipe-note={swipeNote} className={`${className} ${pressed||demoPressed?'pressed':''}`} style={style}
+  return <button ref={buttonRef} type="button" aria-label={label} aria-pressed={pressed} data-practice-cue={demoPressed||undefined} data-swipe-note={swipeNote} className={`${className} ${pressed||demoPressed?'pressed':''}`} style={style}
     onClick={event=>{
       // Pointer/swipe and held-key paths already played. Accessibility activation
       // sends a click without either path, so give it one bounded owned pulse.
@@ -46,16 +46,16 @@ export function PressControl({ label, className='', onPress, onRelease=()=>{}, o
     onBlur={()=>{for(const token of [...owners.current])if(token.startsWith('key-'))up(token);}}>{children}</button>;
 }
 
-function Keyboard({ audio, notes, kind, options, cue }) {
+function Keyboard({ audio, notes, kind, options, cue, focused }) {
   const surface=useRef(null);
   useSwipeNotes(surface,(note,token)=>kind==='marimba'?audio.manualStrike(note,`${note}-${token}`):audio.manualNoteOn(note,token),(_,token)=>{if(kind==='piano')audio.manualNoteOff(token);});
   let whiteIndex=-1;
   const whiteCount=notes.filter(note=>!note.includes('#')).length;
-  return <div ref={kind==='flute'?undefined:surface} className={`manual-keyboard ${kind}`} style={{'--white-count':whiteCount}}>
+  return <div ref={kind==='flute'?undefined:surface} className={`manual-keyboard ${kind}${focused?' focused-keyboard':''}`} style={{'--white-count':focused?notes.length:whiteCount}}>
     {notes.map(note=>{
       const sharp=note.includes('#');if(!sharp)whiteIndex++;
       return <PressControl key={note} swipeNote={kind==='flute'?undefined:note} demoPressed={cue?.note===note||Boolean(cue?.notes?.includes(note))} label={`${kind==='marimba'?'Marimba bar':kind==='flute'?'Flute note':'Piano key'} ${note}`} className={`note-key ${sharp?'sharp-key':'natural-key'}`}
-        style={sharp?{left:`${Math.min((whiteIndex+.68)/whiteCount*100,100-.64/whiteCount*100)}%`,width:`${.64/whiteCount*100}%`}:{gridColumn:whiteIndex+1}}
+        style={focused?undefined:sharp?{left:`${Math.min((whiteIndex+.68)/whiteCount*100,100-.64/whiteCount*100)}%`,width:`${.64/whiteCount*100}%`}:{gridColumn:whiteIndex+1}}
         onPress={token=>kind==='marimba'?audio.manualStrike(note,`${note}-${token}`):audio.manualNoteOn(note,`${note}-${token}`)}
         onRelease={token=>{if(kind!=='marimba')audio.manualNoteOff(`${note}-${token}`);}}><span hidden={!options.noteLabels}>{note}</span>{kind==='marimba'&&<i className="bar-bolt"/>}</PressControl>;
     })}
@@ -70,18 +70,20 @@ function Drums({ audio, options, profile, cue }) {
   </div>;
 }
 
-export function InstrumentSurface({ name, audio, root, options={complexity:1.5}, profile, cue, practice=false }) {
+export function InstrumentSurface({ name, audio, root, options={complexity:1.5}, profile, cue, practice=false, focusEvents }) {
   if(!INSTRUMENTS[name])return null;
   profile=profile??equippedProfile(name,root,options);
+  const focusNotes=focusEvents&&[...new Set(focusEvents.map(event=>event.note))];
+  if(focusNotes)profile={...profile,keyboardNotes:focusNotes,notes:focusNotes,hits:focusNotes};
   const playableKey=`${name}:${root}:${profile.level}`;
   return <div className="performance-surface">
-    {name==='piano'&&<Keyboard key={playableKey} audio={audio} notes={profile.level==='Advanced'?PIANO_NOTES:profile.keyboardNotes} kind="piano" options={options} cue={cue}/>}
+    {name==='piano'&&<Keyboard key={playableKey} audio={audio} notes={focusNotes??(profile.level==='Advanced'?PIANO_NOTES:profile.keyboardNotes)} focused={Boolean(focusNotes)} kind="piano" options={options} cue={cue}/>}
     {['accordion','harp'].includes(name)&&<TouchInstrument key={playableKey} name={name} audio={audio} cue={cue} profile={profile} PressControl={PressControl} options={options}/>}
     {name==='flute'&&<KeyFlute key={playableKey} audio={audio} cue={cue} profile={profile} PressControl={PressControl} options={options}/>}
-    {name==='panflute'&&<PanFlute key={playableKey} audio={audio} cue={cue} profile={profile} PressControl={PressControl} options={options}/>}
-    {name==='marimba'&&<Keyboard key={playableKey} audio={audio} notes={profile.level==='Advanced'?MARIMBA_NOTES:profile.keyboardNotes} kind="marimba" options={options} cue={cue}/>}
-    {name==='melody'&&<LipTrumpet key={playableKey} audio={audio} cue={cue} profile={profile} PressControl={PressControl} options={options}/>}
-    {['guitar','ukulele'].includes(name)&&<FretboardGuitar key={playableKey} name={name} audio={audio} cue={cue} root={root} profile={profile} PressControl={PressControl} options={options} practice={practice}/>}
+    {name==='panflute'&&<PanFlute focused={Boolean(focusNotes)} key={playableKey} audio={audio} cue={cue} profile={profile} PressControl={PressControl} options={options}/>}
+    {name==='marimba'&&<Keyboard key={playableKey} audio={audio} notes={focusNotes??(profile.level==='Advanced'?MARIMBA_NOTES:profile.keyboardNotes)} focused={Boolean(focusNotes)} kind="marimba" options={options} cue={cue}/>}
+    {name==='melody'&&<LipTrumpet focusNotes={focusNotes} key={playableKey} audio={audio} cue={cue} profile={profile} PressControl={PressControl} options={options}/>}
+    {['guitar','ukulele'].includes(name)&&<FretboardGuitar focusEvent={focusEvents?.[0]} key={playableKey} name={name} audio={audio} cue={cue} root={root} profile={profile} PressControl={PressControl} options={options} practice={practice}/>}
     {name==='drums'&&<Drums key={playableKey} audio={audio} options={options} profile={profile} cue={cue}/>}
   </div>;
 }

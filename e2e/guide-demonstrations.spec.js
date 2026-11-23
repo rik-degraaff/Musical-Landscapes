@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {openFullPractice} from './fixtures.js';
 
 test.beforeEach(async({page})=>{
   const size=page.viewportSize();
@@ -38,6 +39,7 @@ test('every practice guide preserves the real room layout and keeps the compact 
   await expect(page.locator('#young-musician')).toBeVisible({timeout:30000});
   await page.locator('#young-musician').focus();await page.keyboard.press('Enter');
   const live=page.getByRole('dialog',{name:'Farm practice room',exact:true});await expect(live).toBeVisible();
+  await openFullPractice(page);
   const layouts=[];
   for(let stage=0;stage<4;stage++) {
     await live.locator('.practice-stages button').nth(stage).click();
@@ -49,7 +51,7 @@ test('every practice guide preserves the real room layout and keeps the compact 
   await page.getByRole('tab',{name:/^Guides/}).click();await page.getByRole('button',{name:'Read use the practice room',exact:true}).click();
   const reader=page.getByRole('dialog',{name:'Use the practice room',exact:true});
   await expect(reader.locator('.metronome-widget')).toHaveCount(0);
-  for(const [index,stage] of [[1,0],[2,0],[3,1],[4,2],[5,3],[6,2]]) {
+  for(const [index,stage] of [[6,0],[7,0],[8,1],[9,2],[10,3],[11,2]]) {
     await jump(page,index);const preview=reader.locator('.practice-room');await expect(preview).toHaveAttribute('inert','');
     await expect(preview.locator('.metronome-mini')).toHaveCount(1);await expect(preview.locator('.metronome-widget.is-open')).toHaveCount(0);
     await expect.poll(async()=>{
@@ -59,7 +61,7 @@ test('every practice guide preserves the real room layout and keeps the compact 
     const bounds=await preview.boundingBox(),art=await reader.locator('.guide-illustration').boundingBox();
     expect(bounds.x).toBeGreaterThanOrEqual(art.x-1);expect(bounds.y).toBeGreaterThanOrEqual(art.y-1);
     expect(bounds.x+bounds.width).toBeLessThanOrEqual(art.x+art.width+1);expect(bounds.y+bounds.height).toBeLessThanOrEqual(art.y+art.height+1);
-    if(index===1||index===4)await reader.locator('.guide-illustration').screenshot({path:`artifacts.local/guide-demonstrations/layout-${index}-${testInfo.project.name}.png`});
+    if(index===6||index===9)await reader.locator('.guide-illustration').screenshot({path:`artifacts.local/guide-demonstrations/layout-${index}-${testInfo.project.name}.png`});
   }
   const resized=testInfo.project.name==='desktop'?{width:1280,height:720}:{width:844,height:390};
   await page.setViewportSize(resized);
@@ -100,7 +102,7 @@ test('string guides teach chord ownership before strumming, default to simple, a
 test('practice guides animate each stage with shared controls and changing authored cues',async({page},testInfo)=>{
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await openGuide(page,'use the practice room');
-  for(const [index,stage] of [[2,'Listen'],[3,'Learn'],[4,'Rhythm'],[5,'Together']]) {
+  for(const [index,stage] of [[7,'Listen'],[8,'Learn'],[9,'Rhythm'],[10,'Together']]) {
     await jump(page,index);const room=page.locator('.guide-room-detail');
     await expect(room).toHaveAttribute('data-demo-stage',stage);
     await expect(room.locator('.practice-run-button')).toHaveCount(stage==='Learn'?0:1);
@@ -118,7 +120,7 @@ test('practice guides animate each stage with shared controls and changing autho
     await page.clock.runFor(1600);await expect(room.locator('.practice-feedback-display')).toContainText('Phrase complete');
     await expect(room.locator('.practice-next-button')).toBeEnabled();
   }
-  await jump(page,6);await show(page);const room=page.locator('.guide-room-detail');
+  await jump(page,11);await show(page);const room=page.locator('.guide-room-detail');
   for(const [time,label] of [[0,'Stop'],[2000,'Repeat'],[2000,'Restart'],[2000,'Leave']]) {
     await page.clock.runFor(time);await expect(room).toHaveAttribute('data-demo-action',label);
   }

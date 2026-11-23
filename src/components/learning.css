@@ -38,7 +38,7 @@
 .guide-card p { margin: 6px 0 10px; }
 .guide-status { display: inline-block; margin-left: 8px; padding: 2px 7px; border-radius: 12px; font-size: 12px; font-weight: 800; background: #f9e5ad; color: #664522; }
 .guide-status.is-read { background: #d6ecde; color: #245d52; }
-.learning-beacon { position: fixed; z-index: 204; left: max(64px,calc(var(--safe-left) + 64px)); top: max(12px,var(--safe-top)); display: grid; place-items: center; width: 44px; height: 44px; padding: 8px; border: 2px solid #765516; border-radius: 24px; background: #fff0bd; color: #554019; box-shadow: 0 2px 8px #294b4230; cursor: pointer; animation: learningPulse 1.2s 3; }
+.learning-beacon { position: fixed; z-index: 204; left: max(12px,var(--safe-left)); top: calc(max(12px,var(--safe-top)) + 49px); display: grid; place-items: center; width: 44px; height: 44px; padding: 8px; border: 2px solid #765516; border-radius: 24px; background: #fff0bd; color: #554019; box-shadow: 0 2px 8px #294b4230; cursor: pointer; animation: learningPulse 1.2s 3; }
 .learning-beacon span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 @keyframes learningPulse { 50% { transform: scale(1.07); box-shadow: 0 0 0 6px #e4b64d40; } }
 .hint-controls { display: grid; gap: 10px; }
@@ -46,7 +46,7 @@
 .learning-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
 .learning-actions select { min-height: 42px; max-width: 100%; }
 .guide-index-button { margin-top: 14px; }
-@media (max-height: 550px) { .gesture-stage { height: 105px; } .learning-beacon { top: max(6px,var(--safe-top)); left: max(50px,calc(var(--safe-left) + 50px)); } }
+@media (max-height: 550px) { .gesture-stage { height: 105px; } .learning-beacon { top: calc(max(6px,var(--safe-top)) + 42px); left: max(6px,var(--safe-left)); } }
 .start-empty { max-width: 32em; text-align: center; }
 .start-settings { margin-top: 12px; }
 .settings-tabs { overflow-x: auto; }

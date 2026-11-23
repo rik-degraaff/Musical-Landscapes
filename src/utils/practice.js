@@ -1,8 +1,8 @@
 export const PRACTICE_STAGES=['Listen','Learn','Rhythm','Together'];
 export const PRACTICE_TIMING_TOLERANCE=.5;
 
-export function practiceDisplayOptions(options={}) {
-  return {...options,noteLabels:true,playbackNotes:true,fingeringCharts:true};
+export function practiceDisplayOptions(options={},showDetails=true) {
+  return showDetails?options:{...options,noteLabels:false,playbackNotes:false,fingeringCharts:false,fretDots:false};
 }
 
 export function beatOffset(time) {
@@ -36,8 +36,29 @@ export function scoreTimedInput(attempt,note,beat,tolerance=PRACTICE_TIMING_TOLE
 export function expireSteps(attempt,beat,tolerance=PRACTICE_TIMING_TOLERANCE) {
   for(const step of attempt)if(step.remaining.length&&beat>step.beat+tolerance)step.missed=true;
 }
-export function attemptSummary(attempt) {
-  const total=attempt.reduce((sum,step)=>sum+step.notes.length,0);
-  const hits=attempt.reduce((sum,step)=>sum+step.hits,0);
+export function timingInvitation(attempt,beat,tolerance=PRACTICE_TIMING_TOLERANCE) {
+  const next=attempt.filter(step=>!step.missed&&step.remaining.length&&step.beat+tolerance>=beat)
+    .sort((first,second)=>Math.abs(first.beat-beat)-Math.abs(second.beat-beat))[0];
+  if(!next||next.beat-beat>tolerance+.25)return null;
+  const open=next.beat-beat<=tolerance;
+  const cue={...next.event,eventIndex:next.index};
+  // Keep the canonical shape but only highlight the pitches still needed.
+  if(next.event.notes){
+    cue.notes=[...next.remaining];
+    if(cue.fingering){
+      const remaining=[...next.remaining];
+      cue.fingering=cue.fingering.filter(({note})=>{
+        const index=remaining.indexOf(note);
+        if(index<0)return false;
+        remaining.splice(index,1);
+        return true;
+      });
+    }
+  }
+  return {cue,open,key:`${next.index}:${open}:${next.remaining.length}`};
+}
+export function attemptSummary(attempt,grouped=false) {
+  const total=grouped?attempt.length:attempt.reduce((sum,step)=>sum+step.notes.length,0);
+  const hits=grouped?attempt.filter(step=>step.remaining.length===0).length:attempt.reduce((sum,step)=>sum+step.hits,0);
   return {hits,total,percent:Math.round(hits/Math.max(1,total)*100)};
 }

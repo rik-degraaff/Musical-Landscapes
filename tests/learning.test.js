@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {GUIDES,HINTS,childLearning,createLearningStorage,emptyLearning,guideStatus,nextHint,normalizeLearning,updateChildLearning,updateHint} from '../src/utils/learning.js';
+import {GUIDES,HINTS,childLearning,createLearningStorage,emptyLearning,guideStatus,hasPracticeReminder,notePracticeVisit,nextHint,normalizeLearning,updateChildLearning,updateHint} from '../src/utils/learning.js';
 
 test('guides distinguish unread, changed revisions and completed revisions',()=>{
   const state=emptyLearning(),guide=GUIDES[0];
@@ -52,4 +52,19 @@ test('unfinished live coaching resumes across reload while explicit dismissal su
   assert.notEqual(nextHint(normalizeLearning(state),{id:'a',age:'under3'})?.id,'equip');
   const legacy=normalizeLearning({children:{a:{hints:{equip:{suggested:true,seen:true}}}}});
   assert.equal(legacy.children.a.hints.equip.dismissed,true);
+});
+
+test('practice visits survive reload and acknowledgement remains per child and deliberate',()=>{
+  const initial=emptyLearning();
+  const visited=notePracticeVisit(initial,'a');
+  assert.equal(hasPracticeReminder(initial,visited,'a'),false);
+  const reopened=normalizeLearning(JSON.parse(JSON.stringify(visited)));
+  assert.equal(hasPracticeReminder(reopened,reopened,'a'),true);
+  assert.equal(hasPracticeReminder(reopened,reopened,'b'),false);
+  const disabled=updateChildLearning(reopened,'a',child=>({...child,enabled:false}));
+  assert.equal(hasPracticeReminder(reopened,disabled,'a'),false);
+  const acknowledged=notePracticeVisit(reopened,'a',true);
+  assert.equal(hasPracticeReminder(reopened,acknowledged,'a'),false);
+  assert.equal(notePracticeVisit(acknowledged,'a'),acknowledged);
+  assert.equal(nextHint(acknowledged,{id:'a',age:'under3'}).id,'tap');
 });

@@ -1,4 +1,4 @@
-import {test,expect} from './fixtures.js';
+import {test,expect,openFullPractice} from './fixtures.js';
 
 async function start(page,complexity) {
   const size=page.viewportSize();
@@ -6,7 +6,7 @@ async function start(page,complexity) {
   await page.addInitScript(value=>{
     localStorage.setItem('farmjam-settings-v1',JSON.stringify({
       selected:['piano','drums','guitar','ukulele','marimba','flute'],
-      instruments:Object.fromEntries(['guitar','ukulele'].map(name=>[name,{complexity:value,fingeringCharts:true,playbackNotes:true}])),
+      instruments:Object.fromEntries(['guitar','ukulele'].map(name=>[name,{complexity:value,fingeringCharts:true,playbackNotes:true,fretDots:true}])),
     }));
   },complexity);
   await page.goto('/');
@@ -75,7 +75,9 @@ async function expectShape(page,name,chord,event) {
 }
 
 async function hold(page,name,chord) {
-  const bounds=await page.getByRole('button',{name:`Hold ${name} chord ${chord.name}`,exact:true}).boundingBox();
+  const button=page.getByRole('button',{name:`Hold ${name} chord ${chord.name}`,exact:true});
+  await button.scrollIntoViewIfNeeded();
+  const bounds=await button.boundingBox();
   await page.mouse.move(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
   await page.mouse.down();
 }
@@ -133,6 +135,7 @@ for(const name of ['guitar','ukulele'])for(const [level,complexity] of [['Simple
     await page.getByRole('button',{name:'Put instrument down'}).click();
     await page.locator('#young-musician').focus();await page.keyboard.press('Enter');
     await expect(page.getByRole('dialog',{name:'Farm practice room'})).toBeVisible();
+    await openFullPractice(page);
     await page.getByRole('combobox',{name:'Practice instrument'}).selectOption(name);
     await page.getByRole('button',{name:/Learn/}).click();
     await page.getByRole('combobox',{name:'Practice phrase'}).selectOption('0');

@@ -20,3 +20,10 @@
   .caregiver-help-corner { top: max(6px, var(--safe-top)); left: max(6px, var(--safe-left)); width: 36px; height: 36px; }
   .practice-topbar .caregiver-help-button { width: 30px; height: 30px; }
 }
+.practice-acknowledgment { display:grid; gap:8px; padding:12px; background:#e5f4ec; border:1px solid #88ab96; border-radius:8px; }
+.practice-acknowledgment :is(h3,p) { margin:0; }
+.practice-acknowledgment label { display:grid; gap:4px; font-weight:700; }
+.practice-acknowledgment select { width:100%; min-height:44px; padding:4px; font:inherit; }
+.practice-acknowledgment .learning-action,.start-practice-note { min-height:44px; }
+.practice-acknowledgment button:disabled { opacity:.55; cursor:default; }
+.start-practice-note { max-width:min(90%, 380px); }

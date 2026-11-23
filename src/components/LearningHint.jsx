@@ -30,14 +30,14 @@ export function LearningHint({hint,instruments,equipped,practice,suspended,onCom
   }
   if(hint.id==='practice') {
     if(!practice){step='enter';selector='#young-musician';}
-    else {step='ready';gesture='tap';selector='.practice-run-button';text='Tap Ready to hear the phrase. If you chose Learn, choose Listen first.';}
+    else {step='ready';gesture='tap';selector='.practice-hear-action';text='Tap the headphones to hear a sound.';}
   }
   useEffect(()=>{
     if(suspended)return;
     let request;const began=performance.now();
     const animate=()=>{
       if(stringed&&step==='play'&&!document.querySelector('.performance-panel .chord-control[aria-pressed="true"]'))setPhase(0);
-      const target=[...document.querySelectorAll(selector)].find(element=>{const box=element.getBoundingClientRect();return box.width>0&&box.height>0;})||(step==='ready'?document.querySelector('.practice-stages button'):null),end=endSelector?document.querySelector(endSelector):null;
+      const target=[...document.querySelectorAll(selector)].find(element=>{const box=element.getBoundingClientRect();return box.width>0&&box.height>0;})||(step==='ready'?document.querySelector('.practice-run-button,.guided-header .guided-action'):null),end=endSelector?document.querySelector(endSelector):null;
       targetRef.current=target;
       const box=target?.getBoundingClientRect(),destination=end?.getBoundingClientRect();
       const board=stringed&&step==='play'?document.querySelector('.performance-panel .guitar-stringboard')?.getBoundingClientRect():null;
@@ -47,7 +47,7 @@ export function LearningHint({hint,instruments,equipped,practice,suspended,onCom
         const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const x=box.left+box.width*(board?.85:.5),y=board?board.top+8:box.top+box.height/2;
         const start={x,y},end=destination?{x:destination.left+destination.width/2,y:destination.top+destination.height/2}:board?{x,y:board.bottom-8}:null;
-        setFrame({...gestureFrame({gesture,elapsed:performance.now()-began,from:start,to:end??start,reduced}),end,start,captionBottom:box.top<100,captionY:practice?Math.min(window.innerHeight-80,document.querySelector('.practice-control-dock')?.getBoundingClientRect().top??80):undefined,reduced});
+        setFrame({...gestureFrame({gesture,elapsed:performance.now()-began,from:start,to:end??start,reduced}),end,start,captionBottom:box.top<100,reduced});
       }
       request=requestAnimationFrame(animate);
     };request=requestAnimationFrame(animate);
@@ -59,7 +59,7 @@ export function LearningHint({hint,instruments,equipped,practice,suspended,onCom
       if(event.type==='keydown'&&(event.repeat||!['Enter',' '].includes(event.key)))return;
       if(event.type==='pointerdown'&&event.button!==0)return;
       if(step==='ready') {
-        if(event.target.closest('.practice-run-button')?.getAttribute('aria-label')==='Start repeating')onComplete(hint.id);
+        if(event.target.closest('.practice-hear-action')||event.target.closest('.practice-run-button')?.getAttribute('aria-label')==='Start repeating')onComplete(hint.id);
         return;
       }
       if(stringed&&step==='play') {
@@ -90,7 +90,7 @@ export function LearningHint({hint,instruments,equipped,practice,suspended,onCom
   if(suspended)return null;
   return <div className={`live-coach ${practice?'coach-in-practice':''}`} data-hint={hint.id} data-step={step}>
     {frame&&<><GesturePointer frame={frame} className="coach-hand"/>{frame.reduced&&frame.end&&<svg className="coach-route" aria-hidden="true"><path d={`M${frame.start.x},${frame.start.y} L${frame.end.x},${frame.end.y}`}/><circle cx={frame.end.x} cy={frame.end.y} r="12"/></svg>}</>}
-    <div className="coach-caption" style={practice?{top:frame?.captionY??80}:frame?.captionBottom?{top:'auto',bottom:8}:undefined}><p role="status">{text}</p><button onClick={()=>setReplay(value=>value+1)}>Replay gesture</button><button onClick={onClose}>Stop hint</button></div>
+    <div className="coach-caption" style={!practice&&frame?.captionBottom?{top:'auto',bottom:8}:undefined}><p role="status">{text}</p><button onClick={()=>setReplay(value=>value+1)}>Replay gesture</button><button onClick={onClose}>Stop hint</button></div>
   </div>;
 }
 

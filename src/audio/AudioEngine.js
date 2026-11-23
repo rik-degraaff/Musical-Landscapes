@@ -678,13 +678,13 @@ export class AudioEngine {
     this.stopPracticeRun();window.dispatchEvent(new Event('farmjam-input-reset'));this.setManualInstrument(name);
   }
 
-  startPracticeRun(phrase,accompaniment,onStep,onCycle,onBeat,onAccompaniment,{demo=false}={}) {
+  startPracticeRun(phrase,accompaniment,onStep,onCycle,onBeat,onAccompaniment,{demo=false,single=false}={}) {
     if(!this.practiceSession||this.backgrounded)return null;
     this.stopPracticeRun();
     const version=this.practiceRunVersion;
     const ids=[];
     this.practiceRun={ids,partners:[]};
-    const valid=()=>this.practiceSession&&version===this.practiceRunVersion&&!this.backgrounded&&!this.tempoHeld;
+    const valid=()=>this.practiceSession&&version===this.practiceRunVersion&&!this.backgrounded&&!this.tempoHeld&&!document.hidden;
     const draw=(callback,time)=>Tone.Draw.schedule(()=>{if(valid()&&time>=this.practiceRun.startTime)callback();},time);
     const beatSeconds=60/this.tempo;
     const startTime=Tone.now()+.12;
@@ -693,7 +693,9 @@ export class AudioEngine {
     const ticksPerBar=ticksPerBeat*4;
     // Phrase times become quarter-note beats, then Transport ticks; one bar is four beats.
     const phraseStartTick=ticksPerBar;
-    const repeat=(callback,interval,start)=>ids.push(Tone.Transport.scheduleRepeat(time=>{if(valid())callback(time);},interval,start));
+    const repeat=(callback,interval,start)=>ids.push(Tone.Transport.scheduleRepeat(time=>{
+      if(valid()&&(!single||Tone.Transport.getTicksAtTime(time)<ticksPerBar*2))callback(time);
+    },interval,start));
     let beatCount=0;
     let lastBeatTime=-Infinity;
     this.practiceRun.resetCountIn=()=>{beatCount=0;lastBeatTime=-Infinity;};
@@ -721,26 +723,70 @@ export class AudioEngine {
         draw(()=>onStep?.({...event,eventIndex,cycle:current,duration:Tone.Time(event.dur??'16n').toSeconds()*(event.gate??1)}),time);
       },'1m',`${startTick}i`);
     }
-    if(accompaniment){
-      const partners=this.manualInstrument==='drums'?['piano','ukulele']:['drums',this.manualInstrument==='piano'?'ukulele':'piano'];
-      this.practiceRun.partners=partners;
-      for(const name of partners){
-        this.nodes[name].gain.volume.value=this.volumes[name]-6;
-        const pool=compositionProfile(name,this.root,{role:name==='drums'?'rhythm':'accompaniment',degree:name==='drums'?0:phrase.degree??0,genre:this.genre});
-        let phraseIndex=0;
-        repeat(time=>{
-          const selected=pool[phraseIndex];
-          const selectedIndex=phraseIndex;
-          phraseIndex=(phraseIndex+1)%pool.length;
-          const events=selected.events;
-          const secondsPerBeat=60/this.tempo;
-          for(const event of events)this.playEvent(name,event,time+beatOffset(event.time)*secondsPerBeat);
-          draw(()=>onAccompaniment?.(name,selectedIndex),time);
-        },'1m','1m');
-      }
-    }
+    if(accompaniment)this.schedulePracticePartners(phrase,repeat,draw,4,onAccompaniment);
     Tone.start().catch(console.error);Tone.Transport.start(startTime,0);
     return {startTime:startTime+4*beatSeconds,beatSeconds,startTick:phraseStartTick,beatTicks:ticksPerBeat,barTicks:ticksPerBar};
+  }
+
+  schedulePracticePartners(phrase,repeat,draw,start,onAccompaniment) {
+    const partners=this.manualInstrument==='drums'?['piano','ukulele']:['drums',this.manualInstrument==='piano'?'ukulele':'piano'];
+    this.practiceRun.partners=partners;
+    for(const name of partners){
+      this.nodes[name].gain.volume.value=this.volumes[name]-6;
+      const pool=compositionProfile(name,this.root,{role:name==='drums'?'rhythm':'accompaniment',degree:name==='drums'?0:phrase.degree??0,genre:this.genre});
+      for(const [index,motif] of pool.entries()){
+        for(const event of motif.events){
+          const tick=Math.round((start+index*4+beatOffset(event.time))*Tone.Transport.PPQ);
+          repeat(time=>this.playEvent(name,event,time),`${pool.length}m`,`${tick}i`);
+        }
+        repeat(time=>draw(()=>onAccompaniment?.(name,index),time),`${pool.length}m`,`${(start+index*4)*Tone.Transport.PPQ}i`);
+      }
+    }
+  }
+
+  playPracticePad(note='rim', time=Tone.immediate()+.015) {
+    if(!this.practiceSession||this.backgrounded||this.tempoHeld||document.hidden)return;
+    this.nodes.drums.gain.volume.value=this.effectiveVolume('drums');
+    this.playEvent('drums',{note,velocity:.56},time);
+  }
+
+  startGuidedPractice(kind,phrase,{onCue,onBeat,onResponse,onEnd}={}) {
+    if(!this.practiceSession||this.backgrounded||this.tempoHeld||document.hidden)return null;
+    this.stopPracticeRun();
+    const run={ids:[],partners:[],startTime:Tone.now()+.12,resetCountIn(){}};
+    this.practiceRun=run;
+    const ppq=Tone.Transport.PPQ;
+    const valid=()=>this.practiceRun===run&&!this.backgrounded&&!this.tempoHeld&&!document.hidden;
+    const draw=(callback,time)=>Tone.Draw.schedule(()=>{if(valid()&&time>=run.startTime)callback();},time);
+    const at=(beat,callback)=>run.ids.push(Tone.Transport.schedule(time=>{if(valid())callback(time);},`${Math.round(beat*ppq)}i`));
+    const repeat=(callback,interval,start)=>run.ids.push(Tone.Transport.scheduleRepeat(time=>{if(valid())callback(time);},interval,start));
+    const rhythm=kind==='rhythm';
+    const responseBeat=6;
+    if(kind==='band'){
+      this.schedulePracticePartners(phrase,repeat,draw,0);
+    }else{
+      for(const [index,event] of phrase.events.entries()){
+        at(beatOffset(event.time),time=>{
+          if(rhythm)this.playPracticePad(event.note,time);
+          else this.playEvent(this.manualInstrument,event,time);
+          draw(()=>onCue?.(index,event),time);
+        });
+      }
+      if(rhythm){
+        for(let beat=0;beat<2;beat++){
+          at(4+beat,time=>{
+            this.metronomeSynth.triggerAttackRelease(beat===0?'C6':'G5',.035,time,.42);
+            draw(()=>onBeat?.(beat),time);
+          });
+        }
+        at(responseBeat,time=>draw(()=>onResponse?.(),time));
+      }
+      const last=beatOffset(phrase.events.at(-1).time);
+      at(rhythm?responseBeat+4:last+1,time=>draw(()=>onEnd?.(),time));
+    }
+    Tone.start().catch(console.error);
+    Tone.Transport.start(run.startTime,0);
+    return {responseTick:responseBeat*ppq,beatTicks:ppq};
   }
 
   practiceTime() {return Tone.immediate();}

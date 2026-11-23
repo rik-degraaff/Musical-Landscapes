@@ -7,7 +7,7 @@ FarmJam stores family and learning data locally in browser storage. It has no ac
 - `farmjam-children-v1` stores the family record, selected child, child profile fields, and each child's instrument/display settings.
 - `farmjam-settings-v1` is the legacy settings mirror used for compatibility with older installs. It is not the owner of independent child settings.
 - `farmjam-caregiver-settings-v1` stores caregiver familiarity shared across profiles. Existing installs can seed it from the selected child's legacy answer once.
-- `farmjam-learning-v1` stores guide read revisions and per-child hint preferences/progress, including accumulated active-play time and suggested/seen/completed/dismissed state.
+- `farmjam-learning-v1` stores guide read revisions and per-child hint preferences/progress, including accumulated active-play time and suggested/seen/completed/dismissed state. It also stores an optional per-child practice-visit state (visited or acknowledged).
 
 The normalization functions and storage adapters in `src/utils/` remain the schema boundary. Preserve existing keys and readable formats when changing fields. New records should be versioned and tolerate missing or unknown fields where feasible.
 
@@ -20,6 +20,8 @@ Profile edits and deletion use a coordinated write: the legacy settings mirror i
 Before each family save, FarmJam rereads storage and merges the tab's changes against its last acknowledged snapshot. Completed additions and deletions from another tab survive; independent fields merge, and explicit local changes win a field conflict. A completed family write is acknowledged even if its legacy mirror fails, so retry does not replay stale edits. Creation retries reuse the same child ID. A failed fresh read blocks writing. This protects sequential saves from stale tabs; simultaneous localStorage read/merge/write operations are not atomic. Other tabs adopt these changes on their next family operation rather than switching an active play session automatically.
 
 Caregiver familiarity is independent of child selection and is saved on completed setup or an explicit settings change. Learning state belongs to the selected child except for guide read revisions, which are shared. The caregiver can turn all hints on or off for a child, or reset an individual hint without deleting the profile. Guide revisions determine whether a guide is unread or new; merely opening it does not mark it read. An unfinished live hint remains available across reloads. Explicit Stop hint records dismissal; legacy seen hints migrate as dismissed so an upgrade respects earlier choices.
+
+The practice-visit note uses the learning record read at launch and the current per-child hint preference. First visits during the current launch do not show a menu note until a later launch. Selecting the turn-taking answer and confirming it in caregiver help or the menu note records acknowledgment. Profile deletion removes that child's learning information. The room's activity, progress and display-detail choices are session-only.
 
 Do not add automatic migration that discards original data. Do not clear all site storage, unregister all workers, or delete caches as a routine recovery step. There is no built-in export or restore workflow.
 

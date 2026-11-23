@@ -1,4 +1,4 @@
-import {test,expect} from './fixtures.js';
+import {test,expect,openFullPractice} from './fixtures.js';
 
 test('corner controls remain hittable inside changing full-screen safe areas',async({page},testInfo)=>{
   await page.setViewportSize({width:852,height:393});await page.goto('/');
@@ -28,6 +28,9 @@ test('corner controls remain hittable inside changing full-screen safe areas',as
     const close=page.getByRole('button',{name:'Close settings',exact:true});await safeControl(close,top,side);await close.click();
     await page.locator('#young-musician').focus();await page.keyboard.press('Enter');
     const exit=page.getByRole('button',{name:'Leave practice through the open door'});await safeControl(exit,top,side);
+    await safeControl(page.getByRole('button',{name:'Hear it',exact:true}),top,side,bottom);
+    await openFullPractice(page);
+    await safeControl(exit,top,side,bottom);
     await page.getByRole('button',{name:'Open metronome',exact:true}).click();
     await safeControl(page.getByRole('dialog',{name:'Metronome',exact:true}),top,side,bottom,false);
     await safeControl(page.getByRole('switch',{name:'Metronome sound',exact:true}),top,side,bottom);await page.keyboard.press('Escape');

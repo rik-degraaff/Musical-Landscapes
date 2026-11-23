@@ -1,4 +1,5 @@
 import React, {useEffect,useRef,useState} from 'react';
+import {ChevronDown,ChevronUp} from 'lucide-react';
 import {STRING_INSTRUMENTS,fretPosition,guitarEvent,voiceStringEvent} from '../utils/guitar';
 import {useSwipeNotes} from './useSwipeNotes';
 import {flashInput} from './inputFeedback';
@@ -19,7 +20,7 @@ function ChordDiagram({chord}) {
   </svg>;
 }
 
-export function Guitar({audio,cue,root,profile,PressControl,options={},name='guitar',practice=false}) {
+export function Guitar({audio,cue,root,profile,PressControl,options={},name='guitar',practice=false,focusEvent}) {
   const {tuning,frets:fretCount}=STRING_INSTRUMENTS[name];
   const label=name==='ukulele'?'Ukulele':'Guitar';
   const owners=useRef(new Map());
@@ -32,12 +33,15 @@ export function Guitar({audio,cue,root,profile,PressControl,options={},name='gui
   const candidate=cue?(cue.chord?cue:guitarEvent(root,cue,name)):null;
   const demoChord=buttons.find(value=>value.name===candidate?.chord);
   const demo=demoChord?voiceStringEvent(candidate,demoChord):null;
-  const shown=selected??demo?.chord;
+  const shown=focusEvent?.chord??selected??demo?.chord;
   const chord=buttons.find(value=>value.name===shown);
   const selectedChord=buttons.find(value=>value.name===selected);
   const highlighted=selectedChord&&demo?voiceStringEvent(demo,selectedChord):demo;
   const notes=chord?.notes??tuning;
   const heldFrets=chord?.frets??tuning.map(()=>0);
+  const focusString=focusEvent?.fingering[0]?.string;
+  const separateChords=practice&&!focusEvent;
+  const stringY=string=>focusEvent?50:(string+.5)/tuning.length*100;
   const notesRef=useRef(notes);notesRef.current=notes;
   useEffect(()=>{owners.current.clear();selection.current=null;setManual(null);setPlayed(null);},[root,name,practice]);
   useInputReset(()=>{owners.current.clear();selection.current=null;setManual(null);setPlayed(null);});
@@ -64,26 +68,39 @@ export function Guitar({audio,cue,root,profile,PressControl,options={},name='gui
   const position=fret=>fret===0?0:(fretPosition(fret-1,fretCount)+fretPosition(fret,fretCount))*50;
   const playedHere=played?.root===root&&played?.instrument===name&&played?.practice===practice?played:null;
   useSwipeNotes(surface,value=>pluck(Number(value)));
-  return <div className={`manual-guitar guitar-fretboard-layout strings-layout strings-${name}`} style={{'--string-count':tuning.length}}>
-    <div ref={surface} className="guitar-stringboard" role="group" aria-label={`${label} strings`} onPointerDown={event=>event.preventDefault()}>
+  const chordControls=focusEvent?null:<div className={`guitar-chords neck-chord-controls ${options.fingeringCharts?'with-charts':''}`} role="group" aria-label="Chords in the current key">
+    {buttons.map(value=><PressControl key={value.name} demoPressed={selected===value.name||(practice&&demo?.chord===value.name)} label={`Hold ${name} chord ${value.name}`} className={`chord-control ${shown===value.name?'playing-chord':''}`} onActivate={()=>choose('activation',owners.current.get('activation')===value.name?null:value.name)} onPress={token=>choose(token,value.name)} onRelease={token=>choose(token,null)}><span className="chord-name">{value.name}</span>{options.fingeringCharts&&<ChordDiagram chord={value}/>}</PressControl>)}
+  </div>;
+  function scrollStrings(direction) {
+    surface.current?.scrollBy({top:direction*88});
+  }
+  return <div className={`manual-guitar guitar-fretboard-layout strings-layout strings-${name}${focusEvent?' focused-strings':separateChords?' practice-full-strings':''}`} style={{'--string-count':focusEvent?1:tuning.length}}>
+    <div ref={surface} className="guitar-stringboard" role="group" aria-label={`${label} strings`} tabIndex={separateChords?0:undefined} onPointerDown={event=>{if(!separateChords||event.target.closest('.playable-string'))event.preventDefault();}}>
       <div className="guitar-neck" aria-hidden="true">
         {Array.from({length:fretCount+1},(_,fret)=><i className={`fret-line ${fret===0?'nut':''}`} key={fret} style={{left:`${fretPosition(fret,fretCount)*100}%`}}/>)}
         {[3,5,7,9,12,15,17,19,21].filter(fret=>fret<=fretCount).map(fret=><i className="neck-inlay" key={fret} style={{left:`${position(fret)}%`}}/>)}
       </div>
       <div className="guitar-soundhole" aria-hidden="true"/>
       {notes.map((note,string)=>{
+        if(focusEvent&&focusString!==string)return null;
         const demoPressed=practice&&Boolean(highlighted?.fingering?.some(input=>input.string===string));
-        return <button key={string} data-swipe-note={string} className={`playable-string${demoPressed?' pressed':''}`} aria-pressed={demoPressed} aria-label={`${label} string ${string+1} ${note}`} style={{'--string-weight':`${3-string*.3}px`}} onClick={event=>{if(event.detail===0){flashInput(event.currentTarget);pluck(string);}}} onKeyDown={event=>{if(!event.repeat&&[' ','Enter'].includes(event.key)){event.preventDefault();flashInput(event.currentTarget);pluck(string);}}}><i/></button>;
+        return <button key={string} data-swipe-note={string} className={`playable-string${demoPressed?' pressed':''}`} data-practice-cue={demoPressed||undefined} aria-label={`${label} string ${string+1} ${note}`} style={{'--string-weight':`${3-string*.3}px`}} onClick={event=>{if(event.detail===0){flashInput(event.currentTarget);pluck(string);}}} onKeyDown={event=>{if(!event.repeat&&[' ','Enter'].includes(event.key)){event.preventDefault();flashInput(event.currentTarget);pluck(string);}}}><i/>{practice&&options.noteLabels&&<span>{note}</span>}</button>;
       })}
-      <div className={`guitar-chords neck-chord-controls ${options.fingeringCharts?'with-charts':''}`} role="group" aria-label="Chords in the current key">
-        {buttons.map(value=><PressControl key={value.name} demoPressed={selected===value.name||(practice&&demo?.chord===value.name)} label={`Hold ${name} chord ${value.name}`} className={`chord-control ${shown===value.name?'playing-chord':''}`} onActivate={()=>choose('activation',owners.current.get('activation')===value.name?null:value.name)} onPress={token=>choose(token,value.name)} onRelease={token=>choose(token,null)}><span className="chord-name">{value.name}</span>{options.fingeringCharts&&<ChordDiagram chord={value}/>}</PressControl>)}
-      </div>
+      {!separateChords&&chordControls}
       <div className="guitar-fingering-overlay" aria-hidden="true">
-        {heldFrets.map((fret,string)=><i className={`fingering-dot ${fret===0?'open-string-dot':''}`} key={string} data-string={string+1} data-fret={fret} style={{left:`${position(fret)}%`,top:`${(string+.5)/tuning.length*100}%`}}/>)}
-        {shown&&<span className="neck-chord-name">{shown}</span>}
-        {!selected&&demo?.fingering?.map((input,index)=><i className="phrase-note-dot" key={`${input.string}-${index}`} data-string={input.string+1} data-fret={input.fret} style={{left:`${position(input.fret)}%`,top:`${(input.string+.5)/tuning.length*100}%`}}/>)}
-        {playedHere&&<i className="phrase-note-dot manual-note-dot" data-string={playedHere.string+1} data-fret={playedHere.fret} style={{left:`${position(playedHere.fret)}%`,top:`${(playedHere.string+.5)/tuning.length*100}%`}}/>}
+        {(!practice||options.fretDots)&&heldFrets.map((fret,string)=>(!focusEvent||focusString===string)&&<i className={`fingering-dot ${fret===0?'open-string-dot':''}`} key={string} data-string={string+1} data-fret={fret} style={{left:`${position(fret)}%`,top:`${stringY(string)}%`}}/>)}
+        {shown&&(!focusEvent||options.fingeringCharts)&&<span className="neck-chord-name">{shown}</span>}
+        {focusEvent&&options.fingeringCharts&&chord&&<ChordDiagram chord={chord}/>}
+        {!selected&&demo?.fingering?.map((input,index)=><i className="phrase-note-dot" key={`${input.string}-${index}`} data-string={input.string+1} data-fret={input.fret} style={{left:`${position(input.fret)}%`,top:`${stringY(input.string)}%`}}/>)}
+        {playedHere&&<i className="phrase-note-dot manual-note-dot" data-string={playedHere.string+1} data-fret={playedHere.fret} style={{left:`${position(playedHere.fret)}%`,top:`${stringY(playedHere.string)}%`}}/>}
       </div>
     </div>
+    {separateChords&&<div className="practice-string-tools">
+      {chordControls}
+      <div className="practice-string-scroll" aria-label="Scroll through strings" role="group">
+        <button aria-label="Scroll up through strings" onClick={()=>scrollStrings(-1)}><ChevronUp size={18}/></button>
+        <button aria-label="Scroll down through strings" onClick={()=>scrollStrings(1)}><ChevronDown size={18}/></button>
+      </div>
+    </div>}
   </div>;
 }

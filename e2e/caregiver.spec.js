@@ -1,3 +1,4 @@
+import {openFullPractice} from './fixtures.js';
 import {test,expect} from '@playwright/test';
 
 async function family(page){return page.evaluate(()=>JSON.parse(localStorage.getItem('farmjam-children-v1')));}
@@ -72,7 +73,7 @@ test('context help opens with one activation, uses saved familiarity, and closes
   await openHelp(page);await expect(page.locator('.caregiver-dialog')).toContainText('Caregiver contains shared music familiarity');await page.getByRole('button',{name:'Back to Settings',exact:true}).click();await expect(settings).toBeVisible();
   await openHelp(page);await page.keyboard.press('Escape');await expect(settings).toBeVisible();await page.keyboard.press('Escape');await expect(settings).toHaveCount(0);
   await page.locator('#young-musician').focus();await page.keyboard.press('Enter');const practice=page.getByRole('dialog',{name:'Farm practice room',exact:true});await expect(practice).toBeVisible();
-  await openHelp(page);await expect(page.locator('.caregiver-dialog')).toContainText('Press Ready and wait for the count-in');await fits(page,'.caregiver-dialog');
+  await openHelp(page);await expect(page.locator('.caregiver-dialog')).toContainText('Tap the headphones');await fits(page,'.caregiver-dialog');
   await page.screenshot({path:`test-results/caregiver-${testInfo.project.name}-help.png`});await page.keyboard.press('Escape');await expect(practice).toBeVisible();
   await fits(page,'.practice-topbar');await page.getByRole('button',{name:'Leave practice through the open door'}).click();await openHelp(page);await expect(page.locator('.discovery-help')).toHaveCount(0);await page.keyboard.press('Escape');expect(errors).toEqual([]);
 });
@@ -93,6 +94,7 @@ test('global familiarity changes help immediately, survives child selection and 
 test('practice help follows the selected stage and returns to the current task',async({page})=>{
   await start(page);await page.getByRole('button',{name:'Tap to play'}).click();await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});
   await page.locator('#young-musician').focus();await page.keyboard.press('Enter');await expect(page.getByRole('dialog',{name:'Farm practice room',exact:true})).toBeVisible();
+  await openFullPractice(page);
   await page.getByRole('button',{name:'2. Learn',exact:true}).click();await openHelp(page);
   await expect(page.locator('.caregiver-dialog')).toContainText('Learn waits for you');await expect(page.locator('.caregiver-dialog')).toContainText('A chord means several notes');await expect(page.locator('.caregiver-dialog')).not.toContainText('Press Ready and wait for the count-in');await page.keyboard.press('Escape');
   await expect(page.getByRole('button',{name:'2. Learn',exact:true})).toHaveAttribute('aria-pressed','true');await page.getByRole('button',{name:'Leave practice through the open door'}).click();await openHelp(page);await expect(page.locator('.caregiver-dialog')).toContainText('Tap the sun or moon');await expect(page.locator('.discovery-help')).toHaveCount(0);await page.keyboard.press('Escape');

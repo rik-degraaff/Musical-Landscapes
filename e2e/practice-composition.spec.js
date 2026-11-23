@@ -1,10 +1,11 @@
-import {test,expect} from './fixtures.js';
+import {test,expect,openFullPractice,seedPracticeDisplays} from './fixtures.js';
 
 async function start(page) {
   const size=page.viewportSize();
   if(size.height>size.width)await page.setViewportSize({width:size.height,height:size.width});
   const errors=[];
   page.on('pageerror',error=>errors.push(error.message));
+  await seedPracticeDisplays(page);
   await page.goto('/');
   await page.getByRole('button',{name:'Tap to play',exact:true}).click();
   await expect(page.locator('.start-overlay')).toHaveCount(0,{timeout:30000});
@@ -18,6 +19,7 @@ async function enter(page,name) {
   await page.locator('#young-musician').focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('dialog',{name:'Farm practice room'})).toBeVisible();
+  await openFullPractice(page);
   await expect(page.getByRole('combobox',{name:'Practice instrument'})).toHaveValue(name);
   await page.getByRole('button',{name:'2. Learn',exact:true}).click();
   await expect(page.getByRole('button',{name:'2. Learn',exact:true})).toHaveAttribute('aria-pressed','true');
@@ -94,7 +96,7 @@ test('Simple appended piano accompaniment learns whole events, rejects wrong not
   await expect(progress).toHaveAttribute('max','2');
   await expect(progress).toHaveAttribute('value','0');
   await expect(target).toHaveText(phrase.events[0].notes.join(' + '));
-  await expect(next).toBeDisabled();
+  await expect(next).toHaveAttribute('data-complete','false');
   await expectLayout(page);
   await page.screenshot({path:testInfo.outputPath('piano-appended-accompaniment.png')});
   const wrong=profile.keyboardNotes.find(note=>!phrase.events[0].notes.includes(note));
@@ -115,13 +117,13 @@ test('Simple appended piano accompaniment learns whole events, rejects wrong not
   }
   await expect(target).toHaveText('Finished');
   await expect(page.locator('.practice-phrase-track .is-complete')).toHaveCount(2);
-  await expect(next).toBeEnabled();
+  await expect(next).toHaveAttribute('data-complete','true');
   await page.getByRole('button',{name:'Restart practice',exact:true}).click();
   await expect(progress).toHaveAttribute('value','0');
   await expect(target).toHaveText(phrase.events[0].notes.join(' + '));
   await expect(page.locator('.practice-feedback-display')).toHaveText('Ready');
   await expect(page.locator('.practice-phrase-track .is-complete')).toHaveCount(0);
-  await expect(next).toBeDisabled();
+  await expect(next).toHaveAttribute('data-complete','false');
   expect(errors).toEqual([]);
 });
 
@@ -147,7 +149,7 @@ test('appended ukulele melody keeps original note targets and canonical string f
     const chord=profile.chords.find(value=>value.name===event.chord);
     expect(chord).toBeTruthy();
     await expect(target).toHaveText(event.note);
-    await expect(next).toBeDisabled();
+    await expect(next).toHaveAttribute('data-complete','false');
     await expect(page.locator('.neck-chord-name')).toHaveText(chord.name);
     const markers=page.locator('.phrase-note-dot:not(.manual-note-dot)');
     await expect(markers).toHaveCount(event.fingering.length);
@@ -157,7 +159,7 @@ test('appended ukulele melody keeps original note targets and canonical string f
     await expectLayout(page);
     if(eventIndex===0)await page.screenshot({path:testInfo.outputPath('ukulele-appended-melody.png')});
     const button=page.getByRole('button',{name:`Hold ukulele chord ${chord.name}`,exact:true});
-    await expect(button).toBeVisible();
+    await button.scrollIntoViewIfNeeded();
     const bounds=await button.boundingBox();
     await page.mouse.move(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
     await page.mouse.down();
@@ -176,7 +178,7 @@ test('appended ukulele melody keeps original note targets and canonical string f
   await expect(target).toHaveText('Finished');
   await expect(page.locator('.practice-feedback-display')).toHaveText('Phrase learned!');
   await expect(page.locator('.practice-phrase-track .is-complete')).toHaveCount(phrase.events.length);
-  await expect(next).toBeEnabled();
+  await expect(next).toHaveAttribute('data-complete','true');
   const pulseIndex=profile.phrases.findIndex((value,phraseIndex)=>phraseIndex>=legacyCount&&value.name==='pulse'&&value.role==='accompaniment'&&value.degree===0);
   expect(pulseIndex).toBeGreaterThanOrEqual(legacyCount);
   await selector.selectOption(String(pulseIndex));
@@ -185,6 +187,6 @@ test('appended ukulele melody keeps original note targets and canonical string f
   await expect(target).toHaveText(profile.phrases[pulseIndex].events[0].notes.join(' + '));
   await expect(page.locator('.practice-feedback-display')).toHaveText('Ready');
   await expect(page.locator('.practice-phrase-track .is-complete')).toHaveCount(0);
-  await expect(next).toBeDisabled();
+  await expect(next).toHaveAttribute('data-complete','false');
   expect(errors).toEqual([]);
 });

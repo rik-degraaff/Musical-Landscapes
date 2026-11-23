@@ -3,7 +3,7 @@ export const LEARNING_KEY = 'farmjam-learning-v1';
 export const GUIDES = [
   {id:'instruments',version:4,title:'Play an instrument',summary:'Start the band, then try the real playing controls.'},
   {id:'landscape',version:4,title:'Explore the landscape',summary:'Change the scene, musical style and speed.'},
-  {id:'practice',version:3,title:'Use the practice room',summary:'Find your way around, then choose Listen, Learn, Rhythm or Together.'},
+  {id:'practice',version:4,title:'Use the practice room',summary:'Hear a sound, take turns, echo a rhythm or join the band.'},
   {id:'settings',version:3,title:'Choose instruments and settings',summary:'Set up instruments, sound and learning hints.'},
   {id:'installation',version:2,title:'Install and prepare your device',summary:'Separate steps for installing, offline play and device restrictions.'},
   {id:'together',version:2,title:'Play together',summary:'Simple ideas for sharing music and taking it off screen.'},
@@ -14,7 +14,7 @@ export const HINTS = [
   {id:'landscape',title:'Follow the sun',text:'Tap the sun or moon to visit another landscape. The band keeps its beat.',gesture:'tap',seconds:45,ages:['under3','3to4','5to7','8plus']},
   {id:'equip',title:'Play it yourself',text:'Drag an instrument onto your avatar, then try its controls.',gesture:'drag',seconds:120,ages:['3to4','5to7','8plus']},
   {id:'weather',title:'Change the musical weather',text:'Tap a cloud to cycle through Folk, Jazz and Rock. The music changes gradually while the band keeps playing.',gesture:'tap',seconds:180,ages:['3to4','5to7','8plus']},
-  {id:'practice',title:'Try a musical conversation',text:'Double-tap your avatar to visit practice, then tap Ready to listen.',gesture:'double-tap',seconds:300,ages:['5to7','8plus'],requires:'equip'},
+  {id:'practice',title:'Try a musical conversation',text:'Double-tap your avatar to visit practice, then tap the headphones to hear a sound.',gesture:'double-tap',seconds:300,ages:['5to7','8plus'],requires:'equip'},
 ];
 
 export function emptyLearning() { return {guides:{},children:{}}; }
@@ -26,6 +26,7 @@ export function normalizeLearning(value) {
   }));
   const children=Object.fromEntries(Object.entries(value?.children??{}).filter(([id,child])=>id&&child&&typeof child==='object').map(([id,child])=>[
     id,{enabled:child.enabled!==false,seconds:Number.isFinite(child.seconds)?Math.max(0,child.seconds):0,
+      ...(['visited','acknowledged'].includes(child.practiceVisit)?{practiceVisit:child.practiceVisit}:{}),
       hints:Object.fromEntries(HINTS.flatMap(hint=>{
         const saved=child.hints?.[hint.id];
         return saved&&typeof saved==='object'?[[hint.id,{suggested:saved.suggested===true,seen:saved.seen===true,completed:saved.completed===true,
@@ -42,6 +43,16 @@ export function guideStatus(state,guide) {
 export function updateChildLearning(state,id,update) {
   if(!id)return state;
   return {...state,children:{...state.children,[id]:update(childLearning(state,id))}};
+}
+export function notePracticeVisit(state,id,acknowledged=false) {
+  const progress=childLearning(state,id);
+  const practiceVisit=acknowledged?'acknowledged':'visited';
+  if(progress.practiceVisit==='acknowledged'||progress.practiceVisit===practiceVisit)return state;
+  return updateChildLearning(state,id,child=>({...child,practiceVisit}));
+}
+export function hasPracticeReminder(startup,state,id) {
+  const current=childLearning(state,id);
+  return current.enabled&&current.practiceVisit==='visited'&&childLearning(startup,id).practiceVisit==='visited';
 }
 export function updateHint(state,id,hintId,patch) {
   if(!HINTS.some(hint=>hint.id===hintId))return state;

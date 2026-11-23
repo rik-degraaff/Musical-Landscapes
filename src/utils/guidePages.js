@@ -36,33 +36,53 @@ export const GUIDE_PAGES={
     ],{kind:'metronome',gesture:'tempo'},{new:'The beat is a steady pulse you can clap along with.',some:'Tempo is the speed of that pulse.',confident:'The band shares one tempo, so its parts stay in time.'})
   ],
   practice:[
-    page('enter','Open the practice room',[
-      'Double-tap your child’s avatar in the landscape to enter practice. You can enter with or without an equipped instrument.',
-      'Practice gives you one short phrase to explore. You can listen, follow its notes, try its rhythm or play with accompaniment.'
+    page('enter','Open Farm Practice',[
+      'Double-tap your child’s avatar or the instrument they’re holding. You can also focus the avatar and press Enter or Space, or choose Open practice in caregiver help.',
+      'For a first visit, hearing one sound and finding the open door is plenty.'
     ],{kind:'profile',gesture:'double-tap'}),
-    page('room','Choose what to practice',[
-      'Use the instrument and phrase selectors at the top. The stage row chooses Listen, Learn, Rhythm or Together; the playable instrument is below.',
-      'The phrase track shows the actions in the phrase. The metronome is in the header. Changing instrument, phrase or stage stops playback and starts that choice from the beginning.'
+    page('room','Start where your child is comfortable',[
+      'Under 3, take turns around one big target. At 3–4, let the child copy the first sound and offer two when they’re ready. At 5–7, build from one sound to a short sequence. Ages 8+ start with a short example and can choose an instrument or phrase immediately.',
+      'Children who aren’t reading can follow the headphones, the hand and the highlighted target. Choose an activity opens any activity and Full practice for every age.'
+    ],{kind:'practice-guided',activity:'hear',focus:'activities'}),
+    page('hear','Hear it',[
+      'Tap the headphones. The room plays one example and highlights the sounding control. Hear it again repeats it. My turn opens copying.',
+      'Point to the sound as it plays. For a child who is still learning the symbols, you can tap the headphones first and let them try the highlighted target.'
+    ],{kind:'practice-guided',activity:'hear'}),
+    page('copy','Copy it',[
+      'Follow the hand and play the outlined target. Copy it waits for your child. Hear this sound plays just the current action, and Hear it again returns to the whole example.',
+      'Try “I play, you answer.” Model one tap, pluck or clap, then swap turns. When a guitar or ukulele starts with one string, the room has already chosen a chord shape. A young child using a trumpet gets a labeled practice pad.'
+    ],{kind:'practice-guided',activity:'copy'}),
+    page('echo','Tap the rhythm',[
+      'Listen to the pad and wait for the two lead-in clicks. When the hand appears, tap the big pad in the same pattern. You can clap or pat along together.',
+      'Try the steady beat first, then echo the rhythm of the phrase. Each round ends on its own and you can repeat either rhythm.'
+    ],{kind:'practice-guided',activity:'rhythm'}),
+    page('band','Play with the band',[
+      'Start the band, then play any sounds you like while two quieter instruments play along. Stop is available throughout.',
+      'Choose Phrase challenge for one timed attempt with the real instrument. You can change the phrase or play freely again.'
+    ],{kind:'practice-guided',activity:'band'}),
+    page('tools','Open Full practice',[
+      'Choose an activity, then Full practice, for the whole phrase library, instrument controls and metronome. The hand button in the header returns to guided practice.',
+      'The saved instrument difficulty sets the available phrases. Saved labels and charts appear in Full practice or under Show details when available in the guided room.'
     ],{kind:'practice-room'}),
-    page('listen','Listen to the phrase',[
-      'Choose Listen, then press Ready. Wait through the count-in and hear the instrument play the phrase. The highlighted controls show what is sounding.',
-      'The demonstration repeats until you press Stop. After one full phrase, Next can take you to Learn. You can also choose any stage directly.'
+    page('listen','Repeat a full phrase',[
+      'In Full practice, choose Listen and press Ready. After the count-in, the instrument plays the phrase with live highlights and a hold guide.',
+      'The example repeats until you press Stop. Use Next or choose any stage directly.'
     ],{kind:'practice-stage',stage:'Listen',focus:'transport'}),
-    page('learn','Follow the highlighted notes',[
-      'Choose Learn and play the highlighted note or complete chord. There is no Ready button or count-in in this stage: it waits for you.',
-      'For a chord, play every highlighted note before moving on. Take as long as you need; Next becomes available after the whole phrase.'
-    ],{kind:'practice-stage',stage:'Learn',focus:'progress'},{new:'A chord means several notes sounding together.',some:'Learn checks the notes you choose, with no timing target.',confident:'Each grouped cue must include every required pitch.'}),
-    page('rhythm','Play with the beat',[
-      'Choose Rhythm, press Ready and wait through the count-in. Start each highlighted note or chord when its turn arrives in the beat.',
-      'The orange bars shrink to guide how long to hold. Practice checks the notes and when they start; hold duration is not scored. Next becomes available after one correct full phrase.'
-    ],{kind:'practice-stage',stage:'Rhythm',focus:'progress'},{new:'Try saying or clapping the rhythm before playing it.',some:'If a note is missed, the phrase repeats for another try.',confident:'Timed stages check note onsets, including the complete chord.'}),
-    page('together','Play with partner instruments',[
-      'Choose Together, press Ready and wait through the count-in. Two quieter partner instruments play alongside your phrase.',
-      'You play the selected instrument yourself. After one correct full phrase, Finish returns to the landscape. You can choose another stage whenever you like.'
+    page('learn','Copy a full phrase',[
+      'In Learn, follow each highlighted sound or chord. The room waits for each action, so take as long as you need.',
+      'For a grouped action, play each required note. If choosing a chord and sweeping is new, try holding the chord while your child sweeps, then swap.'
+    ],{kind:'practice-stage',stage:'Learn',focus:'progress'},{new:'A chord means several notes sounding together.',some:'Learn checks the notes you choose at your pace.',confident:'Each grouped cue accepts its required pitches.'}),
+    page('rhythm','Start each note with the beat',[
+      'Rhythm uses a count-in and the real instrument. Get ready previews the upcoming action. The instrument highlight marks the time to start. If you miss a chance, follow the next cue or stop and listen again.',
+      'Open Attempt details after stopping to see the result. Each complete note or grouped chord counts as one action.'
+    ],{kind:'practice-stage',stage:'Rhythm',focus:'progress'}),
+    page('together','Try a phrase with the band',[
+      'Together adds two quiet accompaniment parts to the timed phrase. Phrase challenge from the guided band plays one attempt. Full practice can also repeat the exercise.',
+      'Follow the highlighted instrument or replay the phrase. Practice checks the start of each note or chord, and the door is always available.'
     ],{kind:'practice-stage',stage:'Together'}),
     page('controls','Repeat, restart or leave',[
-      'Stop ends a running attempt. In Rhythm and Together, Repeat starts a fresh attempt after stopping. Restart clears the current attempt; press Ready to begin again outside Learn.',
-      'The progress display belongs to this attempt. You can choose stages freely, even when Next is unavailable. Use the open door or Escape to leave at any time and return to your landscape band.'
+      'Stop ends audio and clears held notes. Restart resets the attempt. After opening help or switching away, start again when you’re ready. Use the open door or Escape to return to the landscape.',
+      'The next time you open FarmJam, the menu can show an optional note if your child visited practice. Open practice help with the question mark, or open the menu note. Read the turn-taking tip, choose Take turns and confirm to clear the note for that child.'
     ],{kind:'practice-room',focus:'exit'})
   ],
   settings:[

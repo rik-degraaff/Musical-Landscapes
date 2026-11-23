@@ -54,7 +54,7 @@ export function Flute({audio,cue,profile,PressControl,options}) {
   </div>;
 }
 
-export function Trumpet({audio,cue,profile,PressControl,options}) {
+export function Trumpet({audio,cue,profile,PressControl,options,focusNotes}) {
   const registers=TRUMPET_REGISTERS.slice(0,profile.registers);
   const valves=useRef([new Set(),new Set(),new Set()]);
   const lips=useRef(new Map());
@@ -102,8 +102,8 @@ export function Trumpet({audio,cue,profile,PressControl,options}) {
   const shown=demo?(demo.partial+.5)/registers.length:position;
   return <div className="manual-trumpet">
     <svg className="trumpet-body-art" viewBox="0 0 900 190" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="lip-brass" x2="0" y2="1"><stop stopColor="#fff2a5"/><stop offset=".5" stopColor="#dfb550"/><stop offset="1" stopColor="#a87e32"/></linearGradient></defs><path d="M58 110H620q65 0 120-63v117q-55-43-120-43H58Z" fill="url(#lip-brass)" stroke="#a37c34" strokeWidth="5"/><ellipse cx="740" cy="105" rx="30" ry="61" fill="#7d6136" stroke="#f4d775" strokeWidth="9"/><path d="M250 110v48h350q40 0 40-38" stroke="#e9c76e" strokeWidth="17" fill="none"/></svg>
-    <div className="trumpet-valve-controls">{[0,1,2].map(index=><PressControl key={index} label={`Trumpet valve ${index+1}`} className="valve-control" demoPressed={Boolean(demo?.valves[index])} onPress={token=>{valves.current[index].add(token);update();}} onRelease={token=>{valves.current[index].delete(token);update();}}><span>{index+1}</span><i/></PressControl>)}</div>
-    <div className={`trumpet-embouchure ${demo||blowing?'is-blowing':''}`} style={{'--register-count':registers.length}} role="slider" tabIndex={0} aria-label="Trumpet embouchure" aria-valuemin={0} aria-valuemax={registers.length-1} aria-valuenow={demo?.partial??partialRef.current} aria-valuetext={registers[demo?.partial??partialRef.current]}
+    {!focusNotes&&<div className="trumpet-valve-controls">{[0,1,2].map(index=><PressControl key={index} label={`Trumpet valve ${index+1}`} className="valve-control" demoPressed={Boolean(demo?.valves[index])} onPress={token=>{valves.current[index].add(token);update();}} onRelease={token=>{valves.current[index].delete(token);update();}}><span>{index+1}</span><i/></PressControl>)}</div>}
+    {focusNotes?<div className="trumpet-embouchure focused-embouchure">{focusNotes.map(note=><PressControl key={note} className="lip-segment" label={`Trumpet embouchure ${note}`} demoPressed={cue?.note===note} onPress={token=>audio.manualNoteOn(note,token,.6)} onRelease={token=>audio.manualNoteOff(token)}>{options.noteLabels?note:null}</PressControl>)}</div>:<div className={`trumpet-embouchure ${demo||blowing?'is-blowing':''}`} style={{'--register-count':registers.length}} role="slider" tabIndex={0} aria-label="Trumpet embouchure" aria-valuemin={0} aria-valuemax={registers.length-1} aria-valuenow={demo?.partial??partialRef.current} aria-valuetext={registers[demo?.partial??partialRef.current]}
       onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);lips.current.set(event.pointerId,position);setBlowing(true);move(event);}}
       onPointerMove={event=>{if(lips.current.has(event.pointerId))move(event);}}
       onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release}
@@ -112,7 +112,7 @@ export function Trumpet({audio,cue,profile,PressControl,options}) {
       onBlur={()=>{lips.current.delete('keyboard');setBlowing(lips.current.size>0);update();}}>
       {registers.map(note=><span className="lip-segment" key={note}>{options.noteLabels?note:''}</span>)}
       {(demo||blowing)&&<i className={`lip-indicator ${demo?'is-demo':''}`} style={{left:`${Math.max(2,Math.min(98,shown*100))}%`}} aria-label="Lip position"/>}
-    </div>
+    </div>}
     <output className="trumpet-pitch" hidden={!options.playbackNotes}>{cue?.note??trumpetNote(fingering,partialRef.current)}</output>
   </div>;
 }

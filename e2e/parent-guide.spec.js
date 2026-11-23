@@ -60,7 +60,7 @@ test('optional guides preserve feature, practice and shared-play explanations wi
   for(const [title,pages] of [
     ['Play an instrument',[[0,['Tap an instrument in the landscape']],[1,['Drag an instrument']],[3,['Choose another phrase']]]],
     ['Explore the landscape',[[0,['Tap the sun or moon','current bar']],[2,['metronome','weight up to slow']]]],
-    ['Use the practice room',[[1,['instrument and phrase selectors','Listen, Learn, Rhythm or Together']],[4,['hold duration is not scored']]]],
+    ['Use the practice room',[[1,['headphones, the hand and the highlighted target']],[4,['two lead-in clicks']],[6,['whole phrase library']]]],
     ['Play together',[[0,['take turns leading','Pause when attention or enjoyment fades','off screen']]]]
   ]){
     await page.getByRole('button',{name:`Read ${title.toLowerCase()}`,exact:true}).click();const reader=page.getByRole('dialog',{name:title,exact:true});await expect(reader).toBeVisible();for(const [index,phrases] of pages){await guidePage(page,index);for(const phrase of phrases)await expect(reader).toContainText(phrase);}await page.keyboard.press('Escape');await expect(page.getByRole('heading',{name:'Ready to explore',exact:true})).toBeVisible();await expectNoChild(page);

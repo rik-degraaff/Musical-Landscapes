@@ -6,4 +6,4 @@
 .coach-route { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: #245d52; stroke-width: 4; stroke-dasharray: 7 5; }
 @media(max-height:400px) { .coach-caption { max-width: 52vw; padding: 4px 8px; } .coach-caption p { font-size: 12px; } }
 
-.coach-in-practice .coach-caption { left: 8px; transform: none; max-width: min(340px,42vw); text-align: left; }
+.coach-in-practice .coach-caption { left:auto; right:max(8px,var(--safe-right,0px)); top:auto; bottom:max(8px,var(--safe-bottom,0px)); transform:none; max-width:min(340px,54vw); text-align:left; }

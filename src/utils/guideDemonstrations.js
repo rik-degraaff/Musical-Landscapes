@@ -5,7 +5,7 @@ import {trumpetNote} from './performance.js';
 export const GUIDE_DURATION=8000;
 export const GUIDE_ACTION_DURATION=5600;
 export const PRACTICE_DEMO_TIMING=Object.freeze({ready:1000,phraseStart:2800,phraseEnd:7200});
-export const SIMPLE_GUIDE_OPTIONS=Object.freeze({complexity:.35,noteLabels:false,playbackNotes:false,fingeringCharts:false,harmonyHints:'off'});
+export const SIMPLE_GUIDE_OPTIONS=Object.freeze({complexity:.35,noteLabels:false,playbackNotes:false,fingeringCharts:false,fretDots:false,harmonyHints:'off'});
 
 export function guidePracticePhrase(profile) {
   const index=profile.phrases.findIndex(phrase=>phrase.events.length>=3&&phrase.events.length<=6);

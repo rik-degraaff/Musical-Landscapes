@@ -50,7 +50,7 @@ async function doubleTapAvatar(page) {
 test('every guide has task pages, working navigation, and an explicit last-page read action',async({page})=>{
   await start(page);await guides(page);
   const settings=page.getByRole('dialog',{name:'Settings',exact:true});
-  for(const [title,count] of [['Play an instrument',5],['Explore the landscape',3],['Use the practice room',7],['Choose instruments and settings',6],['Install and prepare your device',3],['Play together',1],['Manage child profiles',3]]) {
+  for(const [title,count] of [['Play an instrument',5],['Explore the landscape',3],['Use the practice room',12],['Choose instruments and settings',6],['Install and prepare your device',3],['Play together',1],['Manage child profiles',3]]) {
     const trigger=page.getByRole('button',{name:`Read ${title.toLowerCase()}`,exact:true});await trigger.click();
     const reader=page.getByRole('dialog',{name:title,exact:true});
     await expect(reader.locator('.guide-page-picker')).toContainText(`1 of ${count}`);
@@ -73,12 +73,15 @@ test('every guide has task pages, working navigation, and an explicit last-page 
 test('practice pages explain the actual room controls and show inert shared artwork',async({page},testInfo)=>{
   await start(page);await guides(page);await page.getByRole('button',{name:'Read use the practice room',exact:true}).click();
   const reader=page.getByRole('dialog',{name:'Use the practice room',exact:true});
-  await jump(page,1);await expect(reader).toContainText('instrument and phrase selectors');await expect(reader).toContainText('stage row');
+  await jump(page,1);await expect(reader).toContainText('headphones, the hand and the highlighted target');
+  await expect(reader.locator('.guided-practice')).toHaveAttribute('inert','');
+  await expect(reader.locator('.guided-choices button')).toHaveCount(4);
+  await jump(page,6);await expect(reader).toContainText('whole phrase library');
   const preview=reader.locator('.guide-room-canvas');await expect(preview).toHaveAttribute('inert','');
   await page.screenshot({path:`artifacts.local/guide-overhaul/practice-guide-${testInfo.project.name}.png`});
   await expect(preview.locator('.practice-select select')).toHaveCount(2);await expect(preview.locator('.practice-stages button')).toHaveCount(4);
   await expect(preview.locator('.practice-progress progress')).toHaveCount(1);await expect(preview.locator('.metronome-mini')).toHaveCount(1);await expect(preview.locator('.practice-exit')).toHaveCount(1);
-  for(const [index,phrases] of [[2,['Ready','count-in','Stop','Next']],[3,['no Ready button','waits for you','every highlighted note']],[4,['Rhythm','hold duration is not scored']],[5,['Together','Two quieter partner instruments','Finish']],[6,['Stop','Repeat','Restart','progress display','open door or Escape']]]) {
+  for(const [index,phrases] of [[2,['headphones','My turn']],[3,['outlined target','I play, you answer']],[4,['lead-in clicks','steady beat']],[5,['Phrase challenge','quieter instruments']],[7,['count-in','Stop']],[8,['each required note']],[9,['Attempt details']],[10,['Together','one attempt']],[11,['Restart','open door or Escape']]]) {
     await jump(page,index);for(const phrase of phrases)await expect(reader.locator('.guide-task-copy')).toContainText(phrase);
   }
   await expect(reader.locator('.guide-room-detail')).toHaveAttribute('inert','');await expect(reader.locator('.practice-control-dock')).toContainText('Repeat');await expect(reader.locator('.practice-restart-button')).toContainText('Restart');await expect(reader.locator('.practice-exit')).toHaveCount(1);
@@ -100,7 +103,7 @@ test('instrument guide previews use real controls, stay silent, and support keyb
   await page.getByRole('button',{name:'Show gesture',exact:true}).click();await expect(page.locator('.guide-art-surface')).toHaveClass(/is-demonstrating/);
   const poses=await page.locator('.guide-art-surface').evaluate(element=>[element.querySelector('.hand-point path').getAttribute('d'),element.querySelector('.hand-pressed path').getAttribute('d')]);expect(poses[0]).not.toBe(poses[1]);
   expect(await page.locator('.guide-pointer').evaluate(element=>getComputedStyle(element).animationName)).toBe('none');await page.getByRole('button',{name:'Replay gesture',exact:true}).click();
-  for(const [instrument,selector] of [['piano','.manual-keyboard'],['drums','.manual-drums'],['ukulele','.manual-guitar'],['panflute','.panflute-pipes'],['melody','.performance-surface'],['flute','.performance-surface']]) {
+  for(const [instrument,selector] of [['piano','.manual-keyboard'],['drums','.manual-drums'],['ukulele','.manual-guitar'],['panflute','.panflute-pipes'],['melody','.performance-surface'],['accordion','.touch-accordion'],['harp','.touch-harp']]) {
     await page.getByRole('combobox',{name:'Guide instrument',exact:true}).selectOption(instrument);
     await expect(page.locator('.guide-surface')).toHaveAttribute('inert','');await expect(page.locator('.guide-surface')).toHaveAttribute('aria-hidden','true');
     await expect(page.locator(`.guide-surface ${selector}`)).toHaveCount(1);
@@ -141,22 +144,22 @@ test('equip coach follows a native drag and waits for a real manual note',async(
   await expect.poll(async()=>(await hintState(page,'equip')).completed).toBe(true);await expect(coach).toHaveCount(0);
 });
 
-test('practice coach follows a native double tap and waits for the actual Ready action',async({page},testInfo)=>{
+test('practice coach follows a native double tap and waits for the actual Hear it action',async({page},testInfo)=>{
   await start(page,{hints:{tap:{completed:true},equip:{completed:true},practice:{suggested:true}}});await play(page);
   await page.getByRole('button',{name:'Learn something new: Try a musical conversation',exact:true}).click();
   const coach=page.locator('.live-coach');await expect(coach).toHaveAttribute('data-hint','practice');
   await doubleTapAvatar(page);await expect(page.getByRole('dialog',{name:'Farm practice room',exact:true})).toBeVisible();
   expect((await hintState(page,'practice')).completed).toBe(false);await expect(coach.locator('.coach-hand')).toBeVisible();
   await expect(coach).toHaveAttribute('data-step','ready');
-  const ready=page.getByRole('button',{name:'Start repeating',exact:true});
+  const ready=page.getByRole('button',{name:'Hear it',exact:true});
   await expect.poll(async()=>{
     const caption=await coach.locator('.coach-caption').boundingBox(),button=await ready.boundingBox();
     return caption.x+caption.width<=button.x||button.x+button.width<=caption.x||caption.y+caption.height<=button.y||button.y+button.height<=caption.y;
   },{message:'The hint controls must leave the real Ready button reachable'}).toBe(true);
   expect(await coach.evaluate(element=>Number(getComputedStyle(element).zIndex))).toBeGreaterThan(await page.locator('.practice-room').evaluate(element=>Number(getComputedStyle(element).zIndex)));
   await page.screenshot({path:`artifacts.local/guide-overhaul/practice-coach-${testInfo.project.name}.png`});
-  await page.getByRole('button',{name:'Start repeating',exact:true}).click();
-  await expect(page.getByRole('button',{name:'Stop practice',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Hear it',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Stop',exact:true})).toBeVisible();
   await expect.poll(async()=>(await hintState(page,'practice')).completed).toBe(true);await expect(coach).toHaveCount(0);
 });
 
@@ -185,7 +188,7 @@ test('help suspends coaching and keyboard users can stop a hint inside practice'
   await expect(page.getByRole('dialog',{name:'Caregiver help',exact:true})).toBeVisible();await expect(coach).toHaveCount(0);
   await page.keyboard.press('Escape');await expect(coach).toBeVisible();await expect(page.getByRole('dialog')).toHaveCount(0);
   await doubleTapAvatar(page);await expect(coach).toHaveAttribute('data-step','ready');
-  const stop=page.getByRole('button',{name:'Stop hint',exact:true});await page.getByRole('button',{name:'Start repeating',exact:true}).focus();
+  const stop=page.getByRole('button',{name:'Stop hint',exact:true});await page.getByRole('button',{name:'Hear it',exact:true}).focus();
   const controls=await page.locator('.practice-room button:not(:disabled),.practice-room select,.live-coach button').count();
   for(let tab=0;tab<controls+2&&!await stop.evaluate(element=>element===document.activeElement);tab++)await page.keyboard.press('Tab');
   await expect(stop).toBeFocused();await page.keyboard.press('Enter');

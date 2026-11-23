@@ -1,4 +1,4 @@
-import {test,expect,waitForInstrumentSettling} from './fixtures.js';
+import {test,expect,waitForInstrumentSettling,openFullPractice} from './fixtures.js';
 
 async function startPractice(page){
   const size=page.viewportSize();
@@ -19,6 +19,7 @@ async function startPractice(page){
   await waitForInstrumentSettling(page);
   await page.locator('#young-musician').focus();await page.keyboard.press('Enter');
   await expect(page.getByRole('dialog',{name:'Farm practice room'})).toBeVisible();
+  await openFullPractice(page);
 }
 
 test('practice tempo changes preserve a live run, its partners, and idle transport ownership',async({page})=>{
@@ -133,4 +134,20 @@ test('restarting practice ignores previous transport ticks before the new count-
   expect(restart.ticks).toBe(0);expect(restart.inputTicks).toBe(0);
   await expect(page.locator('.practice-feedback-display')).toHaveText(restart.feedbackBefore);
   await expect.poll(()=>page.evaluate(()=>window.audioEngine.practiceTicks())).toBeGreaterThan(96);
+});
+
+test('a missed onset clears the invitation while the hold guide is still visible',async({page})=>{
+  await startPractice(page);
+  await page.getByRole('button',{name:'3. Rhythm',exact:true}).click();
+  await page.evaluate(()=>window.audioEngine.setTempo(92));
+  await page.getByRole('button',{name:'Start repeating',exact:true}).click();
+  const room=page.getByRole('dialog',{name:'Farm practice room'});
+  const action=room.locator('.practice-phrase-track span').first();
+  await expect(action).toHaveClass(/is-current/);
+  await expect(action).toHaveClass(/is-missed/);
+  await expect(room.locator('.practice-surface-host [data-practice-cue="true"]')).toHaveCount(0);
+  await expect(room.locator('.practice-feedback-display')).toHaveText('Wait for the next cue');
+  const remaining=Number(await room.getByRole('progressbar',{name:'Note hold duration'}).getAttribute('aria-valuenow'));
+  expect(remaining).toBeGreaterThan(0);
+  await room.getByRole('button',{name:'Stop practice'}).click();
 });
