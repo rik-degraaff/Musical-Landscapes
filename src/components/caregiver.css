@@ -24,6 +24,50 @@
 .practice-acknowledgment :is(h3,p) { margin:0; }
 .practice-acknowledgment label { display:grid; gap:4px; font-weight:700; }
 .practice-acknowledgment select { width:100%; min-height:44px; padding:4px; font:inherit; }
-.practice-acknowledgment .learning-action,.start-practice-note { min-height:44px; }
+.practice-acknowledgment .learning-action { min-height:44px; }
 .practice-acknowledgment button:disabled { opacity:.55; cursor:default; }
-.start-practice-note { max-width:min(90%, 380px); }
+.practice-intro { display:grid; gap:6px; }
+.practice-intro :is(h3,p) { margin:0; }
+.practice-intro h3:not(:first-child) { margin-top:10px; }
+.parent-guide-footer .practice-disable { border-color:#a95845; background:#fff1e7; color:#793322; }
+.practice-menu-notice {
+  position:absolute;
+  inset-block-start:max(6px,var(--safe-top,0px));
+  inset-inline:max(102px,calc(var(--safe-left,0px) + 96px)) max(8px,var(--safe-right,0px));
+  display:flex;
+  justify-content:center;
+}
+.app-shell .start-overlay.has-practice-reminder { justify-content:safe center; padding-block-start:calc(max(8px,var(--safe-top,0px)) + 58px); }
+.practice-visit-trigger {
+  display:inline-flex;
+  justify-content:center;
+  align-items:center;
+  gap:8px;
+  min-height:44px;
+  min-width:44px;
+  max-width:100%;
+  padding:5px 10px;
+  border:1px solid #99773a;
+  border-radius:12px;
+  background:#fff0cd;
+  color:#574014;
+  font:inherit;
+  font-size:13px;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+.practice-visit-trigger > svg { flex:none; pointer-events:none; }
+.practice-visit-trigger > span { display:grid; min-width:0; text-align:start; }
+.practice-visit-trigger strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.practice-visit-trigger small { font-size:11px; font-weight:650; }
+.practice-visit-trigger:focus-visible { outline:3px solid #a44132; outline-offset:2px; }
+
+@media(max-height:360px) and (orientation:landscape) {
+  .app-shell .start-overlay.has-practice-reminder { gap:5px; }
+  .app-shell .start-overlay.has-practice-reminder h1 { font-size:32px; }
+  .app-shell .has-practice-reminder .child-menu { flex:0 0 auto; padding-block:2px; }
+  .has-practice-reminder .child-choice { min-height:70px; padding-block:2px; }
+  .has-practice-reminder .child-choice > .child-avatar { width:42px; height:46px; }
+  .app-shell .has-practice-reminder .start-button { min-height:44px; padding-block:7px; }
+  .has-practice-reminder .start-settings { margin-top:3px; min-height:44px; }
+}

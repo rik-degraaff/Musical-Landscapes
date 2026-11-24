@@ -40,6 +40,10 @@ test('every practice guide preserves the real room layout and keeps the compact 
   await page.locator('#young-musician').focus();await page.keyboard.press('Enter');
   const live=page.getByRole('dialog',{name:'Farm practice room',exact:true});await expect(live).toBeVisible();
   await openFullPractice(page);
+  // The silent preview shows the room after the caregiver notice has been handled.
+  await live.getByRole('button',{name:/Double tap me/}).press('Enter');
+  await page.getByRole('dialog',{name:'Farm Practice for caregivers'}).getByRole('button',{name:'Later'}).click();
+  await expect(live.getByRole('button',{name:/Double tap me/})).toHaveCount(0);
   const layouts=[];
   for(let stage=0;stage<4;stage++) {
     await live.locator('.practice-stages button').nth(stage).click();

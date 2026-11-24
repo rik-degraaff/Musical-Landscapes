@@ -1,14 +1,14 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
-import {AudioLines,Check,Hand,Headphones,ListMusic,Music,Play,RotateCcw,Square,Users} from 'lucide-react';
+import {AudioLines,Check,Hand,Headphones,ListMusic,Music,RotateCcw,Square,Users} from 'lucide-react';
 import {PRACTICE_ACTIVITIES,guidedExercise,practiceOpening,rhythmEcho} from '../utils/guidedPractice';
-import {attemptSummary,createTimingAttempt,practiceDisplayOptions,scoreTimedInput} from '../utils/practice';
+import {attemptSummary,createTimingAttempt,expireSteps,practiceDisplayOptions,scoreTimedInput,timingInvitation} from '../utils/practice';
 import {practiceProfile} from '../utils/practiceComposition';
 import {AVAILABLE_INSTRUMENTS} from '../utils/music';
 import {PracticeRoomLayout} from './PracticeRoomLayout';
 import {PracticeExit,PracticeSelectors} from './PracticeRoomControls';
 import {HelpButton} from './CaregiverHelp';
 import {SoundHelpButton} from './SoundHelp';
-import {InstrumentSurface,PressControl} from './PerformancePanel';
+import {InstrumentSurface} from './PerformancePanel';
 import {InstrumentArt} from './InstrumentArt';
 import {GesturePointer,useGestureTimeline} from './GesturePointer';
 import {useDemonstrationTarget} from './useDemonstrationTargets';
@@ -17,7 +17,7 @@ import {gestureTrack} from '../utils/guideDemonstrations';
 const activityIcons={hear:Headphones,copy:Hand,rhythm:AudioLines,band:Users};
 const phaseInstructions={
   ready:['Ready',Headphones],example:['Listen',Headphones],count:['Get ready',Music],
-  response:['Your turn',Hand],copy:['Your turn',Hand],done:['Well played!',Check],
+  response:['Your turn',Hand],copy:['Your turn',Hand],done:['Nice!',Check],
   retry:['Try again',RotateCcw],paused:['Paused',Square],playing:['Play along',Users],
 };
 
@@ -32,16 +32,16 @@ function TargetHand({host,cue,activity,index}) {
 }
 
 export function GuidedPracticeView({
-  room,roomProps,child,name,root,profile,options,audio,activity,phase,step,count,mark,leadBeat,onPad,
-  cue,focusEvents,pad=false,chooser=false,details=false,hasDetails=false,older=false,shared=false,
+  room,roomProps,child,name,root,profile,options,audio,activity,phase,step,count,beats,leadBeat,
+  cue,focusEvents,chooser=false,details=false,hasDetails=false,older=false,shared=false,
   fullName=name,fullProfile=profile,notice,audioStatus,soundMuted,onSoundHelp,onHelp,onClose,onChoose,onToggleChooser,
-  onStart,onStop,onCopy,onExtend,onReplay,onHearAgain,onDetails,onFull,onInstrument,onPhrase,onEasier,overlay,
+  onStart,onStop,onCopy,onExtend,onReplay,onHearAgain,onDetails,onFull,onInstrument,onPhrase,onEasier,overlay,caregiverNotice,
 }) {
   const [instruction,Icon]=phaseInstructions[activity==='hear'&&phase==='done'?'copy':phase];
   const noteNames=(cue?.notes??[cue?.note]).filter(Boolean).join(' + ');
   const copyInstruction=cue?.fingering?.length
     ?`Pluck string ${cue.fingering[0].string+1}.`
-    :pad?'Tap the practice pad.':`Play ${noteNames}.`;
+    :`Play ${noteNames}.`;
   const listening=phase==='example'||phase==='count';
   const running=listening||phase==='response'||phase==='playing';
   const copy=activity==='copy',rhythm=activity==='rhythm',band=activity==='band';
@@ -49,12 +49,15 @@ export function GuidedPracticeView({
   const completed=phase==='done'||phase==='retry';
   const startLabel=hear?(completed?'Hear it again':'Hear it'):rhythm?(completed?(notice?'Hear the phrase rhythm':'Try again'):'Hear the rhythm'):'Start the band';
   const ActivityIcon=activityIcons[activity];
+  const canExtend=count<(shared?1:child?.age==='3to4'?2:3);
   const showHand=phase==='copy'&&Boolean(cue)&&!chooser;
+  const nextBeat=beats?.findIndex(value=>!value);
   return <PracticeRoomLayout roomRef={room} roomProps={{...roomProps,className:'guided-practice','data-activity':activity,'data-practice-phase':phase}}
-    header={<header className="practice-topbar guided-header">
+    header={<header className={`practice-topbar guided-header${caregiverNotice?' has-caregiver-notice':''}`}>
       <HelpButton onOpen={onHelp}/><SoundHelpButton status={audioStatus} muted={soundMuted} onOpen={onSoundHelp}/>
-      <span className="guided-instrument"><InstrumentArt type={name}/><span>{AVAILABLE_INSTRUMENTS[name].label}</span></span>
-      <Action icon={ListMusic} aria-expanded={chooser} onClick={onToggleChooser}>Choose an activity</Action>
+      {caregiverNotice}
+      <span className="guided-instrument" aria-label={AVAILABLE_INSTRUMENTS[name].label}><InstrumentArt type={name}/></span>
+      <Action icon={ListMusic} aria-label="Choose an activity" aria-expanded={chooser} onClick={onToggleChooser}>Activities</Action>
       <PracticeExit onClose={onClose}/>
     </header>}
     readout={chooser&&<section className="guided-chooser" aria-label="Practice activity choices">
@@ -62,38 +65,45 @@ export function GuidedPracticeView({
       <div className="guided-tools">
         <PracticeSelectors name={fullName} onInstrument={onInstrument} phrasePrompt onPhrase={onPhrase} phrases={fullProfile.phrases}/>
         <Action icon={Music} onClick={onFull}>Full practice</Action>
+        {hasDetails&&<Action icon={ListMusic} aria-pressed={details} onClick={onDetails}>{details?'Hide details':'Show details'}</Action>}
       </div>
     </section>}
     transport={!chooser&&<div className="guided-sidebar">
-      <div className="guided-prompt" role="status"><Icon aria-hidden="true"/><strong>{notice??(hear&&phase==='done'?'Your turn?':instruction)}</strong>
+      <div className={`guided-prompt ${phase==='ready'?'practice-sr-only':''}`} data-turn={phase} role="status">
+        <span className="guided-turn-icon"><Icon aria-hidden="true"/></span>
+        <strong>{notice??(hear&&phase==='done'?'Your turn':instruction)}</strong>
         {phase==='copy'&&cue&&<span className="practice-sr-only">{copyInstruction}</span>}
-        {phase==='response'&&<span className="practice-sr-only">Tap the rhythm pad.</span>}
+        {phase==='response'&&<span className="practice-sr-only">Play any sound with the beat.</span>}
       </div>
       {options.playbackNotes&&noteNames&&<span className="guided-note-name">{noteNames}</span>}
       {older&&!running&&<div className="guided-tools">
         <PracticeSelectors name={fullName} onInstrument={onInstrument} phrasePrompt onPhrase={onPhrase} phrases={fullProfile.phrases}/>
       </div>}
       <div className="guided-actions">
-        {running&&<Action icon={Square} primary onClick={onStop}>Stop</Action>}
+        {running&&<Action icon={Square} onClick={onStop}>Stop</Action>}
         {!running&&!copy&&<Action icon={ActivityIcon} primary={!(hear&&phase==='done')} className={hear?'practice-hear-action':''} onClick={onStart}>{startLabel}</Action>}
         {hear&&phase==='done'&&<Action icon={Hand} primary onClick={onCopy}>My turn</Action>}
-        {copy&&phase==='copy'&&<Action icon={Headphones} onClick={onReplay}>Hear this sound</Action>}
-        {copy&&completed&&<Action icon={RotateCcw} primary onClick={onCopy}>Copy it again</Action>}
-        {copy&&completed&&count<(shared?1:child?.age==='3to4'?2:3)&&<Action icon={Music} onClick={onExtend}>{count===1?'Try two sounds':'Try three sounds'}</Action>}
-        {copy&&!running&&<Action icon={Headphones} onClick={onHearAgain}>Hear it again</Action>}
-        {copy&&completed&&!shared&&<Action icon={AudioLines} onClick={()=>onChoose('rhythm')}>Tap the rhythm</Action>}
+        {copy&&phase==='copy'&&<Action icon={Headphones} aria-label="Hear this sound" onClick={onReplay}>Listen</Action>}
+        {copy&&completed&&<Action icon={RotateCcw} primary={shared} aria-label="Copy it again" onClick={onCopy}>Again</Action>}
+        {copy&&completed&&canExtend&&<Action icon={Music} primary aria-label={count===1?'Try two sounds':'Try three sounds'} onClick={onExtend}>More sounds</Action>}
+        {copy&&completed&&<Action icon={Headphones} aria-label="Hear it again" onClick={onHearAgain}>Listen</Action>}
+        {copy&&completed&&!shared&&<Action icon={AudioLines} primary={!canExtend} onClick={()=>onChoose('rhythm')}>Tap the rhythm</Action>}
         {copy&&phase==='paused'&&<Action icon={Hand} primary onClick={onCopy}>My turn</Action>}
         {rhythm&&completed&&<Action icon={AudioLines} onClick={onEasier}>Try a steady beat</Action>}
         {rhythm&&completed&&<Action icon={Users} onClick={()=>onChoose('band')}>Play with the band</Action>}
         {band&&!running&&<Action icon={Music} onClick={()=>onFull(3)}>Phrase challenge</Action>}
-        {hasDetails&&!running&&<Action icon={ListMusic} aria-expanded={details} onClick={onDetails}>{details?'Hide details':'Show details'}</Action>}
       </div>
       {phase==='count'&&<div className="guided-steps" aria-label={`Lead-in ${leadBeat+1} of 2`}>{[0,1].map(index=><span key={index} data-state={index===leadBeat?'current':undefined}/>)}</div>}
-      {phase!=='count'&&(rhythm||copy&&count>1)&&<div aria-label="Actions" className="guided-steps">{Array.from({length:count},(_,index)=><span key={index} data-state={index<step?'complete':index===step?'current':undefined}>{index<step?<Check size={15} aria-label="Complete"/>:index+1}</span>)}</div>}
+      {phase!=='count'&&(rhythm||copy)&&<div aria-label="Actions" className="guided-steps">{Array.from({length:count},(_,index)=>{
+        const result=rhythm?beats?.[index]:index<step?'complete':null;
+        const current=phase==='copy'&&index===step||phase==='response'&&index===nextBeat||phase==='example'&&index===cue?.eventIndex;
+        return <span key={index} data-state={result??(current?'current':undefined)} aria-current={current?'step':undefined}>
+          {result==='complete'?<Check size={16} aria-label="Complete"/>:null}
+        </span>;
+      })}</div>}
     </div>}
-    surface={!chooser&&<div className="practice-surface-host guided-surface" inert={listening}>
-      {rhythm||pad?<PressControl className={`guided-pad${phase==='response'?' is-ready':''}`} label={rhythm?'Rhythm pad':'Practice pad'} demoPressed={Boolean(cue)||mark} onPress={onPad}><AudioLines aria-hidden="true"/><span>{rhythm?'Rhythm pad':'Practice pad'}</span></PressControl>
-        :<InstrumentSurface name={name} audio={audio} root={root} options={options} profile={profile} cue={cue} focusEvents={focusEvents} practice/>}
+    surface={!chooser&&<div className="practice-surface-host guided-surface" data-focused={Boolean(focusEvents)} inert={listening}>
+      <InstrumentSurface name={name} audio={audio} root={root} options={options} profile={profile} cue={cue} focusEvents={focusEvents} practice/>
     </div>}
     overlay={overlay??(showHand&&<TargetHand host={room} cue={cue} activity={activity} index={step}/>)}
   />;
@@ -109,37 +119,41 @@ export function GuidedPractice({room,roomProps,child,name,root,settings,audio,on
   const [steady,setSteady]=useState(true);
   const [chooser,setChooser]=useState(false);
   const [details,setDetails]=useState(false);
-  const [mark,setMark]=useState(false);
+  const [beats,setBeats]=useState([]);
+  const [responseCue,setResponseCue]=useState(null);
   const [leadBeat,setLeadBeat]=useState(0);
   const [notice,setNotice]=useState('');
   const phaseRef=useRef(phase);
   const stepRef=useRef(step);
-  const timer=useRef(null);
   const timing=useRef(null);
   const attempt=useRef([]);
   const guidedName=activity==='band'?name:opening.instrument;
-  const pad=activity!=='band'&&guidedName!==name;
   const saved=settings.instruments[guidedName];
   const options=practiceDisplayOptions(saved,activity==='band'||details);
   const profile=practiceProfile(guidedName,root,{...saved,genre:audio.genre});
   const fullProfile=practiceProfile(name,root,{...settings.instruments[name],genre:audio.genre});
-  const exercise=useMemo(()=>guidedExercise(guidedName,profile,count),[guidedName,profile,count]);
-  const rhythm=rhythmEcho(exercise,steady);
+  const bank=useMemo(()=>guidedExercise(guidedName,profile,3),[guidedName,profile]);
+  const exercise={...bank,events:bank.events.slice(0,count)};
+  const rhythm=rhythmEcho(bank,steady);
   const source=activity==='rhythm'?rhythm:exercise;
   const target=exercise.events[Math.min(step,exercise.events.length-1)];
-  const cue=phase==='copy'?target:source.events[cueIndex];
-  const focusEvents=activity==='band'?undefined:['guitar','ukulele'].includes(guidedName)?[cue??target]:exercise.events;
+  const example=source.events[cueIndex];
+  const cue=phase==='copy'?target:phase==='response'?responseCue:example?{...example,eventIndex:cueIndex}:null;
+  const focusEvents=activity==='band'?undefined:bank.events;
   const input=useRef(null);
 
   function enterPhase(next) {phaseRef.current=next;setPhase(next);}
   function moveStep(next) {stepRef.current=next;setStep(next);}
   function clearRun() {
-    window.clearTimeout(timer.current);setMark(false);timing.current=null;
+    timing.current=null;setResponseCue(null);
     audio.stopPracticeRun();window.dispatchEvent(new Event('farmjam-input-reset'));setCueIndex(-1);
   }
   function stop(next='paused') {clearRun();enterPhase(next);setNotice('');}
   const interrupt=useRef(null);
-  interrupt.current=()=>stop();
+  interrupt.current=()=>{
+    if(['ready','done','retry'].includes(phaseRef.current))clearRun();
+    else stop();
+  };
   useEffect(()=>{
     audio.switchPracticeInstrument(guidedName);
     audio.onPracticeInput=value=>input.current(value);
@@ -148,7 +162,7 @@ export function GuidedPractice({room,roomProps,child,name,root,settings,audio,on
     audio.onPracticeInterrupt=pause;
     window.addEventListener('blur',pause);document.addEventListener('visibilitychange',hide);
     return ()=>{
-      window.clearTimeout(timer.current);audio.stopPracticeRun();
+      audio.stopPracticeRun();
       window.dispatchEvent(new Event('farmjam-input-reset'));
       audio.onPracticeInput=null;audio.onPracticeInterrupt=null;
       window.removeEventListener('blur',pause);document.removeEventListener('visibilitychange',hide);
@@ -161,9 +175,32 @@ export function GuidedPractice({room,roomProps,child,name,root,settings,audio,on
     (room.current.querySelector(selector)??room.current.querySelector('.guided-header .guided-action'))?.focus();
   },[room,blocked,chooser,activity,phase,step]);
 
+  useEffect(()=>{
+    if(phase!=='response')return;
+    let frame,last;
+    function followBeat() {
+      if(!timing.current)return;
+      const {responseTick,beatTicks}=timing.current;
+      const beat=(audio.practiceTicks()-responseTick)/beatTicks;
+      expireSteps(attempt.current,beat);
+      const next=timingInvitation(attempt.current,beat);
+      if(last!==next?.key){
+        last=next?.key;setResponseCue(next?.open?next.cue:null);
+        updateBeats();
+      }
+      frame=requestAnimationFrame(followBeat);
+    }
+    followBeat();
+    return ()=>cancelAnimationFrame(frame);
+  },[audio,phase]);
+
+  function updateBeats() {
+    const next=attempt.current.map(action=>action.missed?'missed':action.hits?'complete':null);
+    setBeats(previous=>previous.length===next.length&&previous.every((value,index)=>value===next[index])?previous:next);
+  }
   function choose(next) {
     if(blocked)return;
-    clearRun();moveStep(0);setNotice('');setChooser(false);
+    clearRun();moveStep(0);setBeats([]);setNotice('');setChooser(false);
     if(next==='rhythm'&&activity!=='rhythm')setSteady(true);
     setActivity(next);enterPhase(next==='copy'?'copy':'ready');
   }
@@ -171,12 +208,13 @@ export function GuidedPractice({room,roomProps,child,name,root,settings,audio,on
     if(blocked)return;
     clearRun();setNotice('');
     if(!replay)moveStep(0);
-    if(kind==='rhythm')attempt.current=createTimingAttempt(phrase);
+    if(kind==='rhythm'){attempt.current=createTimingAttempt(phrase);updateBeats();}
     const run=audio.startGuidedPractice(kind,phrase,{
       onCue:index=>setCueIndex(replay?stepRef.current:index),
       onBeat:beat=>{setCueIndex(-1);setLeadBeat(beat);enterPhase('count');},
       onResponse:()=>{setCueIndex(-1);enterPhase('response');},
       onEnd:()=>{
+        if(kind==='rhythm'){expireSteps(attempt.current,Infinity);updateBeats();}
         const summary=kind==='rhythm'?attemptSummary(attempt.current):null;
         stop(replay?'copy':summary&&summary.hits<summary.total?'retry':'done');
         if(summary&&summary.hits===summary.total&&steadyRound){setSteady(false);setNotice('Now try the phrase rhythm');}
@@ -189,38 +227,31 @@ export function GuidedPractice({room,roomProps,child,name,root,settings,audio,on
   function copyNote(note) {
     if(phaseRef.current!=='copy'||blocked)return;
     const current=stepRef.current;
-    if(note!==exercise.events[current]?.note){setNotice('Try the highlighted sound');return;}
+    if(note!==exercise.events[current]?.note)return;
     const next=current+1;
     moveStep(next);setNotice('');
     if(next===exercise.events.length)enterPhase('done');
   }
-  input.current=({note})=>copyNote(note);
-  function tapPad() {
+  input.current=({note,ticks})=>{
     if(blocked)return;
-    const current=phaseRef.current;
-    if(activity==='rhythm'){
-      if(current!=='response'||!timing.current)return;
-      const {responseTick,beatTicks}=timing.current;
-      const beat=(audio.practiceTicks()-responseTick)/beatTicks;
-      const result=scoreTimedInput(attempt.current,'rim',beat);
-      if(result.correct)moveStep(attemptSummary(attempt.current).hits);
-      audio.playPracticePad('rim');
-    }else{
-      const note=exercise.events[Math.min(stepRef.current,count-1)].note;
-      audio.playPracticePad(note);copyNote(note);
-    }
-    setMark(true);window.clearTimeout(timer.current);timer.current=window.setTimeout(()=>setMark(false),160);
-  }
+    if(phaseRef.current==='copy'){copyNote(note);return;}
+    if(activity!=='rhythm'||phaseRef.current!=='response'||!timing.current)return;
+    const {responseTick,beatTicks}=timing.current;
+    const beat=(ticks-responseTick)/beatTicks;
+    // A rhythm echo scores the onset. Every playable sound can carry the beat.
+    const result=scoreTimedInput(attempt.current,note,beat,undefined,()=>true);
+    if(result.correct)updateBeats();
+  };
   return <GuidedPracticeView {...header} room={room} roomProps={roomProps} child={child} name={guidedName} root={root}
     profile={profile} options={options} audio={audio} activity={activity} phase={phase} step={step} onHelp={()=>header.onHelp(activity)}
-    count={activity==='rhythm'?rhythm.events.length:count} mark={mark} leadBeat={leadBeat} onPad={tapPad} notice={notice}
-    cue={cue} focusEvents={focusEvents} pad={pad} chooser={chooser} details={details}
+    count={activity==='rhythm'?rhythm.events.length:count} beats={beats} leadBeat={leadBeat} notice={notice}
+    cue={cue} focusEvents={focusEvents} chooser={chooser} details={details}
     hasDetails={Object.keys(options).some(key=>['noteLabels','playbackNotes','fingeringCharts','fretDots'].includes(key)&&saved[key])}
     older={opening.showTools} shared={opening.shared} fullName={name} fullProfile={fullProfile}
     onChoose={choose} onToggleChooser={()=>{stop('ready');setChooser(!chooser);}}
     onStart={()=>start()} onStop={()=>stop()} onCopy={()=>choose('copy')} onExtend={()=>{setCount(count+1);choose('hear');}}
     onReplay={()=>start('hear',{events:[{...target,time:'0:0:0'}]},true)} onHearAgain={()=>{setActivity('hear');start('hear',exercise);}} onDetails={()=>setDetails(!details)}
     onInstrument={instrument=>{onInstrument(instrument);choose('hear');}} onPhrase={index=>onFull(0,index)}
-    onFull={stage=>onFull(typeof stage==='number'?stage:0)} onEasier={()=>{setSteady(true);start('rhythm',rhythmEcho(exercise,true),false,true);}}
+    onFull={stage=>onFull(typeof stage==='number'?stage:0)} onEasier={()=>{setSteady(true);start('rhythm',rhythmEcho(bank,true),false,true);}}
   />;
 }

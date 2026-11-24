@@ -20,7 +20,7 @@ function ChordDiagram({chord}) {
   </svg>;
 }
 
-export function Guitar({audio,cue,root,profile,PressControl,options={},name='guitar',practice=false,focusEvent}) {
+export function Guitar({audio,cue,root,profile,PressControl,options={},name='guitar',practice=false,focusEvents}) {
   const {tuning,frets:fretCount}=STRING_INSTRUMENTS[name];
   const label=name==='ukulele'?'Ukulele':'Guitar';
   const owners=useRef(new Map());
@@ -33,15 +33,16 @@ export function Guitar({audio,cue,root,profile,PressControl,options={},name='gui
   const candidate=cue?(cue.chord?cue:guitarEvent(root,cue,name)):null;
   const demoChord=buttons.find(value=>value.name===candidate?.chord);
   const demo=demoChord?voiceStringEvent(candidate,demoChord):null;
+  const focusEvent=focusEvents?.[0];
+  const focusStrings=focusEvents?.map(event=>event.fingering[0].string).sort((first,second)=>first-second);
   const shown=focusEvent?.chord??selected??demo?.chord;
   const chord=buttons.find(value=>value.name===shown);
   const selectedChord=buttons.find(value=>value.name===selected);
   const highlighted=selectedChord&&demo?voiceStringEvent(demo,selectedChord):demo;
   const notes=chord?.notes??tuning;
   const heldFrets=chord?.frets??tuning.map(()=>0);
-  const focusString=focusEvent?.fingering[0]?.string;
   const separateChords=practice&&!focusEvent;
-  const stringY=string=>focusEvent?50:(string+.5)/tuning.length*100;
+  const stringY=string=>focusStrings?(focusStrings.indexOf(string)+.5)/focusStrings.length*100:(string+.5)/tuning.length*100;
   const notesRef=useRef(notes);notesRef.current=notes;
   useEffect(()=>{owners.current.clear();selection.current=null;setManual(null);setPlayed(null);},[root,name,practice]);
   useInputReset(()=>{owners.current.clear();selection.current=null;setManual(null);setPlayed(null);});
@@ -74,7 +75,7 @@ export function Guitar({audio,cue,root,profile,PressControl,options={},name='gui
   function scrollStrings(direction) {
     surface.current?.scrollBy({top:direction*88});
   }
-  return <div className={`manual-guitar guitar-fretboard-layout strings-layout strings-${name}${focusEvent?' focused-strings':separateChords?' practice-full-strings':''}`} style={{'--string-count':focusEvent?1:tuning.length}}>
+  return <div className={`manual-guitar guitar-fretboard-layout strings-layout strings-${name}${focusEvent?' focused-strings':separateChords?' practice-full-strings':''}`} style={{'--string-count':focusStrings?.length??tuning.length}}>
     <div ref={surface} className="guitar-stringboard" role="group" aria-label={`${label} strings`} tabIndex={separateChords?0:undefined} onPointerDown={event=>{if(!separateChords||event.target.closest('.playable-string'))event.preventDefault();}}>
       <div className="guitar-neck" aria-hidden="true">
         {Array.from({length:fretCount+1},(_,fret)=><i className={`fret-line ${fret===0?'nut':''}`} key={fret} style={{left:`${fretPosition(fret,fretCount)*100}%`}}/>)}
@@ -82,13 +83,13 @@ export function Guitar({audio,cue,root,profile,PressControl,options={},name='gui
       </div>
       <div className="guitar-soundhole" aria-hidden="true"/>
       {notes.map((note,string)=>{
-        if(focusEvent&&focusString!==string)return null;
+        if(focusStrings&&!focusStrings.includes(string))return null;
         const demoPressed=practice&&Boolean(highlighted?.fingering?.some(input=>input.string===string));
         return <button key={string} data-swipe-note={string} className={`playable-string${demoPressed?' pressed':''}`} data-practice-cue={demoPressed||undefined} aria-label={`${label} string ${string+1} ${note}`} style={{'--string-weight':`${3-string*.3}px`}} onClick={event=>{if(event.detail===0){flashInput(event.currentTarget);pluck(string);}}} onKeyDown={event=>{if(!event.repeat&&[' ','Enter'].includes(event.key)){event.preventDefault();flashInput(event.currentTarget);pluck(string);}}}><i/>{practice&&options.noteLabels&&<span>{note}</span>}</button>;
       })}
       {!separateChords&&chordControls}
       <div className="guitar-fingering-overlay" aria-hidden="true">
-        {(!practice||options.fretDots)&&heldFrets.map((fret,string)=>(!focusEvent||focusString===string)&&<i className={`fingering-dot ${fret===0?'open-string-dot':''}`} key={string} data-string={string+1} data-fret={fret} style={{left:`${position(fret)}%`,top:`${stringY(string)}%`}}/>)}
+        {(!practice||options.fretDots)&&heldFrets.map((fret,string)=>(!focusStrings||focusStrings.includes(string))&&<i className={`fingering-dot ${fret===0?'open-string-dot':''}`} key={string} data-string={string+1} data-fret={fret} style={{left:`${position(fret)}%`,top:`${stringY(string)}%`}}/>)}
         {shown&&(!focusEvent||options.fingeringCharts)&&<span className="neck-chord-name">{shown}</span>}
         {focusEvent&&options.fingeringCharts&&chord&&<ChordDiagram chord={chord}/>}
         {!selected&&demo?.fingering?.map((input,index)=><i className="phrase-note-dot" key={`${input.string}-${index}`} data-string={input.string+1} data-fret={input.fret} style={{left:`${position(input.fret)}%`,top:`${stringY(input.string)}%`}}/>)}

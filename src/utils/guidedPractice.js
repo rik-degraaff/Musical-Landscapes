@@ -12,7 +12,7 @@ export function practiceOpening(age, instrument) {
     count:age==='8plus'?3:1,
     shared:age==='under3',
     showTools:age==='8plus',
-    instrument:instrument==='flute'||(age==='under3'&&instrument==='melody')?'drums':instrument,
+    instrument:instrument==='flute'?'drums':instrument,
   };
 }
 
@@ -23,13 +23,14 @@ export function guidedExercise(name, profile, count=1) {
   let actions;
   if(name==='guitar'||name==='ukulele'){
     const chord=profile.chords[0];
-    actions=[...chord.notes].map((note,string)=>({note,chord:chord.name,fingering:[{string,fret:chord.frets[string],note}]})).reverse();
+    actions=chord.notes.map((note,string)=>({note,chord:chord.name,fingering:[{string,fret:chord.frets[string],note}]})).reverse()
+      .filter(({note},index,strings)=>strings.findIndex(value=>value.note===note)===index);
   }else{
     const notes=name==='drums'?profile.hits:name==='melody'
-      ?Array.from({length:profile.registers},(_,register)=>trumpetNote([false,false,false],register))
+      ?[trumpetNote([false,true,false],0),...Array.from({length:profile.registers},(_,register)=>trumpetNote([false,false,false],register))]
       :name==='panflute'?profile.notes:profile.keyboardNotes;
     const direct=notes.filter(note=>!note.includes('#'));
-    const bank=direct.length>=2?direct:notes;
+    const bank=direct.length>=3?direct:notes;
     actions=bank.map(note=>({note}));
   }
   return {degree:0,events:Array.from({length:count},(_,index)=>({
@@ -38,6 +39,5 @@ export function guidedExercise(name, profile, count=1) {
 }
 
 export function rhythmEcho(phrase, steady=false) {
-  return {events:(steady?[0,1,2].map(index=>({time:`0:${index}:0`})):phrase.events)
-    .map(({time})=>({time,note:'rim',dur:'8n',velocity:.56}))};
+  return {...phrase,events:phrase.events.map((event,index)=>steady?{...event,time:`0:${index}:0`}:event)};
 }

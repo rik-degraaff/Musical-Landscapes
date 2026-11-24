@@ -14,7 +14,7 @@ test('guided openings account for age and preserve the equipped instrument where
     assert.equal(opening.shared,age==='under3');
     assert.equal(opening.instrument,'guitar');
   }
-  assert.equal(practiceOpening('under3','melody').instrument,'drums');
+  assert.equal(practiceOpening('under3','melody').instrument,'melody');
   assert.equal(practiceOpening('3to4','melody').instrument,'melody');
 });
 
@@ -28,7 +28,7 @@ test('guided actions match canonical controls in each scene key and saved diffic
         assert.deepEqual(first.events[0],phrase.events[0]);
         assert.equal(phrase.events.length,3);
         assert.equal(phrase.events.some(event=>event.notes),false);
-        assert.notEqual(phrase.events[0].note,phrase.events[1].note);
+        assert.equal(new Set(phrase.events.map(event=>event.note)).size,3);
         for(const event of phrase.events){
           if(event.fingering){
             const [{string,fret,note}]=event.fingering;
@@ -39,14 +39,14 @@ test('guided actions match canonical controls in each scene key and saved diffic
           }else if(name==='melody'){
             const input=trumpetInput(event.note);
             assert.ok(input.partial<profile.registers);
-            assert.ok(input.valves.every(value=>!value));
+            assert.ok(input.valves.filter(Boolean).length<=1);
           }else{
             const bank=name==='drums'?profile.hits:name==='panflute'?profile.notes:profile.keyboardNotes;
             assert.ok(bank.includes(event.note));
           }
         }
         assert.deepEqual(rhythmEcho(phrase).events.map(event=>event.time),phrase.events.map(event=>event.time));
-        assert.deepEqual(rhythmEcho(phrase,true).events.map(event=>event.time),['0:0:0','0:1:0','0:2:0']);
+        assert.deepEqual(rhythmEcho(phrase,true).events,phrase.events.map((event,index)=>({...event,time:`0:${index}:0` })));
       }
     }
   }

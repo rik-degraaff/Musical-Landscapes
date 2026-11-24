@@ -1,9 +1,10 @@
-// This catalog owns revisions and discovery rules. Progress never changes playable features.
+// This catalog owns guide revisions, discovery rules and per-child practice preferences.
+const PRACTICE_INTRO_REVISION=1;
 export const LEARNING_KEY = 'farmjam-learning-v1';
 export const GUIDES = [
   {id:'instruments',version:4,title:'Play an instrument',summary:'Start the band, then try the real playing controls.'},
   {id:'landscape',version:4,title:'Explore the landscape',summary:'Change the scene, musical style and speed.'},
-  {id:'practice',version:4,title:'Use the practice room',summary:'Hear a sound, take turns, echo a rhythm or join the band.'},
+  {id:'practice',version:5,title:'Use the practice room',summary:'Hear a sound, take turns, echo a rhythm or join the band.'},
   {id:'settings',version:3,title:'Choose instruments and settings',summary:'Set up instruments, sound and learning hints.'},
   {id:'installation',version:2,title:'Install and prepare your device',summary:'Separate steps for installing, offline play and device restrictions.'},
   {id:'together',version:2,title:'Play together',summary:'Simple ideas for sharing music and taking it off screen.'},
@@ -26,7 +27,9 @@ export function normalizeLearning(value) {
   }));
   const children=Object.fromEntries(Object.entries(value?.children??{}).filter(([id,child])=>id&&child&&typeof child==='object').map(([id,child])=>[
     id,{enabled:child.enabled!==false,seconds:Number.isFinite(child.seconds)?Math.max(0,child.seconds):0,
+      ...(child.practiceEnabled===false?{practiceEnabled:false}:{}),
       ...(['visited','acknowledged'].includes(child.practiceVisit)?{practiceVisit:child.practiceVisit}:{}),
+      ...(Number.isSafeInteger(child.practiceGuideRevision)&&child.practiceGuideRevision>0?{practiceGuideRevision:child.practiceGuideRevision}:{}),
       hints:Object.fromEntries(HINTS.flatMap(hint=>{
         const saved=child.hints?.[hint.id];
         return saved&&typeof saved==='object'?[[hint.id,{suggested:saved.suggested===true,seen:saved.seen===true,completed:saved.completed===true,
@@ -46,13 +49,31 @@ export function updateChildLearning(state,id,update) {
 }
 export function notePracticeVisit(state,id,acknowledged=false) {
   const progress=childLearning(state,id);
-  const practiceVisit=acknowledged?'acknowledged':'visited';
-  if(progress.practiceVisit==='acknowledged'||progress.practiceVisit===practiceVisit)return state;
-  return updateChildLearning(state,id,child=>({...child,practiceVisit}));
+  if(acknowledged){
+    if(hasReadPracticeIntro(state,id))return state;
+    return updateChildLearning(state,id,child=>({...child,practiceVisit:'acknowledged',practiceGuideRevision:PRACTICE_INTRO_REVISION}));
+  }
+  if(progress.practiceVisit)return state;
+  return updateChildLearning(state,id,child=>({...child,practiceVisit:'visited'}));
 }
+export function hasReadPracticeIntro(state,id) {
+  return childLearning(state,id).practiceGuideRevision>=PRACTICE_INTRO_REVISION;
+}
+
+export function isPracticeEnabled(state,id) {
+  return childLearning(state,id).practiceEnabled!==false;
+}
+
+export function setPracticeEnabled(state,id,enabled) {
+  if(isPracticeEnabled(state,id)===enabled)return state;
+  return updateChildLearning(state,id,child=>{
+    const {practiceEnabled,...progress}=child;
+    return enabled?progress:{...progress,practiceEnabled:false};
+  });
+}
+
 export function hasPracticeReminder(startup,state,id) {
-  const current=childLearning(state,id);
-  return current.enabled&&current.practiceVisit==='visited'&&childLearning(startup,id).practiceVisit==='visited';
+  return isPracticeEnabled(state,id)&&Boolean(childLearning(startup,id).practiceVisit)&&!hasReadPracticeIntro(state,id);
 }
 export function updateHint(state,id,hintId,patch) {
   if(!HINTS.some(hint=>hint.id===hintId))return state;
@@ -64,6 +85,7 @@ export function nextHint(state,child) {
   if(!progress.enabled)return null;
   // Once offered (including by a parent), availability survives restarts and age changes.
   const available=hint=>{
+    if(hint.id==='practice'&&!isPracticeEnabled(state,child.id))return false;
     const saved=progress.hints[hint.id];
     return !saved?.completed&&!(saved?.dismissed??saved?.seen??false);
   };

@@ -21,10 +21,10 @@ export function PracticeRoomHeader({child,name,selected,companions={},phrases,ph
   </header>;
 }
 
-export function PracticeRoomLayout({roomRef,roomProps={},header,stage,onStage,readout,transport,phraseTrack,surface,feedback,overlay}) {
+export function PracticeRoomLayout({roomRef,roomProps={},header,notice,stage,onStage,readout,transport,phraseTrack,surface,feedback,overlay}) {
   const {className='',...attributes}=roomProps;
   return <section ref={roomRef} className={`practice-room ${className}`} {...attributes}>
-    <PracticeRoomArt/>{header}{onStage&&<PracticeStageTabs stage={stage} onChange={onStage}/>}
+    <PracticeRoomArt/>{header}{notice&&<div className="practice-room-notice">{notice}</div>}{onStage&&<PracticeStageTabs stage={stage} onChange={onStage}/>}
     <main className="practice-main">{readout}{transport}{phraseTrack}{surface}</main>
     {feedback}{overlay}
   </section>;

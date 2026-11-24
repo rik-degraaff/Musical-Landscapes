@@ -35,24 +35,25 @@ function GuidedPreview({instrument,child,activity,focus,elapsed,reduced,options}
   const host=useRef(null);
   const opening=practiceOpening(child?.age,instrument);
   const name=activity==='band'?instrument:opening.instrument;
-  const pad=activity==='rhythm'||name!==instrument;
   const profile=practiceProfile(name,'C',options);
-  const exercise=guidedExercise(name,profile,activity==='copy'?2:opening.count);
+  const bank=guidedExercise(name,profile,3);
+  const exercise=activity==='rhythm'?bank:{...bank,events:bank.events.slice(0,activity==='copy'?2:opening.count)};
   const chooser=focus==='activities';
   const phase=chooser?'ready':activity==='copy'?'copy':activity==='band'?(elapsed>=900&&elapsed<6200?'playing':'ready')
     :elapsed===0?'ready':elapsed<900?'ready':activity==='rhythm'?(elapsed<3000?'example':elapsed<4500?'count':elapsed<6800?'response':'done')
       :elapsed<2600?'example':'done';
-  const step=activity==='copy'?Number(elapsed>2900):activity==='rhythm'&&phase==='response'?Math.min(3,Math.floor((elapsed-4500)/650)):0;
-  const cue=activity==='copy'?exercise.events[step]:phase==='example'?exercise.events[Math.min(exercise.events.length-1,Math.floor((elapsed-900)/600))]:null;
-  const selector=chooser?'.guided-choices button':phase==='copy'?'[data-practice-cue="true"]':phase==='response'?'.guided-pad':phase==='done'&&activity==='hear'?'.guided-actions button:nth-child(2)':'.guided-action.is-primary';
+  const step=activity==='copy'?Number(elapsed>2900):activity==='rhythm'?(phase==='done'?3:phase==='response'?Math.min(3,Math.floor((elapsed-4500)/650)):0):0;
+  const eventIndex=phase==='example'?Math.min(exercise.events.length-1,Math.floor((elapsed-900)/600)):step;
+  const cue=['copy','example','response'].includes(phase)&&exercise.events[eventIndex]?{...exercise.events[eventIndex],eventIndex}:null;
+  const selector=chooser?'.guided-choices button':phase==='copy'?'[data-practice-cue="true"]':phase==='response'?'[data-practice-cue="true"]':phase==='done'&&activity==='hear'?'.guided-actions button:nth-child(2)':phase==='playing'?'.guided-surface button':'.guided-action.is-primary';
   const target=useDemonstrationTarget(host,selector,cue,phase+step);
-  const showHand=elapsed>0||reduced;
-  const mark=activity==='rhythm'&&(phase==='example'||phase==='response')&&elapsed%650<260;
+  const showHand=(elapsed>0||reduced)&&(phase!=='example'&&phase!=='count');
+  const beats=exercise.events.map((_,index)=>index<step?'complete':null);
   return <GuidedPracticeView room={host} roomProps={{inert:true,'data-guide-focus':focus??activity}}
-    activity={activity} phase={phase} chooser={chooser} count={activity==='rhythm'?3:exercise.events.length} step={step} mark={mark} leadBeat={Number(elapsed>=3750)}
+    activity={activity} phase={phase} chooser={chooser} count={activity==='rhythm'?3:exercise.events.length} step={step} beats={beats} leadBeat={Number(elapsed>=3750)}
     name={name} child={child} root="C" audio={silentAudio} profile={profile} options={options}
-    cue={cue} focusEvents={activity==='band'?undefined:['guitar','ukulele'].includes(name)?[cue??exercise.events[0]]:exercise.events}
-    pad={pad} older={opening.showTools} shared={opening.shared} fullName={instrument}
+    cue={cue} focusEvents={activity==='band'?undefined:bank.events}
+    older={opening.showTools} shared={opening.shared} fullName={instrument}
     fullProfile={practiceProfile(instrument,'C',options)}
     overlay={showHand?<GesturePointer frame={gestureTrack({elapsed:elapsed%1800,duration:1800,reduced,from:target,gesture:'tap'})} percent className="guide-practice-hand"/>:<span hidden/>}/>;
 }

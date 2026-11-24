@@ -7,7 +7,7 @@ FarmJam stores family and learning data locally in browser storage. It has no ac
 - `farmjam-children-v1` stores the family record, selected child, child profile fields, and each child's instrument/display settings.
 - `farmjam-settings-v1` is the legacy settings mirror used for compatibility with older installs. It is not the owner of independent child settings.
 - `farmjam-caregiver-settings-v1` stores caregiver familiarity shared across profiles. Existing installs can seed it from the selected child's legacy answer once.
-- `farmjam-learning-v1` stores guide read revisions and per-child hint preferences/progress, including accumulated active-play time and suggested/seen/completed/dismissed state. It also stores an optional per-child practice-visit state (visited or acknowledged).
+- `farmjam-learning-v1` stores guide read revisions and per-child hint preferences/progress, including accumulated active-play time and suggested/seen/completed/dismissed state. It also stores an the per-child practice switch, visit state, and acknowledged practice-guide revision.
 
 The normalization functions and storage adapters in `src/utils/` remain the schema boundary. Preserve existing keys and readable formats when changing fields. New records should be versioned and tolerate missing or unknown fields where feasible.
 
@@ -21,7 +21,7 @@ Before each family save, FarmJam rereads storage and merges the tab's changes ag
 
 Caregiver familiarity is independent of child selection and is saved on completed setup or an explicit settings change. Learning state belongs to the selected child except for guide read revisions, which are shared. The caregiver can turn all hints on or off for a child, or reset an individual hint without deleting the profile. Guide revisions determine whether a guide is unread or new; merely opening it does not mark it read. An unfinished live hint remains available across reloads. Explicit Stop hint records dismissal; legacy seen hints migrate as dismissed so an upgrade respects earlier choices.
 
-The practice-visit note uses the learning record read at launch and the current per-child hint preference. First visits during the current launch do not show a menu note until a later launch. Selecting the turn-taking answer and confirming it in caregiver help or the menu note records acknowledgment. Profile deletion removes that child's learning information. The room's activity, progress and display-detail choices are session-only.
+The main-menu practice note uses the learning record read at launch. The in-room book is available on entry while this child’s guide is unread. Both open the same guide. Selecting the turn-taking answer and confirming records acknowledgment for that child. Earlier short-tip acknowledgments remain readable and the updated guide can be offered. Later defers both prompts until the next launch. Disabling practice suppresses its entrances and hint independently of the general learning-hint preference. Profile deletion removes that child’s learning information. Activities, progress, and display-detail choices stay in the room session.
 
 Do not add automatic migration that discards original data. Do not clear all site storage, unregister all workers, or delete caches as a routine recovery step. There is no built-in export or restore workflow.
 

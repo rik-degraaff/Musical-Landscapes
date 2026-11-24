@@ -268,8 +268,12 @@
   border:1px solid #519e8c;
   border-radius:12px;
 }
-.guided-prompt { display:flex; align-items:center; justify-content:center; gap:8px; min-height:24px; font-size:clamp(14px, 2vw, 24px); }
-.guided-prompt svg { flex:none; }
+.guided-prompt { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:24px; font-size:clamp(14px, 2vw, 24px); }
+.guided-turn-icon { display:grid; place-items:center; width:clamp(44px, 6vw, 68px); aspect-ratio:1; flex:none; border-radius:50%; background:#dcebe9; color:#254d57; }
+.guided-turn-icon svg { width:54%; height:54%; }
+.guided-prompt[data-turn="copy"] .guided-turn-icon,
+.guided-prompt[data-turn="response"] .guided-turn-icon { color:#78380d; background:#ffe0a9; }
+.guided-prompt[data-turn="done"] .guided-turn-icon { color:#235c46; background:#c5efca; }
 .guided-note-name { text-align:center; font-weight:750; color:#843916; }
 .guided-actions,.guided-choices,.guided-tools { display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
 .guided-actions > button { flex:1 1 104px; }
@@ -297,13 +301,11 @@
 .guided-steps { display:flex; justify-content:center; gap:6px; }
 .guided-steps > span { display:grid; place-items:center; width:24px; height:24px; border:1px solid #6b9a88; border-radius:50%; background:#f3fff5; font-weight:800; }
 .guided-steps > [data-state="current"] { border:2px solid #934522; background:#ffc778; }
+.guided-steps > [data-state="missed"] { border-style:dashed; border-color:#96664b; }
 .guided-steps > [data-state="complete"] { border-color:#327a52; background:#c5efca; }
 .guided-practice .guided-surface { justify-content:center; min-height:0; max-height:none; height:100%; border:1px solid #519e8c; border-radius:12px; }
 .guided-practice .performance-surface { min-height:0; }
-.guided-pad { display:grid; justify-items:center; align-content:center; gap:8px; width:min(86%, 350px); height:86%; min-height:44px; padding:8px; touch-action:none; background:#e8d5a5; border:3px solid #806846; border-radius:28px; box-shadow:inset 0 -5px #b7a272; font-weight:800!important; }
-.guided-pad svg { width:clamp(24px, 6vw, 54px)!important; height:auto!important; }
 .practice-room [data-practice-cue="true"] { outline:4px solid #9d4a15; outline-offset:-5px; }
-.practice-room .guided-pad.pressed { background:#ffd17d; }
 .focused-keyboard .sharp-key { position:relative; top:auto; height:100%; }
 .guided-practice .focused-strings .chord-diagram { position:absolute; top:6px; left:8px; width:70px; height:54px; background:#f3fff5e8; border-radius:6px; }
 .focused-embouchure { grid-auto-flow:column; grid-template-columns:none; grid-auto-columns:minmax(44px,1fr); width:44%; }
@@ -373,7 +375,9 @@
   .guided-sidebar { gap:4px; justify-content:safe center; }
   .guided-actions > button { flex-basis:86px; }
   .guided-instrument .instrument-illustration { width:39px; height:34px; }
-  .guided-instrument > span { display:none; }
+  .guided-header.has-caregiver-notice .guided-instrument { display:none; }
+  .guided-header .practice-visit-trigger { margin-right:auto; flex:none; }
+  .guided-prompt { flex-direction:row; }
   .guided-header > button.guided-action { flex-shrink:0; max-width:145px; }
   .full-practice .practice-neighbors,.full-practice .practice-musician { display:none; }
   .full-practice .practice-lineup { flex:0 0 0; }
@@ -383,11 +387,13 @@
 }
 @media(max-width:460px) {
   .guided-header > button.guided-action span { font-size:11px; }
+  .guided-header.has-caregiver-notice { gap:4px; padding-inline:4px; }
+  .guided-header.has-caregiver-notice > .guided-action span { display:none; }
+  .guided-header .practice-visit-trigger { padding-inline:6px; gap:4px; font-size:11px; }
   .guided-instrument { justify-content:center; }
   .full-practice .practice-topbar { gap:3px; padding-inline:3px; }
   .guided-practice .practice-full-strings { grid-template-columns:minmax(0,1fr) 96px; }
 }
-.guided-pad.is-ready { outline:4px solid #30775f; outline-offset:-6px; }
 .practice-room .practice-surface-host > .performance-surface:has(.manual-keyboard:not(.focused-keyboard),.panflute-pipes) { overflow-x:auto; }
 .practice-room .manual-keyboard:not(.focused-keyboard):has(.sharp-key) { min-width:calc(var(--white-count) * 70px + 18px); }
 .full-practice .panflute-pipes,.guided-practice[data-activity="band"] .panflute-pipes { min-width:calc(var(--pipe-count) * 47px + 5px); }
@@ -398,3 +404,53 @@
 }
 
 .practice-phrase-track > .is-preview { border:2px dashed #8d4d24; background:#fff1d7; }
+
+
+.practice-room-notice { display:flex; justify-content:center; padding:0 6px 4px; background:#d9fff1ed; }
+.practice-room .practice-visit-trigger { color:#574014; }
+.guided-header .practice-visit-trigger { flex-shrink:0; }
+.guided-practice .guided-surface[data-focused="true"] { overflow:auto; }
+.guided-surface[data-focused="true"] .performance-surface { min-height:146px; }
+.guided-surface .manual-trumpet:has(.focused-embouchure) .trumpet-body-art {
+  left:4%;
+  top:0;
+  width:92%;
+  height:56%;
+}
+.guided-surface[data-focused="true"] .focused-embouchure {
+  left:4%;
+  top:auto;
+  bottom:5%;
+  width:92%;
+  height:48%;
+  min-height:44px;
+  gap:4px;
+  background:transparent;
+  border:0;
+}
+.guided-surface .focused-embouchure .lip-segment {
+  align-items:center;
+  justify-content:center;
+  padding:4px;
+  border:2px solid #a48045;
+  border-radius:12px;
+}
+.guided-surface .focused-embouchure .lip-segment::before {
+  content:"";
+  width:clamp(12px, 2.6vw, 24px);
+  aspect-ratio:1;
+  margin-inline-end:2px;
+  border:2px solid #875f2b;
+  border-radius:50%;
+  background:#fff5cd;
+}
+.guided-surface .focused-embouchure .lip-segment:nth-child(2)::before { background:#e7bd70; }
+.guided-surface .focused-embouchure .lip-segment:nth-child(3)::before { background:#c89751; }
+.guided-surface[data-focused="true"] .manual-drums { display:grid; grid-template-columns:repeat(3,minmax(44px,1fr)); align-content:center; gap:4px; padding:4px; }
+.guided-surface[data-focused="true"] .manual-drums > svg { display:none; }
+.guided-surface[data-focused="true"] .manual-drums .drum-pad { position:relative; inset:auto; translate:none; width:100%; height:clamp(44px, 17vh, 118px); aspect-ratio:auto; box-shadow:inset 0 -3px #925951; }
+.guided-surface .focused-strings .guitar-stringboard { grid-template-rows:repeat(var(--string-count),minmax(44px,1fr)); }
+.guided-surface[data-focused="true"] [data-practice-cue="true"] {
+  outline:4px solid #8b3810;
+  box-shadow:inset 0 0 0 7px #ffe0a9;
+}

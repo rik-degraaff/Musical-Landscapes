@@ -83,7 +83,7 @@ export function InstrumentSurface({ name, audio, root, options={complexity:1.5},
     {name==='panflute'&&<PanFlute focused={Boolean(focusNotes)} key={playableKey} audio={audio} cue={cue} profile={profile} PressControl={PressControl} options={options}/>}
     {name==='marimba'&&<Keyboard key={playableKey} audio={audio} notes={focusNotes??(profile.level==='Advanced'?MARIMBA_NOTES:profile.keyboardNotes)} focused={Boolean(focusNotes)} kind="marimba" options={options} cue={cue}/>}
     {name==='melody'&&<LipTrumpet focusNotes={focusNotes} key={playableKey} audio={audio} cue={cue} profile={profile} PressControl={PressControl} options={options}/>}
-    {['guitar','ukulele'].includes(name)&&<FretboardGuitar focusEvent={focusEvents?.[0]} key={playableKey} name={name} audio={audio} cue={cue} root={root} profile={profile} PressControl={PressControl} options={options} practice={practice}/>}
+    {['guitar','ukulele'].includes(name)&&<FretboardGuitar focusEvents={focusEvents} key={playableKey} name={name} audio={audio} cue={cue} root={root} profile={profile} PressControl={PressControl} options={options} practice={practice}/>}
     {name==='drums'&&<Drums key={playableKey} audio={audio} options={options} profile={profile} cue={cue}/>}
   </div>;
 }

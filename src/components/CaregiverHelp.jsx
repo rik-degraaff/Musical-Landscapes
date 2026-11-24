@@ -7,7 +7,6 @@ import {AVAILABLE_INSTRUMENTS as INSTRUMENTS} from '../utils/music';
 import {GestureDemo} from './GestureDemo';
 import {GuideIllustration} from './GuideIllustration';
 import {PlayActions} from './LearningHint';
-import {PracticeAcknowledgment} from './PracticeVisitNotice';
 import './guides.css';
 
 export function HelpButton({onOpen,className=''}) {
@@ -22,7 +21,7 @@ export function GuideTopic({topic,familiarity,heading=true,child,instrument,prac
   </section>;
 }
 
-export function CaregiverHelp({topic,familiarity,instrument,child,practiceStage,onClose,onGuides,instruments,onEquip,onPractice,onPracticeAcknowledged}) {
+export function CaregiverHelp({topic,familiarity,instrument,child,practiceStage,onClose,onGuides,instruments,onEquip,onPractice,onPracticeIntro}) {
   const playing=topic==='instruments'?instrumentHelp(instrument,familiarity):null;
   const content=contextualHelp(topic,familiarity,practiceStage);
   const guide=GUIDES.find(value=>value.id===(playing?'instruments':content.guide));
@@ -32,8 +31,8 @@ export function CaregiverHelp({topic,familiarity,instrument,child,practiceStage,
       <div className="guide-task-copy"><h3>Play the {INSTRUMENTS[instrument].label.toLowerCase()}</h3><p>{playing.action}</p><p>{playing.note}</p></div>
       <GestureDemo instrument={instrument} child={child} gesture={['guitar','ukulele','panflute'].includes(instrument)?'swipe':['flute','melody'].includes(instrument)?'hold':'tap'}/>
     </section>:<GuideTopic topic={topic} familiarity={familiarity} child={child} instrument={instrument} practiceStage={practiceStage} illustrate/>}
-    {['instruments','landscape'].includes(topic)&&instruments?.length>0&&onEquip&&onPractice&&<PlayActions instruments={instruments} onEquip={onEquip} onPractice={onPractice}/>}
-    {topic==='practice'&&<PracticeAcknowledgment onAcknowledge={onPracticeAcknowledged}/>}
+    {['instruments','landscape'].includes(topic)&&instruments?.length>0&&onEquip&&<PlayActions instruments={instruments} onEquip={onEquip} onPractice={onPractice}/>}
+    {topic==='practice'&&onPracticeIntro&&<button className="learning-action" onClick={onPracticeIntro}><BookOpen size={17}/>Practice guide for caregivers</button>}
     {onGuides&&<nav className="help-guide-links" aria-label="More caregiver help">
       {guide&&<button className="learning-action" onClick={()=>openGuide(guide.id)}><BookOpen size={17}/>Read: {guide.title}</button>}
       <button className="learning-action" onClick={()=>openGuide('index')}>All guides</button>

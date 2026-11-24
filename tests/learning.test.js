@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {GUIDES,HINTS,childLearning,createLearningStorage,emptyLearning,guideStatus,hasPracticeReminder,notePracticeVisit,nextHint,normalizeLearning,updateChildLearning,updateHint} from '../src/utils/learning.js';
+import {GUIDES,HINTS,childLearning,createLearningStorage,emptyLearning,guideStatus,hasPracticeReminder,hasReadPracticeIntro,isPracticeEnabled,notePracticeVisit,setPracticeEnabled,nextHint,normalizeLearning,updateChildLearning,updateHint} from '../src/utils/learning.js';
 
 test('guides distinguish unread, changed revisions and completed revisions',()=>{
   const state=emptyLearning(),guide=GUIDES[0];
@@ -61,10 +61,20 @@ test('practice visits survive reload and acknowledgement remains per child and d
   const reopened=normalizeLearning(JSON.parse(JSON.stringify(visited)));
   assert.equal(hasPracticeReminder(reopened,reopened,'a'),true);
   assert.equal(hasPracticeReminder(reopened,reopened,'b'),false);
-  const disabled=updateChildLearning(reopened,'a',child=>({...child,enabled:false}));
+  const hintsOff=updateChildLearning(reopened,'a',child=>({...child,enabled:false}));
+  assert.equal(hasPracticeReminder(reopened,hintsOff,'a'),true);
+  const disabled=normalizeLearning(setPracticeEnabled(reopened,'a',false));
   assert.equal(hasPracticeReminder(reopened,disabled,'a'),false);
+  assert.equal(isPracticeEnabled(disabled,'b'),true);
+  const suggested=updateHint(disabled,'a','practice',{suggested:true});
+  assert.equal(nextHint(suggested,{id:'a',age:'under3'}).id,'tap');
+  const restored=setPracticeEnabled(suggested,'a',true);
+  assert.equal(nextHint(restored,{id:'a',age:'under3'}).id,'practice');
+  const legacy=normalizeLearning({children:{a:{practiceVisit:'acknowledged'}}});
+  assert.equal(hasPracticeReminder(legacy,legacy,'a'),true);
   const acknowledged=notePracticeVisit(reopened,'a',true);
   assert.equal(hasPracticeReminder(reopened,acknowledged,'a'),false);
+  assert.equal(hasReadPracticeIntro(normalizeLearning(acknowledged),'a'),true);
   assert.equal(notePracticeVisit(acknowledged,'a'),acknowledged);
   assert.equal(nextHint(acknowledged,{id:'a',age:'under3'}).id,'tap');
 });

@@ -47,7 +47,7 @@ export function PracticeRoom({initialInstrument,child,audio,onClose,blocked,...p
     :<GuidedPractice {...shared} onHelp={activity=>props.onHelp(name,activity)} onFull={(stage=0,phrase=0)=>setFull({stage,phrase,challenge:stage===3})}/>;
 }
 
-function FullPractice({child,audio,audioStatus,soundMuted,onSoundHelp,name,onInstrument,settings,root,onClose,onHelp,onGuided,room,roomProps,blocked,initialStage,initialPhrase,challenge}) {
+function FullPractice({child,audio,audioStatus,soundMuted,onSoundHelp,name,onInstrument,settings,root,onClose,onHelp,onGuided,room,roomProps,blocked,initialStage,initialPhrase,challenge,caregiverNotice}) {
   const [phraseIndex,setPhraseIndex]=useState(initialPhrase);
   const [stage,setStage]=useState(initialStage);
   const [step,setStep]=useState(0);
@@ -252,7 +252,7 @@ function FullPractice({child,audio,audioStatus,soundMuted,onSoundHelp,name,onIns
     header={<PracticeRoomHeader child={child} name={name} selected={settings.selected} companions={companions} phrases={profile.phrases} phraseIndex={phraseIndex} audioStatus={audioStatus} soundMuted={soundMuted} onSoundHelp={onSoundHelp}
       onInstrument={instrument=>{cancel();setPhraseIndex(0);onInstrument(instrument);}} onPhrase={index=>{cancel();setPhraseIndex(index);}} onHelp={()=>onHelp(name,stage)} onClose={onClose} onGuided={onGuided}
       metronome={<Metronome audio={audio} open={metronomeOpen} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}/>}
-    stage={stage} onStage={index=>{cancel();setStage(index);}}
+    notice={caregiverNotice} stage={stage} onStage={index=>{cancel();setStage(index);}}
     readout={<PracticeReadout target={stage===1&&complete?'Finished':countingIn?(beat<0?'Ready':`Count ${beat+1}`):options.playbackNotes?targetNotes.join(' + ')||'Ready':'Ready'} accessibleCue={options.playbackNotes?undefined:targetNotes.join(' and ')} feedback={feedback}><PracticeProgress beat={beat} progress={progress} max={steps.length}/></PracticeReadout>}
     transport={<><PracticeTransport stage={stage} running={running} finite={finite} summary={summary} complete={complete} onToggle={()=>running?stopAttempt():startAttempt()} onRestart={reset} onNext={()=>{if(stage===3){onClose();return;}cancel();setStage(stage+1);}}/>{summary&&!running&&stage>1&&<details className="practice-attempt-details"><summary>Attempt details</summary>{summary.hits} of {summary.total} actions · {summary.percent}%</details>}</>}
     phraseTrack={<PracticePhraseTrack showNotes={options.playbackNotes} events={stage===1?steps:phrase.events} current={stage===1?(complete?-1:step):(target?.eventIndex??-1)} preview={invitation&&!invitation.open?invitation.cue.eventIndex:-1} completed={stage===1?step:0} results={stage>1?results:[]}/>}

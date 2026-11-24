@@ -7,10 +7,10 @@ import {useDismissible} from './useDismissible';
 import {SaveStatus} from './SaveStatus';
 import {HelpButton} from './CaregiverHelp';
 import {CAREGIVER_FAMILIARITY,caregiverHelp} from '../utils/caregiverHelp';
-import {GUIDES,HINTS,childLearning,guideStatus,updateChildLearning,updateHint} from '../utils/learning';
+import {GUIDES,HINTS,childLearning,guideStatus,isPracticeEnabled,setPracticeEnabled,updateChildLearning,updateHint} from '../utils/learning';
 import {GuideLibrary} from './Guides';
 
-export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onRestoreSound,onClose,onMenu,settings,onSettings,saveError,onRetrySave,familiarity,onFamiliarity,onHelp,playing=true,child,learning,onLearning,onGuide}) {
+export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onRestoreSound,onClose,onMenu,settings,onSettings,saveError,onRetrySave,familiarity,onFamiliarity,onHelp,playing=true,child,learning,onLearning,onGuide,onPracticeIntro}) {
   const [tab,setTab]=useState(playing?'Sound':'Caregiver');
   const [selected,setSelected]=useState(settings.selected[2]);
   const modal=useRef(null);
@@ -38,6 +38,7 @@ export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onRestoreS
   }
   const tabs=[...(playing?[['Sound',Volume2]]:[]),...(child?[['Instruments',Music]]:[]),['Caregiver',Users],['Guides',BookOpen]];
   const progress=learning?childLearning(learning,child?.id):null;
+  const practiceEnabled=progress&&isPracticeEnabled(learning,child?.id);
   const unread=learning?GUIDES.filter(guide=>guideStatus(learning,guide)!=='Read').length:0;
   function selectSlot(index,name) {
     const current=latest.current.settings;
@@ -70,7 +71,15 @@ export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onRestoreS
           </div>
         </>:tab==='Guides'?<><p>Read a guide whenever you like. The ? button also offers help for your current screen.</p><GuideLibrary learning={learning} onOpen={onGuide}/></>:<>
           <fieldset className="parent-choices caregiver-familiarity"><legend>Caregiver music familiarity</legend><div>{CAREGIVER_FAMILIARITY.map(([value,label])=><label key={value} className={familiarity===value?'is-selected':''}><input type="radio" name="caregiver-familiarity" checked={familiarity===value} onChange={()=>onFamiliarity(value)}/><span>{label}</span></label>)}</div><p className="settings-explanation">Shared by all children on this device. Changes explanations in help and setup, not the music or complexity.</p></fieldset>
-          {child&&progress&&<section className="hint-controls"><h3>Learning hints for {child.name}</h3><HintToggle enabled={progress.enabled} onChange={enabled=>onLearning(state=>updateChildLearning(state,child.id,value=>({...value,enabled})))}/><p className="settings-explanation">Hints appear gradually during play. Tap the learning symbol to see a hand demonstrate on the real controls. Play stays available; stop the hint whenever you like. Suggesting a hint again also makes it available before its usual age or timing.</p>{HINTS.map(hint=><div className="hint-control" key={hint.id}><span>{hint.title} · {progress.hints[hint.id]?.completed?'Discovered':progress.hints[hint.id]?.dismissed?'Dismissed':progress.hints[hint.id]?.suggested?'Available':'Not yet offered'}</span><button className="learning-action" disabled={!progress.enabled} onClick={()=>onLearning(state=>updateHint(state,child.id,hint.id,{suggested:true,seen:false,completed:false,dismissed:false}))}>Suggest {hint.title.toLowerCase()} again</button></div>)}</section>}
+          {child&&progress&&<section className="hint-controls">
+            <h3>Practice room for {child.name}</h3>
+            <label className="settings-check"><input type="checkbox" checked={practiceEnabled} onChange={event=>{
+              const enabled=event.target.checked;
+              onLearning(state=>setPracticeEnabled(state,child.id,enabled));
+            }}/>Allow practice room</label>
+            {onPracticeIntro&&<button className="learning-action" onClick={onPracticeIntro}><BookOpen size={17}/>Practice guide for caregivers</button>}
+          </section>}
+          {child&&progress&&<section className="hint-controls"><h3>Learning hints for {child.name}</h3><HintToggle enabled={progress.enabled} onChange={enabled=>onLearning(state=>updateChildLearning(state,child.id,value=>({...value,enabled})))}/><p className="settings-explanation">Hints appear gradually during play. Tap the learning symbol to see a hand demonstrate on the real controls. Play stays available; stop the hint whenever you like. Suggesting a hint again also makes it available before its usual age or timing.</p>{HINTS.map(hint=><div className="hint-control" key={hint.id}><span>{hint.title} · {progress.hints[hint.id]?.completed?'Discovered':progress.hints[hint.id]?.dismissed?'Dismissed':progress.hints[hint.id]?.suggested?'Available':'Not yet offered'}</span><button className="learning-action" disabled={!progress.enabled||hint.id==='practice'&&!practiceEnabled} onClick={()=>onLearning(state=>updateHint(state,child.id,hint.id,{suggested:true,seen:false,completed:false,dismissed:false}))}>Suggest {hint.title.toLowerCase()} again</button></div>)}</section>}
         </>}
       </div>
       {saveError&&<SaveStatus onRetry={onRetrySave}/>}

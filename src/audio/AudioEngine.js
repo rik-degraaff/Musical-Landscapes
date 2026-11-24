@@ -744,12 +744,6 @@ export class AudioEngine {
     }
   }
 
-  playPracticePad(note='rim', time=Tone.immediate()+.015) {
-    if(!this.practiceSession||this.backgrounded||this.tempoHeld||document.hidden)return;
-    this.nodes.drums.gain.volume.value=this.effectiveVolume('drums');
-    this.playEvent('drums',{note,velocity:.56},time);
-  }
-
   startGuidedPractice(kind,phrase,{onCue,onBeat,onResponse,onEnd}={}) {
     if(!this.practiceSession||this.backgrounded||this.tempoHeld||document.hidden)return null;
     this.stopPracticeRun();
@@ -767,8 +761,7 @@ export class AudioEngine {
     }else{
       for(const [index,event] of phrase.events.entries()){
         at(beatOffset(event.time),time=>{
-          if(rhythm)this.playPracticePad(event.note,time);
-          else this.playEvent(this.manualInstrument,event,time);
+          this.playEvent(this.manualInstrument,event,time);
           draw(()=>onCue?.(index,event),time);
         });
       }

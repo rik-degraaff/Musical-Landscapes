@@ -50,10 +50,10 @@ export const GUIDE_PAGES={
     ],{kind:'practice-guided',activity:'hear'}),
     page('copy','Copy it',[
       'Follow the hand and play the outlined target. Copy it waits for your child. Hear this sound plays just the current action, and Hear it again returns to the whole example.',
-      'Try “I play, you answer.” Model one tap, pluck or clap, then swap turns. When a guitar or ukulele starts with one string, the room has already chosen a chord shape. A young child using a trumpet gets a labeled practice pad.'
+      'Try “I play, you answer.” Model one tap, pluck or clap, then swap turns. Guitar and ukulele start with three strings on a shape the room has chosen. Trumpet has three large controls that play its own pitches.'
     ],{kind:'practice-guided',activity:'copy'}),
     page('echo','Tap the rhythm',[
-      'Listen to the pad and wait for the two lead-in clicks. When the hand appears, tap the big pad in the same pattern. You can clap or pat along together.',
+      'Watch the instrument and wait for the two lead-in clicks. When the hand appears, echo the pattern on any of its big controls. You can clap or pat along together.',
       'Try the steady beat first, then echo the rhythm of the phrase. Each round ends on its own and you can repeat either rhythm.'
     ],{kind:'practice-guided',activity:'rhythm'}),
     page('band','Play with the band',[
@@ -82,7 +82,7 @@ export const GUIDE_PAGES={
     ],{kind:'practice-stage',stage:'Together'}),
     page('controls','Repeat, restart or leave',[
       'Stop ends audio and clears held notes. Restart resets the attempt. After opening help or switching away, start again when you’re ready. Use the open door or Escape to return to the landscape.',
-      'The next time you open FarmJam, the menu can show an optional note if your child visited practice. Open practice help with the question mark, or open the menu note. Read the turn-taking tip, choose Take turns and confirm to clear the note for that child.'
+      'Tap the note at the top of the main menu to learn more, or double-tap the book at the top of the practice room. Choose Take turns and confirm after reading. You can choose Later or turn off the room for this child. Turn it back on in Settings → Caregiver.'
     ],{kind:'practice-room',focus:'exit'})
   ],
   settings:[

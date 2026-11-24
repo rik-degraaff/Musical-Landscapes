@@ -35,7 +35,7 @@ If a genre blend is reversed before finishing, the new tone/articulation transit
 
 - Family profile records own child identity, appearance, age range, and child-specific settings.
 - One caregiver preference record owns familiarity shared across children in this browser.
-- One learning record owns guide read revisions and each child's hint settings and progress.
+- One learning record owns guide read revisions and each child's hint settings, practice preference, and caregiver acknowledgment.
 - React session state owns transient UI, active play, and current sound-mix values.
 - The service worker owns cached application assets and its update lifecycle, not family profile data.
 
