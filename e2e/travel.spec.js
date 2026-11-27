@@ -116,7 +116,7 @@ test('reduced-motion travel keeps the band and instrument and cycles every Jungl
   await expect(map).toHaveCount(0);
   const rotate=page.getByRole('button',{name:'Change landscape'});
   const scenes=[
-    ['clearing','D','Toucan'],['river','G','Crocodile'],['waterfall','F','Iguana'],
+    ['clearing','D','Toucan'],['river','G','Basilisk lizard'],['waterfall','F','Iguana'],
     ['canopy','Em','Monkey'],['night','Bm','Kinkajou'],['moonlit','Dm','Pangolin'],['dawn','Bb','Hummingbird'],
   ];
   for(const [index,[scene,root,visitor]] of scenes.entries()){
@@ -133,12 +133,12 @@ test('reduced-motion travel keeps the band and instrument and cycles every Jungl
     await expect(bicycle).toHaveCount(index===0?1:0);
     if(scene==='river'){
       await landscape.getByRole('button',{name:visitor,exact:true}).click();
-      expect(await page.evaluate(()=>window.travelTestEngine.sceneVoices.crocodile)).toBe(1);
+      expect(await page.evaluate(()=>window.travelTestEngine.sceneVoices.basilisk)).toBe(1);
       await page.screenshot({path:testInfo.outputPath('jungle-river-with-piano.png')});
     }
     if(scene==='canopy')await page.setViewportSize({width:360,height:240});
     if(scene==='canopy'||scene==='dawn'){
-      const target=landscape.getByRole('button',{name:scene==='dawn'?'Macaw':visitor,exact:true});
+      const target=landscape.getByRole('button',{name:scene==='dawn'?'Motmot':visitor,exact:true});
       await expect.poll(()=>target.evaluate(element=>{
         const box=element.getBoundingClientRect();
         return element.contains(document.elementFromPoint(box.x+box.width/2,box.y+box.height/2));

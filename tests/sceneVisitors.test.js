@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {SCENE_VISITORS,chooseSceneVisitor,sceneObjectPair} from '../src/utils/sceneVisitors.js';
-import {ENVIRONMENTS} from '../src/data/environments.js';
+import {ENVIRONMENTS,JUNGLE_SCENES} from '../src/data/environments.js';
 
 test('each environment has seven scenes with distinct visitors and exact 1/4 and 1/20 selection bands',()=>{
   for(const {scenes} of Object.values(ENVIRONMENTS)){
@@ -19,7 +19,21 @@ test('each environment has seven scenes with distinct visitors and exact 1/4 and
     assert.deepEqual(counts,[50,10,140]);
     assert.deepEqual(visitors.map(visitor=>visitor.slot).sort(),[0,1]);
   }
-  assert.equal(chooseSceneVisitor('jungle-river',.1).sound,'crocodile');
+});
+
+test('each Jungle animal belongs to one scene and appears only in the Jungle',()=>{
+  const farmSounds=new Set([
+    'moo','tractor','water','bird','frog','windmill','cricket','airplane','bell','owl','bat','hedgehog','rooster','chimes',
+    ...ENVIRONMENTS.farm.scenes.flatMap(scene=>SCENE_VISITORS[scene].map(({sound})=>sound)),
+  ]);
+  const jungleSounds=Object.values(JUNGLE_SCENES).flatMap(({residents,visitors})=>
+    [...residents,...visitors].map(({sound})=>sound));
+  assert.equal(jungleSounds.length,28);
+  assert.equal(new Set(jungleSounds).size,jungleSounds.length);
+  assert.deepEqual(jungleSounds.filter(sound=>farmSounds.has(sound)),[]);
+  const {residents}=JUNGLE_SCENES['jungle-river'];
+  assert.ok(sceneObjectPair('jungle-river',residents,.9).some(({sound})=>sound==='crocodile'));
+  assert.ok(sceneObjectPair('jungle-river',residents,.27).some(({sound})=>sound==='crocodile'));
 });
 
 test('visitors replace exactly one regular object and leave the input unchanged',()=>{

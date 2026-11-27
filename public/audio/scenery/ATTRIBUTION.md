@@ -46,10 +46,13 @@ node --test tests/sceneSounds.test.js tests/audioLevels.test.js tests/visitorSou
 
 ## Jungle and bicycle
 
-The Jungle scenery and bicycle bell are original procedural foley from `src/audio/jungleSounds.js`. Soft splashes, wingbeats, chirps and rustles illustrate the animals' movements. The bicycle uses two short metal resonances.
+The Jungle animal sounds are original procedural foley from `src/audio/jungleSounds.js`. Soft splashes, wingbeats, chirps and rustles illustrate the animals' movements.
+
+The bicycle uses “bike-bell.wav” by bsumusictech, a stereo recording of a bicycle bell. [Wikimedia Commons source](https://commons.wikimedia.org/wiki/File:Bsumusictech_bike-bell.wav), [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). The bundled original is `source/bicycle-bell.wav`. The game plays a 1.24 s excerpt starting at 0.25 s, downmixed to mono and resampled to 48 kHz, with 12 ms and 120 ms endpoint fades.
 
 ```sh
-npm run audio:analyze -- --preserve-existing --sounds=macaw,tapir,toucan,morpho,riverTurtle,heron,crocodile,capybara,sloth,monkey,treeFrog,kinkajou,firefly,iguana,pangolin,hummingbird,bikeBell
+npm run scenery:download -- --sounds=bikeBell
+npm run audio:analyze -- --preserve-existing --sounds=macaw,tapir,toucan,morpho,riverTurtle,heron,crocodile,capybara,sloth,monkey,treeFrog,kinkajou,firefly,iguana,pangolin,hummingbird,basilisk,kingfisher,coati,orchidMantis,potoo,ocelot,tarsier,agouti,colugo,motmot,peccary,quetzal,bikeBell
 ```
 
 ## Reproduction

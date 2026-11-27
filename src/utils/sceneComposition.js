@@ -68,7 +68,9 @@ export function landmarkGeometry(scene, size) {
   return {
     transform:`translate(${x*sx} ${y*sy}) scale(${cottage.scale*sx} ${cottage.scale*sy})`,
     door,
-    road:`M${dx-half} ${dy} C${dx-half+20} ${dy+85} 605 657 691 792 Q691 855 778 900 H1037 Q878 846 893 774 C821 693 ${dx+half+40} ${dy+85} ${dx+half} ${dy}Z`,
+    road:scene === 'farm'
+      ? `M${dx-half} ${dy} C${dx-half-32} ${dy+112} 1314 741 1180 900 H1388 C1480 760 ${dx+half-17} ${dy+115} ${dx+half} ${dy}Z`
+      : `M${dx-half} ${dy} C${dx-half+20} ${dy+85} 605 657 691 792 Q691 855 778 900 H1037 Q878 846 893 774 C821 693 ${dx+half+40} ${dy+85} ${dx+half} ${dy}Z`,
   };
 }
 
@@ -120,6 +122,18 @@ export const OBJECT_PLACEMENT = Object.freeze({
   iguana: {habitat:'bank', x:.29, y:.86, tier:1.12},
   pangolin: {habitat:'ground', x:.73, y:.85, tier:1.1},
   hummingbird: {habitat:'flowers', x:.73, y:.68, tier:.8, contact:[80,70]},
+  basilisk: {habitat:'water', x:.29, y:.84, tier:1.08, contact:[80,107]},
+  kingfisher: {habitat:'perch', tree:'rightTree', tier:.87, contact:[80,113]},
+  coati: {habitat:'ground', x:.74, y:.85, tier:1.11},
+  orchidMantis: {habitat:'flowers', x:.66, y:.79, tier:.77, contact:[80,117]},
+  potoo: {habitat:'perch', tree:'leftTree', tier:.88, contact:[80,121]},
+  ocelot: {habitat:'bank', x:.74, y:.85, tier:1.16},
+  tarsier: {habitat:'perch', tree:'leftTree', tier:.87, contact:[80,122]},
+  agouti: {habitat:'ground', x:.73, y:.85, tier:1},
+  colugo: {habitat:'sky', x:.27, y:.39, tier:1.01, contact:[80,70]},
+  motmot: {habitat:'perch', tree:'leftTree', tier:.88, contact:[80,91]},
+  peccary: {habitat:'ground', x:.74, y:.85, tier:1.15},
+  quetzal: {habitat:'perch', tree:'leftTree', tier:.94, contact:[80,86]},
 });
 
 export function habitatAnchor(sound, size) {

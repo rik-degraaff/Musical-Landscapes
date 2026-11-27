@@ -34,10 +34,73 @@ function ForestRims({ colors, dawn }) {
 
 function Palm({ transform, leaf, stem }) {
   return <g transform={transform} fill={leaf}>
-    <path fill={stem} d="M-11 0Q13-77 3-145H14Q25-70 3 0Z" />
-    <path d="M8-141Q-32-180-88-136Q-42-153-32-128Q-15-137 8-141Q-42-134-62-99Q-25-115 8-141Q-7-183-43-195Q-23-167 8-141Q19-190 57-184Q30-164 8-141Q55-173 93-138Q57-149 8-141Q56-146 73-106Q45-125 8-141Z" />
+    <path fill={stem} d="M-15 1Q17-77 2-147L14-151Q32-75 0 1Z" />
+    <path d="M9-145Q-39-199-94-160Q-56-169-67-153Q-44-164-48-147Q-26-158-29-142ZM9-145Q-54-160-82-110Q-57-127-58-111Q-43-134-37-117Q-26-139-18-126ZM9-145Q1-195-42-212Q-25-192-29-186Q-11-185-14-169ZM9-145Q15-200 66-204Q45-192 48-184Q30-184 34-173ZM9-145Q59-184 105-151Q76-159 78-146Q60-156 55-142Q35-150 31-136ZM9-145Q66-152 85-102Q65-118 64-106Q58-127 49-115Q39-135 29-123Z" />
+    <path fill="none" stroke={stem} strokeWidth="3" strokeLinecap="round" opacity=".75" d="M9-145Q-30-168-77-163M9-145Q-39-142-66-124M9-145Q4-181-32-204M9-145Q23-185 54-196M9-145Q62-170 91-153M9-145Q56-137 72-115M9-102l11-2M6-81l14-3M-1-58l15-4" />
   </g>;
 }
+
+function Kapok({ transform, colors }) {
+  return <g data-name="Kapok tree" transform={transform}>
+    <path fill={colors.stem} d="M-51 0Q-14-35-18-120L-23-253H2L7-135Q4-55 34-12L55 0Q20 2-4-24Q-16-6-51 0Z" />
+    <path fill="none" stroke={colors.stem} strokeWidth="13" strokeLinecap="round" d="M-7-154Q-27-200-104-222M-4-185Q31-231 98-239" />
+    <path fill={colors.shrub} d="M-163-239Q-159-267-111-271Q-86-303-46-276Q-20-317 19-294Q58-323 89-282Q131-296 147-264Q177-265 188-242Q173-222 123-229Q91-211 51-232Q22-204-10-223Q-53-207-77-229Q-120-207-163-239Z" />
+    <path fill={colors.forest} d="M-145-250Q-124-266-104-259Q-83-288-46-266Q-26-302 16-281Q46-311 82-271Q124-282 142-256Q111-269 85-251Q48-278 17-256Q-24-277-46-250Q-82-269-106-246Q-133-252-145-250Z" />
+    <path fill="none" stroke={colors.tip} strokeWidth="4" opacity=".6" strokeLinecap="round" d="M-117-240q-18 43 6 76q14 18 8 38m162-108q31 42 16 75q-16 38 7 49m43-131q20 46-1 71" />
+  </g>;
+}
+
+const GROVES = {
+  'jungle-clearing': [[40,638,1.68],[347,571,.94],[1404,637,-1.60]],
+  'jungle-river': [[14,648,1.22],[873,561,.72],[1319,610,-1.53]],
+  'jungle-waterfall': [[44,665,1.46],[994,572,-.95],[1407,672,-1.43]],
+  'jungle-canopy': [[10,630,1.78],[1409,625,-1.71]],
+  'jungle-night': [[19,662,1.70],[404,550,.79],[1358,641,-1.55]],
+  'jungle-moonlit': [[5,656,1.58],[1103,580,.85],[1430,643,-1.66]],
+  'jungle-dawn': [[25,682,1.38],[393,581,.87],[1395,631,-1.49]],
+};
+
+function RainforestGrove({ scene, colors, stretch }) {
+  return <g data-name="Layered rainforest canopy">
+    {GROVES[scene].map(([x,y,scale])=><Kapok key={x} colors={colors}
+      transform={`translate(${x} ${y}) scale(${Math.min(1, stretch) * scale} ${Math.abs(scale)})`} />)}
+    {[[248,546,1],[487,542,-.7],[949,538,.85],[1207,536,-1.12]].map(([x,y,scale])=>
+      <Palm key={x} transform={`translate(${x} ${y}) scale(${Math.min(1, stretch) * scale} ${Math.abs(scale)})`}
+        leaf={colors.forest} stem={colors.forest} />)}
+  </g>;
+}
+
+function Fern({ transform, colors }) {
+  return <g data-name="Tree fern" transform={transform}>
+    <path fill="none" stroke={colors.stem} strokeWidth="6" strokeLinecap="round" d="M0 0Q4-20 0-48m0 2q-24-41-73-35m73 34q22-49 76-51M0-48q-3-42-32-64" />
+    <path fill={colors.tip} d="M0-43Q-19-70-73-77Q-60-89-48-81L-46-89L-35-78L-32-84L-23-72L-20-77L-13-62L-7-64ZM0-43Q26-85 79-98Q62-104 47-93L44-102L34-86L29-92L20-78L15-81L8-64L4-67ZM0-44Q-7-95-33-114Q-26-96-24-89L-31-91L-19-77L-25-77L-13-66L-18-65Z" />
+  </g>;
+}
+
+function Heliconia({ transform, colors, night }) {
+  return <g data-name="Heliconia" transform={transform}>
+    <path fill={colors.shrub} d="M1 1Q-61-41-60-99Q-18-87-6-28Q-20-85 0-126Q29-102 5-39Q19-82 74-92Q68-36 1 1Z" />
+    <path fill="none" stroke={colors.tip} strokeWidth="3" strokeLinecap="round" d="M0-2Q-20-54-48-83m50 67q34-41 57-64M1-12Q16-68 36-83" />
+    <path fill={night ? '#ad8d83' : ART.coral} d="M25-70Q18-99 4-104Q1-87 25-70Q30-102 56-109Q56-90 25-70ZM18-50Q11-72-3-78Q-10-60 18-50Q27-76 51-78Q47-60 18-50Z" />
+  </g>;
+}
+
+function SplitLeaf({ transform, colors }) {
+  return <g data-name="Split-leaf philodendron" transform={transform}>
+    <path fill={colors.shrub} d="M0 0Q-51-2-72-32L-42-31Q-75-40-78-61L-53-50L-75-75Q-70-95-46-93L-36-72L-36-93Q-9-90-5-64L-17-55L-3-57Q6-32 0 0ZM0 0Q18-70 66-92Q78-94 82-78L59-55L87-66Q89-44 66-28L40-31L59-22Q43-6 0 0Z" />
+    <path fill="none" stroke={colors.tip} strokeWidth="3" strokeLinecap="round" d="M0 1Q-21-47-60-78M0 1Q29-41 71-76" />
+  </g>;
+}
+
+const BANK_PLANTS = {
+  'jungle-clearing': [[291,703,.87],[1094,630,-.83],[1408,752,-1.1]],
+  'jungle-river': [[765,617,.75],[972,730,-1.04],[1370,778,-.83]],
+  'jungle-waterfall': [[204,671,.69],[930,682,-.82],[1129,737,1.09]],
+  'jungle-canopy': [[313,673,-.78],[950,747,.90],[1231,747,-1]],
+  'jungle-night': [[305,701,.85],[935,698,-.88],[1300,766,.94]],
+  'jungle-moonlit': [[215,729,-.92],[930,701,.84],[1238,739,-.82]],
+  'jungle-dawn': [[214,711,-.80],[1015,688,1.05],[1220,746,-.92]],
+};
 
 function JungleUnderstory({ colors, stretch, night }) {
   return <g data-name="Jungle understory">
@@ -177,11 +240,13 @@ function DawnFloor({ colors, stretch }) {
 
 export function JungleTerrain({ scene, stretch }) {
   const colors = LAND[scene];
+  const night = isAfterDark(scene);
   return <g data-name="Jungle terrain">
     <defs>
       <linearGradient id="jungle-water" x2=".22" y2="1"><stop stopColor="#a2caca"/><stop offset="1" stopColor="#558f9a"/></linearGradient>
     </defs>
     <ForestRims colors={colors} dawn={scene === 'jungle-dawn'} />
+    <RainforestGrove scene={scene} colors={colors} stretch={stretch} />
     {scene === 'jungle-clearing' && <ClearingFloor colors={colors} stretch={stretch} />}
     {scene === 'jungle-river' && <RiverFloor colors={colors} />}
     {scene === 'jungle-canopy' && <CanopyFloor colors={colors} stretch={stretch} />}
@@ -189,7 +254,15 @@ export function JungleTerrain({ scene, stretch }) {
     {scene === 'jungle-night' && <NightFloor colors={colors} />}
     {scene === 'jungle-moonlit' && <MoonlitFloor colors={colors} stretch={stretch} />}
     {scene === 'jungle-dawn' && <DawnFloor colors={colors} stretch={stretch} />}
-    <JungleUnderstory colors={colors} stretch={stretch} night={isAfterDark(scene)} />
+    <g data-name="Tropical bank plants">
+      {BANK_PLANTS[scene].map(([x,y,scale],index)=>{
+        const Plant = [Fern, Heliconia, SplitLeaf][index];
+        return <Plant key={x} colors={colors} night={night} transform={`translate(${x} ${y}) scale(${stretch * scale} ${Math.abs(scale)})`} />;
+      })}
+    </g>
+    <JungleUnderstory colors={colors} stretch={stretch} night={night} />
+    <Fern colors={colors} transform={`translate(41 907) scale(${stretch * 1.55} 1.55)`} />
+    <SplitLeaf colors={colors} transform={`translate(1406 911) scale(${stretch * -1.64} 1.64)`} />
   </g>;
 }
 
@@ -197,13 +270,17 @@ export function JungleTree({ x, y, size, stretch, scene }) {
   const side = x < 720 ? 'left' : 'right';
   const direction = side === 'left' ? 1 : -1;
   const colors = LAND[scene];
-  const bark = isAfterDark(scene) ? '#656c66' : '#898063';
+  const bark = isAfterDark(scene) ? '#5d6d65' : '#7d775f';
   return <g data-habitat-tree={side} data-name={`Jungle tree ${side}`} transform={`translate(${x} ${y}) scale(${size * stretch * direction} ${size})`}>
-    <path fill={bark} d="M-28 4Q-9-20-8-75L-14-162H9L14-81Q12-31 33 5L7-2L-4 9L-12 0Z" />
+    <path fill={bark} d="M-56 6Q-19-19-15-60Q-8-93-14-162H9L14-81Q10-37 29-20L51 7Q24 5 10-10Q8 4-4 13L-12-4Q-28 7-56 6Z" />
+    <path fill="none" stroke={colors.stem} strokeWidth="4" strokeLinecap="round" d="M-38 2Q-14-15-10-54M40 3Q13-18 9-45" />
     <path fill="none" stroke={bark} strokeWidth="10" strokeLinecap="round" d="M3-97Q-12-125-42-141M4-110L31-150" />
     <path fill={colors.shrub} d="M-117-133Q-125-174-75-188Q-60-222-17-213Q21-239 56-207Q105-209 108-171Q140-148 108-122Q77-96 48-118Q12-97-21-123Q-51-110-74-128Q-100-116-117-133Z" />
     <path fill={colors.forest} d="M-108-151Q-107-181-74-185Q-56-216-18-199Q23-225 57-201Q95-198 98-176Q74-189 52-164Q15-191-18-169Q-52-189-74-161Q-93-172-108-151Z" />
-    {scene === 'jungle-canopy' && <path fill="none" stroke={colors.tip} strokeWidth="4" strokeLinecap="round" opacity=".78" d="M-72-144q-22 49-1 91q7 15 2 24M-48-126q-15 58 9 67q13 5 17-6" />}
+    <g data-name="Hanging lianas">
+      <path fill="none" stroke={colors.tip} strokeWidth="4" strokeLinecap="round" d="M-88-146q-21 49 0 93q8 16 2 27m28-111q-14 49 3 63q9 8 16-2M95-131q17 33 4 56" />
+      <path fill={colors.forest} d="M-95-105q-22-2-23-20q22 1 23 20m0 19q13-25 25-13q-8 16-25 13m7 29q-23-9-19-25q17 6 19 25m32-38q5-21 21-18q-1 15-21 18m158-9q-1-18 17-21q4 14-17 21" />
+    </g>
     <path data-name="Perch branch" fill="none" stroke={bark} strokeWidth="8" strokeLinecap="round" d="M2-78Q19-57 34-57Q47-56 61-61" />
     <path fill={colors.forest} d="M55-60Q78-87 91-78Q90-61 55-60Q83-67 97-58Q87-45 55-60Z" />
   </g>;

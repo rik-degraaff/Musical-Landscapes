@@ -97,14 +97,14 @@ Each scene entry makes one random roll. Exactly **25%** selects the first visito
 | Late night (Moonlit Meadow) | Luna moth | Shooting star |
 | Dawn (First Light) | Dove | Deer |
 | Jungle Morning Clearing | Toucan | Blue morpho butterfly |
-| Jungle River Bend | Crocodile | Capybara |
-| Jungle Waterfall | Iguana | Otter |
-| Jungle Canopy Sunset | Monkey | Bumblebee |
+| Jungle River Bend | Basilisk lizard | Capybara |
+| Jungle Waterfall | Iguana | Kingfisher |
+| Jungle Canopy Sunset | Monkey | Orchid mantis |
 | Jungle Night Pool | Kinkajou | Firefly |
-| Jungle Moonlit Stream | Pangolin | Bat |
-| Jungle Misty Dawn | Hummingbird | Dove |
+| Jungle Moonlit Stream | Pangolin | Colugo |
+| Jungle Misty Dawn | Hummingbird | Quetzal |
 
-Visitors have matching illustrations, tap animations and sound effects. Sheep, horse, duck, fox and dove use **CC0 1.0 recordings**. New Jungle animals and the bicycle bell use original illustrative foley. The bell rings when the map opens and when the rider departs, through the same **Scenery sounds** volume control as the animals. Recording sources, licenses and processing details are in [Scenery Attribution](../public/audio/scenery/ATTRIBUTION.md#visitor-recordings).
+Visitors have matching illustrations, tap animations and sound effects. Sheep, horse, duck, fox, dove and the bicycle bell use **CC0 1.0 recordings**. Jungle animals use original illustrative foley. The bell rings when the map opens and when the rider departs, through the same **Scenery sounds** volume control as the animals. Recording sources, licenses and processing details are in [Scenery Attribution](../public/audio/scenery/ATTRIBUTION.md).
 
 ## Manual Performance
 
@@ -151,12 +151,12 @@ The sun or moon advances to the next scene in the current environment. The morni
 | Jungle scene | Regular objects |
 | --- | --- |
 | Morning Clearing | Macaw and tapir |
-| River Bend | River turtle and heron |
+| River Bend | Crocodile and heron |
 | Waterfall | River turtle and tree frog |
-| Canopy Sunset | Sloth and heron |
-| Night Pool | Owl and tree frog |
-| Moonlit Stream | Owl and tapir |
-| Misty Dawn | Macaw and heron |
+| Canopy Sunset | Sloth and coati |
+| Night Pool | Potoo and ocelot |
+| Moonlit Stream | Tarsier and agouti |
+| Misty Dawn | Motmot and peccary |
 
 In Evening Meadow, tapping the cricket makes it hop and rub its wings to a real CC0 cricket recording. The farm cow also plays a real CC0 moo recording. Source credits and reproducible processing commands are in [the scenery attribution file](../public/audio/scenery/ATTRIBUTION.md). The airplane triggers a short banking flyby, spinning propeller and a soft tapered engine sound. Late-night bat wings and hedgehog footsteps have distinct original foley rendered to local WAVs. All effects use offline loudness analysis and the shared scenery mixer; reduced-motion preferences apply to their visual reactions.
 

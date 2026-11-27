@@ -48,7 +48,6 @@ function strike(start, duration, frequency, partials, strength = 1) {
   };
 }
 
-const metal = [[1, 1, 9], [1.48, 0.29, 15], [2.12, 0.15, 29]];
 const shimmer = [[1, 1, 6], [2.01, 0.18, 15], [2.84, 0.07, 31]];
 const dryScales = [[1, 1, 32], [1.83, 0.3, 41], [2.72, 0.14, 53]];
 
@@ -187,9 +186,72 @@ const foley = {
       call(0.76, 0.57, 64, {glide: -16, flutter: 47, reed: 0.64, breath: 0.54, attack: 0.065, strength: 0.65}),
     ],
   },
-  bikeBell: {
-    duration: 1.02,
-    sounds: [strike(0.055, 0.18, 1730, metal), strike(0.29, 0.65, 1700, metal, 0.95)],
+  basilisk: {
+    duration: 1.25,
+    sounds: [splash(.07, .22, 180), splash(.24, .24, 243, .83), splash(.43, .27, 290, .67),
+      rustle(.7, .45, {weight: .8, flutter: 18, strength: .56})],
+  },
+  kingfisher: {
+    duration: 1.2,
+    sounds: [.08, .26, .44, .73].map((start, index) =>
+      call(start, .15, 1570 + index * 130, {glide: 820, flutter: 30, reed: .28, attack: .016})),
+  },
+  coati: {
+    duration: 1.33,
+    sounds: [rustle(.09, .27, {weight: 1.8, flutter: 23}),
+      call(.35, .27, 380, {glide: 290, vibrato: .62, breath: .6, reed: .4}),
+      call(.72, .38, 645, {glide: -340, vibrato: .72, breath: .48, strength: .78})],
+  },
+  orchidMantis: {
+    duration: 1.14,
+    sounds: [rustle(.08, .46, {flutter: 32, attack: .05, damping: 3}),
+      strike(.32, .19, 480, dryScales, .72), strike(.59, .19, 590, dryScales),
+      rustle(.64, .43, {flutter: 10, damping: 3, strength: .68})],
+  },
+  potoo: {
+    duration: 1.66,
+    sounds: [call(.09, .46, 590, {glide: -110, reed: .08, breath: .29, attack: .09}),
+      call(.59, .44, 440, {glide: -95, reed: .08, breath: .22, attack: .08, strength: .85}),
+      call(1.08, .48, 340, {glide: -105, reed: .1, breath: .28, attack: .08, strength: .65})],
+  },
+  ocelot: {
+    duration: 1.47,
+    sounds: [call(.06, .54, 205, {glide: 160, vibrato: .6, flutter: 24, reed: .57, breath: .23}),
+      call(.62, .71, 365, {glide: -230, vibrato: .84, flutter: 13, reed: .53, breath: .28, strength: .73})],
+  },
+  tarsier: {
+    duration: 1.23,
+    sounds: [call(.07, .19, 1660, {glide: -430, vibrato: .3, reed: .16, attack: .024}),
+      call(.38, .23, 1480, {glide: 500, vibrato: .5, reed: .1, attack: .042}),
+      call(.78, .21, 1930, {glide: -630, reed: .14, attack: .03, strength: .76})],
+  },
+  agouti: {
+    duration: 1.3,
+    sounds: [.06, .17, .37, .72, .87].map((start, index) =>
+      rustle(start, .2, {weight: 2, flutter: 13 + index * 5, attack: .025, damping: 7})),
+  },
+  colugo: {
+    duration: 1.37,
+    sounds: [rustle(.07, .91, {weight: 1.1, flutter: 3, attack: .22, damping: 2.1}),
+      call(.75, .44, 575, {glide: 200, vibrato: .7, reed: .23, breath: .58, strength: .5})],
+  },
+  motmot: {
+    duration: 1.44,
+    sounds: [call(.08, .28, 466, {glide: -65, reed: .15, attack: .054}),
+      call(.36, .35, 398, {glide: -77, reed: .12, attack: .055}),
+      call(.92, .39, 432, {glide: -104, reed: .16, attack: .054, strength: .83})],
+  },
+  peccary: {
+    duration: 1.31,
+    sounds: [call(.08, .39, 143, {glide: 29, reed: .65, flutter: 26, breath: .5}),
+      call(.52, .31, 166, {glide: -45, reed: .72, flutter: 32, breath: .49, strength: .82}),
+      rustle(.88, .36, {weight: 1.45, flutter: 16, damping: 5})],
+  },
+  quetzal: {
+    duration: 1.42,
+    sounds: [call(.06, .32, 820, {glide: 67, reed: .12, attack: .041}),
+      call(.46, .26, 1030, {glide: 210, reed: .09, attack: .03, strength: .86}),
+      call(.84, .42, 1150, {glide: -310, reed: .06, attack: .055, strength: .76})],
   },
 };
 

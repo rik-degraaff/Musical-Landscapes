@@ -28,9 +28,15 @@ for(const [layout,width,height] of [['desktop',1440,900],['tablet',1024,768],['p
             if(!door&&!road)return null;
             if(!door||!road)return {missing:true};
             const bounds=door.getBoundingClientRect(),point=road.getPointAtLength(0).matrixTransform(road.getScreenCTM());
-            return {x:Math.abs(point.x-bounds.left),y:Math.abs(point.y-bounds.bottom)};
+            const wheels = Array.from(element.querySelectorAll('[data-sound="bikeBell"] circle[r="22"]'));
+            const underWheels = wheels.every(wheel => {
+              const contact = new DOMPoint(0, 24).matrixTransform(wheel.getScreenCTM());
+              return road.isPointInFill(contact.matrixTransform(road.getScreenCTM().inverse()));
+            });
+            return {x:Math.abs(point.x-bounds.left),y:Math.abs(point.y-bounds.bottom),wheels:wheels.length,underWheels};
           });
           if(join&&(join.missing||join.x>1||join.y>1))failures.push(`${scene}: road does not meet doorway`);
+          if(scene==='farm'&&(join?.wheels!==2||!join.underWheels))failures.push('farm: bicycle wheels are outside the road');
         };
         await checkDoorway();
         const objects=host.locator('.interactive-object:not([data-sound="bikeBell"])');await expect(objects).toHaveCount(2);

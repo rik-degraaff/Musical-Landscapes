@@ -1,10 +1,11 @@
 import { VISITOR_SOUNDS, VISITOR_RECORDINGS, VISITOR_FOLEY, createVisitorSample } from './visitorSounds.js';
 import { JUNGLE_SOUNDS, createJungleSample } from './jungleSounds.js';
 
-export const SCENE_SOUNDS = ['moo', 'tractor', 'water', 'bird', 'frog', 'windmill', 'bell', 'owl', 'rooster', 'chimes', 'cricket', 'airplane', 'bat', 'hedgehog', ...JUNGLE_SOUNDS, ...VISITOR_SOUNDS];
+export const SCENE_SOUNDS = ['moo', 'tractor', 'water', 'bird', 'frog', 'windmill', 'bell', 'owl', 'rooster', 'chimes', 'cricket', 'airplane', 'bat', 'hedgehog', ...JUNGLE_SOUNDS, 'bikeBell', ...VISITOR_SOUNDS];
 export const FIELD_RECORDINGS = {
   moo: { file: 'cow-moo.mp3', url: 'https://cdn.freesound.org/previews/546/546479_11588763-hq.mp3', source: 'https://freesound.org/people/invertedturtle/sounds/546479/', license: 'CC0-1.0', duration: 2.623, fadeIn: 0.015, fadeOut: 0.08 },
   cricket: { file: 'cricket.mp3', url: 'https://cdn.freesound.org/previews/822/822935_14007850-hq.mp3', source: 'https://freesound.org/people/_sinny_/sounds/822935/', license: 'CC0-1.0', duration: 2.4, fadeIn: 0.015, fadeOut: 0.06 },
+  bikeBell: { file: 'bicycle-bell.wav', url: 'https://upload.wikimedia.org/wikipedia/commons/d/d2/Bsumusictech_bike-bell.wav', source: 'https://commons.wikimedia.org/wiki/File:Bsumusictech_bike-bell.wav', license: 'CC0-1.0', offset: 0.25, duration: 1.24, fadeIn: 0.012, fadeOut: 0.12 },
   ...VISITOR_RECORDINGS,
 };
 export const WATER_DROP_TIMES = [0.28, 0.93, 1.58];

@@ -288,11 +288,164 @@ function Hummingbird() {
   </>;
 }
 
+function Basilisk() {
+  return <>
+    <path d="M77 75Q97 60 126 80Q140 91 152 77Q150 105 124 98L88 92Z" fill={ART.leafShade} />
+    <path d="M44 71Q58 49 92 50L101 76Z" fill={ART.tealShade} />
+    <path d="M35 80Q47 63 75 65Q104 67 118 91Q101 109 70 99Q50 100 35 80Z" fill={ART.leaf} />
+    <path d="M91 85Q108 93 91 100l-14 8H62l12-8l1-9M43 87l-5 17H23" fill={ART.leafShade} />
+    <path d="M18 65Q25 47 49 38L43 62Q56 72 47 84Q30 94 13 83Q5 76 18 65Z" fill={ART.leaf} />
+    <path d="M18 80q13 2 20-3" strokeWidth="1.5" /><Eye x={30} y={67} />
+  </>;
+}
+
+function Kingfisher() {
+  return <>
+    <path d="M91 84l27 29q-24 7-39-16" fill={ART.blueShade} />
+    <path d="M70 101v12h-7m24-11v11h-7" stroke={ART.goldShade} strokeWidth="3" />
+    <path d="M54 61Q99 48 110 82Q113 107 81 108Q50 104 47 80Z" fill={ART.coral} />
+    <path d="M75 66Q102 58 112 82Q105 103 82 98Q66 85 75 66Z" fill={ART.blueShade} />
+    <path d="M53 61L9 69L48 52Z" fill={ART.woodShade} />
+    <path d="M45 55Q44 30 74 28L97 31L88 41Q104 61 85 75Q53 90 45 55Z" fill={ART.teal} />
+    <path d="M52 64q17-9 37 0q-16 17-31 10Z" fill={ART.cream} stroke="none" />
+    <Eye x={62} y={50} />
+  </>;
+}
+
+function Coati() {
+  return <>
+    <path d="M97 88Q126 54 128 20Q142 8 148 29Q153 61 122 95Z" fill={ART.wood} />
+    <path d="M129 33l17 5m-21 13l17 5m-25 10l17 5" stroke={ART.brownShade} strokeWidth="6" />
+    <path d="M50 97l-5 28h14l10-24m27-1l9 25h14l-6-32" fill={ART.brownShade} />
+    <path d="M41 77Q74 53 106 65Q130 74 122 100Q111 115 64 106L44 103Z" fill={ART.wood} />
+    <path d="M49 96l-8 30H27l7-29m69 2l4 27H92l-8-24" fill={ART.wood} />
+    <path d="M32 65Q25 53 34 48Q45 48 48 61Q68 64 65 83Q61 99 39 97L14 105Q5 105 8 94L22 81Q21 72 32 65Z" fill={ART.brown} />
+    <path d="M22 83q20-18 34-13q-2 13-18 18Z" fill={ART.cream} stroke="none" />
+    <Eye x={42} y={77} /><circle cx="12" cy="97" r="4" fill={ART.ink} stroke="none" />
+  </>;
+}
+
+function OrchidMantis() {
+  return <>
+    <path d="M72 92Q42 107 25 91Q27 63 71 71Q31 41 53 31Q81 31 91 67Z" fill={ART.pink} />
+    <path d="M75 89Q101 82 117 103L104 115H92m-25-23q-10 23-29 24H29" fill={ART.pink} />
+    <path d="M75 99Q67 86 79 66L97 50L107 58L91 76Q91 91 75 99Z" fill={ART.cream} />
+    <path d="M87 73Q104 60 116 65Q134 73 123 89Q112 89 115 77l-16 6" fill={ART.pink} />
+    <path d="M108 45q5-18 17-22m-29 22q-3-17-14-21" strokeWidth="1.5" />
+    <path d="M86 49Q89 35 101 41Q114 36 120 48Q119 60 103 67Q91 63 86 49Z" fill={ART.cream} />
+    <Eye x={95} y={49} /><Eye x={110} y={48} />
+  </>;
+}
+
+function Potoo() {
+  return <>
+    <path d="M69 91L58 132Q83 129 101 106Z" fill={ART.brownShade} />
+    <path d="M76 108v13h-9m24-13v13h-8" stroke={ART.woodShade} strokeWidth="3" />
+    <path d="M61 55Q94 43 112 71Q122 100 96 114Q60 125 52 95Z" fill={ART.brown} />
+    <path d="M86 62Q112 67 105 97Q99 109 90 111Q77 91 86 62Z" fill={ART.brownShade} />
+    <path d="M48 56Q41 31 61 23Q82 13 101 30Q110 34 110 46Q104 65 77 71Q55 75 48 56Z" fill={ART.wood} />
+    <path d="M50 51Q76 57 102 45Q90 66 69 63Z" fill={ART.brownShade} />
+    <circle cx="70" cy="39" r="10" fill={ART.gold} stroke="none" /><Eye x={70} y={39} r={6} />
+    <path d="M55 81l6 4m2 11l8 4m-10-68l-5 3" stroke={ART.cream} strokeWidth="2" />
+  </>;
+}
+
+function Ocelot() {
+  return <>
+    <path d="M121 84Q143 84 142 59Q145 47 153 56Q160 87 124 99" fill={ART.goldShade} />
+    <path d="M48 95l-8 30h16l11-25m43-3l14 28h13l-9-34" fill={ART.goldShade} />
+    <path d="M38 77Q57 57 94 63Q130 64 134 88Q135 112 100 106H56Z" fill={ART.gold} />
+    <path d="M56 97l-4 29H35q-4-7 6-14l1-17m62 3l1 28H89l-5-25" fill={ART.gold} />
+    <path d="M57 79q9-8 15 2q-5 10-15 4Zm23-8q12-5 14 5q-3 8-13 3Zm27 9q12-6 15 4q-3 10-13 6Zm-35 14q10-7 14 1q-1 10-11 6Z" fill={ART.goldShade} />
+    <path d="M18 60Q10 40 22 40Q33 39 36 53Q48 38 55 47Q61 52 54 65Q62 90 37 97Q11 95 11 79Z" fill={ART.gold} />
+    <path d="M15 79Q26 72 31 81Q40 74 48 81Q42 96 28 95Q17 93 15 79Z" fill={ART.cream} stroke="none" />
+    <Eye x={23} y={70} /><Eye x={43} y={67} /><path d="M26 80l9-1l-4 6Z" fill={ART.ink} />
+  </>;
+}
+
+function Tarsier() {
+  return <>
+    <path d="M99 104Q126 126 145 102Q154 92 146 85" stroke={ART.brownShade} strokeWidth="6" />
+    <path d="M57 71Q91 61 109 84Q119 110 96 116L102 123H80L72 103L65 117L46 123L34 121L49 102Z" fill={ART.wood} />
+    <path d="M55 86Q39 96 38 111l-11 5m46-27q2 14-3 26l-13 6" stroke={ART.woodShade} strokeWidth="5" />
+    <circle cx="35" cy="51" r="16" fill={ART.wood} /><circle cx="89" cy="51" r="16" fill={ART.wood} />
+    <path d="M32 60Q29 36 59 33Q86 32 93 57Q97 82 71 89Q40 94 32 60Z" fill={ART.brown} />
+    <circle cx="50" cy="59" r="13" fill={ART.gold} /><circle cx="75" cy="57" r="13" fill={ART.gold} />
+    <Eye x={50} y={59} r={8} /><Eye x={75} y={57} r={8} />
+    <path d="M57 75q6 7 14-1" strokeWidth="1.5" />
+  </>;
+}
+
+function Agouti() {
+  return <>
+    <path d="M52 101l-7 25H34l4-28m58 4l9 24h16l-5-35" fill={ART.brownShade} />
+    <path d="M42 79Q68 71 83 52Q107 35 129 58Q147 84 130 106Q112 121 74 107L45 101Z" fill={ART.wood} />
+    <path d="M80 69Q100 43 121 51Q145 68 136 96Q129 72 102 77Z" fill={ART.brown} stroke="none" />
+    <path d="M56 97l-7 29H36l6-25m74-18q12 16-4 28l-10 15H89l12-22" fill={ART.wood} />
+    <path d="M30 68Q24 53 32 48Q43 48 45 63Q62 66 64 80Q64 96 50 104Q27 114 14 100Q9 89 18 81Z" fill={ART.brown} />
+    <path d="M14 95q13 2 19-2" strokeWidth="1.5" /><Eye x={35} y={78} />
+  </>;
+}
+
+function Colugo() {
+  return <>
+    <path d="M76 91Q89 116 112 127Q96 94 132 61Q148 43 151 25Q132 31 110 47L66 54Q39 37 14 29Q20 55 42 66Q69 88 49 114Q66 110 76 91Z" fill={ART.brown} />
+    <path d="M37 52Q59 62 83 56Q112 54 132 42Q114 68 101 93Q92 76 77 81Q65 88 62 96Q65 70 37 52Z" fill={ART.pink} stroke="none" />
+    <path d="M70 51Q63 44 67 34Q72 28 79 36Q90 31 102 37Q111 28 116 36Q120 49 109 56Q105 80 86 78Q67 74 70 51Z" fill={ART.wood} />
+    <Eye x={82} y={51} r={5} /><Eye x={103} y={50} r={5} />
+    <path d="M89 64q5 4 10-1m-10 26l12 6m-44-30l9 6" strokeWidth="1.5" />
+  </>;
+}
+
+function Motmot() {
+  return <>
+    <path d="M91 74q17 18 25 42m-14-44q17 16 29 41" stroke={ART.tealShade} strokeWidth="4" />
+    <ellipse cx="119" cy="119" rx="6" ry="11" transform="rotate(-24 119 119)" fill={ART.blue} />
+    <ellipse cx="134" cy="116" rx="6" ry="11" transform="rotate(-31 134 116)" fill={ART.blue} />
+    <path d="M71 81v10h-9m26-10v10h-8" stroke={ART.woodShade} strokeWidth="3" />
+    <path d="M45 60Q60 33 87 48Q119 66 103 84Q78 100 52 83Z" fill={ART.leaf} />
+    <path d="M74 60Q94 53 105 76Q94 89 78 82Z" fill={ART.tealShade} />
+    <path d="M47 52L14 61L44 42Z" fill={ART.brownShade} />
+    <path d="M39 48Q37 21 64 18Q91 17 91 44Q81 62 60 63Q43 62 39 48Z" fill={ART.teal} />
+    <path d="M43 45Q63 25 85 40L78 50Q60 44 47 53Z" fill={ART.tealShade} stroke="none" />
+    <Eye x={59} y={39} />
+  </>;
+}
+
+function Peccary() {
+  return <>
+    <path d="M48 96l-6 29h14l10-27m40 1l10 26h12l-4-33" fill={ART.brownShade} />
+    <path d="M41 63Q65 43 109 49Q141 56 145 81Q145 110 105 110H57Z" fill={ART.brownShade} />
+    <path d="M62 53Q73 51 83 49Q70 78 82 110H66Q53 90 62 53Z" fill={ART.cream} stroke="none" />
+    <path d="M67 101l-7 25H46l4-28m65 5l3 23h-15l-9-22" fill={ART.brown} />
+    <path d="M27 63Q22 45 30 42Q42 44 44 58Q51 43 62 47Q70 53 57 68Q70 86 51 99Q36 111 16 101Q3 97 9 85L19 79Z" fill={ART.brown} />
+    <ellipse cx="16" cy="90" rx="10" ry="8" fill={ART.pink} />
+    <circle cx="13" cy="89" r="2" fill={ART.ink} stroke="none" /><circle cx="20" cy="89" r="2" fill={ART.ink} stroke="none" />
+    <Eye x={36} y={73} />
+  </>;
+}
+
+function Quetzal() {
+  return <>
+    <path d="M91 63Q121 68 124 99Q127 114 147 122Q129 131 111 116Q100 107 98 90Q103 113 91 133Q81 133 84 126Q93 98 77 86Z" fill={ART.tealShade} />
+    <path d="M70 72v14h-8m24-13v13h-8" stroke={ART.goldShade} strokeWidth="3" />
+    <path d="M46 57Q67 44 93 48Q112 58 112 79Q90 96 58 81Z" fill={ART.teal} />
+    <path d="M53 58Q68 62 77 85Q57 88 48 73Z" fill={ART.coral} stroke="none" />
+    <path d="M74 51Q98 48 112 73Q94 85 78 68Z" fill={ART.leafShade} />
+    <path d="M48 51L22 47L43 39Z" fill={ART.gold} />
+    <path d="M41 47Q35 23 58 19Q69 15 78 22Q66 20 69 25Q92 32 83 50Q72 66 50 57Z" fill={ART.leaf} />
+    <Eye x={54} y={38} />
+  </>;
+}
+
 const ANIMALS = {
   macaw: Macaw, tapir: Tapir, toucan: Toucan, morpho: Morpho,
   riverTurtle: RiverTurtle, heron: Heron, crocodile: Crocodile, capybara: Capybara,
   sloth: Sloth, monkey: Monkey, treeFrog: TreeFrog, kinkajou: Kinkajou, firefly: Firefly,
   iguana: Iguana, pangolin: Pangolin, hummingbird: Hummingbird,
+  basilisk: Basilisk, kingfisher: Kingfisher, coati: Coati, orchidMantis: OrchidMantis,
+  potoo: Potoo, ocelot: Ocelot, tarsier: Tarsier, agouti: Agouti,
+  colugo: Colugo, motmot: Motmot, peccary: Peccary, quetzal: Quetzal,
 };
 
 export function JungleAnimalArt({ type }) {

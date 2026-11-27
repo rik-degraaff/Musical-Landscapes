@@ -8,33 +8,33 @@ export const JUNGLE_SCENES = {
   },
   'jungle-river': {
     name:'River Bend', root:'G', phase:.50,
-    residents:[animal('riverTurtle','River turtle'), animal('heron','Heron')],
-    visitors:[{...animal('crocodile','Crocodile'),slot:0}, {...animal('capybara','Capybara'),slot:1}],
+    residents:[animal('crocodile','Crocodile'), animal('heron','Heron')],
+    visitors:[{...animal('basilisk','Basilisk lizard'),slot:0}, {...animal('capybara','Capybara'),slot:1}],
   },
   'jungle-waterfall': {
     name:'Waterfall', root:'F', phase:.77,
     residents:[animal('riverTurtle','River turtle'), animal('treeFrog','Tree frog')],
-    visitors:[{...animal('iguana','Iguana'),slot:0}, {...animal('otter','Otter'),slot:1}],
+    visitors:[{...animal('iguana','Iguana'),slot:0}, {...animal('kingfisher','Kingfisher'),slot:1}],
   },
   'jungle-canopy': {
     name:'Canopy Sunset', root:'Em', phase:.875,
-    residents:[animal('sloth','Sloth'), animal('heron','Heron')],
-    visitors:[{...animal('monkey','Monkey'),slot:0}, {...animal('bee','Bumblebee'),slot:1}],
+    residents:[animal('sloth','Sloth'), animal('coati','Coati')],
+    visitors:[{...animal('monkey','Monkey'),slot:0}, {...animal('orchidMantis','Orchid mantis'),slot:1}],
   },
   'jungle-night': {
     name:'Night Pool', root:'Bm', phase:1.45,
-    residents:[animal('owl','Owl'), animal('treeFrog','Tree frog')],
+    residents:[animal('potoo','Potoo'), animal('ocelot','Ocelot')],
     visitors:[{...animal('kinkajou','Kinkajou'),slot:0}, {...animal('firefly','Firefly'),slot:1}],
   },
   'jungle-moonlit': {
     name:'Moonlit Stream', root:'Dm', phase:1.73,
-    residents:[animal('owl','Owl'), animal('tapir','Tapir')],
-    visitors:[{...animal('pangolin','Pangolin'),slot:1}, {...animal('bat','Bat'),slot:0}],
+    residents:[animal('tarsier','Tarsier'), animal('agouti','Agouti')],
+    visitors:[{...animal('pangolin','Pangolin'),slot:1}, {...animal('colugo','Colugo'),slot:0}],
   },
   'jungle-dawn': {
     name:'Misty Dawn', root:'Bb', phase:.085,
-    residents:[animal('macaw','Macaw'), animal('heron','Heron')],
-    visitors:[{...animal('hummingbird','Hummingbird'),slot:1}, {...animal('dove','Dove'),slot:0}],
+    residents:[animal('motmot','Motmot'), animal('peccary','Peccary')],
+    visitors:[{...animal('hummingbird','Hummingbird'),slot:1}, {...animal('quetzal','Quetzal'),slot:0}],
   },
 };
 

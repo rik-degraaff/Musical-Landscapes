@@ -6,9 +6,18 @@
   animation: jungleFrogHop 1.5s ease-in-out;
 }
 
-.scene :is([data-sound='hummingbird'], [data-sound='morpho'], [data-sound='firefly']) .reacting:has(.jungle-animal-art) {
+.scene :is([data-sound='hummingbird'], [data-sound='morpho'], [data-sound='firefly'], [data-sound='colugo'], [data-sound='kingfisher']) .reacting:has(.jungle-animal-art) {
   animation: jungleHover 1.5s ease-in-out;
   transform-origin: center;
+}
+
+.scene :is([data-sound='basilisk'], [data-sound='coati'], [data-sound='agouti'], [data-sound='tarsier']) .reacting:has(.jungle-animal-art) {
+  animation: jungleFrogHop 1.5s ease-in-out;
+}
+
+.scene :is([data-sound='potoo'], [data-sound='ocelot'], [data-sound='peccary'], [data-sound='orchidMantis'], [data-sound='motmot'], [data-sound='quetzal']) .reacting:has(.jungle-animal-art) {
+  animation: jungleNod 1.5s ease-in-out;
+  transform-origin: center bottom;
 }
 
 .jungle-animal-art g, .jungle-animal-art path {
@@ -67,7 +76,7 @@
 
 .is-tapped .jungle-firefly-glow { animation: jungleGlow 1.3s ease-in-out; }
 
-.scene .object-effect:is(.effect-riverTurtle, .effect-crocodile) i {
+.scene .object-effect:is(.effect-riverTurtle, .effect-crocodile, .effect-basilisk) i {
   left: 18%;
   top: 73.5%;
   width: 64%;
