@@ -15,6 +15,7 @@ import { WATER_DROP_TIMES, WATER_DROP_FALL, WATER_DURATION } from '../audio/scen
 import {SCENE_ROOTS} from '../utils/dayCycle';
 import {sceneObjectPair,visitorRoll} from '../utils/sceneVisitors';
 import {sceneObjectStyle, OBJECT_PLACEMENT} from '../utils/sceneComposition';
+import {JUNGLE_SCENES} from '../data/environments';
 
 export const SCENES = [
   { id:'farm', name:'Sunny Farm', root:SCENE_ROOTS.farm, component:FarmScene },
@@ -24,6 +25,9 @@ export const SCENES = [
   { id:'night', name:'Sleepy Night', root:SCENE_ROOTS.night, component:NightScene },
   { id:'late-night', name:'Moonlit Meadow', root:SCENE_ROOTS.lateNight, component:LateNightScene },
   { id:'dawn', name:'First Light', root:SCENE_ROOTS.dawn, component:DawnScene },
+  ...Object.entries(JUNGLE_SCENES).map(([id,{name,root,residents}])=>({
+    id, name, root, component:({audio})=><SceneObjects scene={id} audio={audio} objects={residents}/>,
+  })),
 ];
 
 export const ScenePreviewContext = createContext(null);
@@ -35,20 +39,21 @@ export function SceneObjects({scene,objects,audio}) {
   return <>{pair.map((object,index)=><InteractiveObject key={`${index}:${object.sound}`} audio={audio} {...object} className={`${object.className}${object.slot!==undefined?' visitor-object':''}`}/>)}</>;
 }
 
-export function InteractiveObject({ sound, audio, label, className='' }) {
+export function InteractiveObject({ sound, audio, label, className='', onActivate, controlRef }) {
   const size = useContext(SceneLayoutContext);
   const [taps, setTaps] = useState(0);
   const [pulse, setPulse] = useState(false);
   const [startsAt, setStartsAt] = useState(0);
   const tap = (e) => {
     e.stopPropagation();
+    if(onActivate){onActivate();return;}
     const playback = audio?.playSceneSound(sound);
     setStartsAt(playback?.startsAt ?? performance.now());
     setTaps(value => value + 1);
     setPulse(true);
   };
   const delay = Math.max(-0.1, (startsAt - performance.now()) / 1000);
-  return <button type="button" aria-label={label} title={label} data-sound={sound} data-habitat={OBJECT_PLACEMENT[sound]?.habitat} style={size?sceneObjectStyle(sound,size):undefined} className={`interactive-object ${className} ${pulse?'is-tapped':''}`} onClick={tap}>
+  return <button ref={controlRef} type="button" aria-label={label} aria-haspopup={onActivate?'dialog':undefined} title={label} data-sound={sound} data-habitat={OBJECT_PLACEMENT[sound]?.habitat} style={size?sceneObjectStyle(sound,size):undefined} className={`interactive-object ${className} ${pulse?'is-tapped':''}`} onClick={tap}>
     <span key={taps} className={`object-reaction ${pulse ? 'reacting' : ''}`} style={sound === 'water' ? { animationDuration: `${WATER_DURATION}s`, animationDelay: `${delay}s` } : undefined} onAnimationEnd={event => { if(event.target === event.currentTarget) setPulse(false); }}><ObjectArt type={sound} /></span>
     {pulse && (sound === 'water' ? <svg key={`effect-${taps}`} className="object-effect water-drops" viewBox="0 0 160 140" aria-hidden="true">
       {WATER_DROP_TIMES.map(impact => <g key={impact}>
@@ -59,7 +64,7 @@ export function InteractiveObject({ sound, audio, label, className='' }) {
   </button>;
 }
 
-export function Scene({ worldSize, sceneIndex, playing, audio, onRotate, onGenreChange, genre='folk', genreTransition, onCelestialSettled }) {
+export function Scene({ worldSize, sceneIndex, playing, audio, onRotate, onGenreChange, genre='folk', genreTransition, onCelestialSettled, showBike, onOpenMap, bikeRef }) {
   const sceneRef = useRef(null);
   const advanceRef = useRef(onRotate);
   const lastPointerAdvance = useRef(null);
@@ -69,6 +74,7 @@ export function Scene({ worldSize, sceneIndex, playing, audio, onRotate, onGenre
   const {phase,settled} = useCelestialPhase(scene.id,onCelestialSettled);
   const sceneAudio = { playSceneSound: (type) => audio?.playSceneSound(type) };
   useEffect(() => {
+    if(!onRotate)return;
     function handleCelestialTap(event) {
       const sceneElement = sceneRef.current;
       const world = sceneElement?.parentElement;
@@ -104,10 +110,13 @@ export function Scene({ worldSize, sceneIndex, playing, audio, onRotate, onGenre
       document.removeEventListener('pointerdown', handleCelestialTap, true);
       document.removeEventListener('click', handleCelestialTap, true);
     };
-  }, []);
+  }, [Boolean(onRotate)]);
   return <div ref={sceneRef} className={`scene scene-${scene.id}`}>
     <LandscapeArt key={scene.id} worldSize={worldSize} scene={scene.id} phase={phase} genre={genre} genreTransition={genreTransition} onGenreChange={onGenreChange}/>
-    <SceneLayoutContext.Provider value={worldSize}><SceneComponent key={`${scene.id}-objects-${playing?'play':'menu'}`} audio={sceneAudio} /></SceneLayoutContext.Provider>
-    <CelestialControl scene={scene.id} phase={phase} settled={settled} />
+    <SceneLayoutContext.Provider value={worldSize?{...worldSize,scene:scene.id}:null}>
+      <SceneComponent key={`${scene.id}-objects-${playing?'play':'menu'}`} audio={sceneAudio} />
+      {showBike&&<InteractiveObject sound="bikeBell" label="Open travel map with the bicycle" audio={sceneAudio} onActivate={onOpenMap} controlRef={bikeRef}/>}
+    </SceneLayoutContext.Provider>
+    {onRotate&&<CelestialControl scene={scene.id} phase={phase} settled={settled} />}
   </div>;
 }

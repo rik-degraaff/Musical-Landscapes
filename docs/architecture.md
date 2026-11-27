@@ -2,11 +2,13 @@
 
 FarmJam is a React application built with Vite. Its main design boundary is between interface/session coordination, musical planning, audio ownership, and browser persistence.
 
+The installable web app opens with full access by default. Setting `VITE_FARMJAM_EDITIONS=true` at build time lets PwaApp supply the edition catalog and derive full access from the signed-in parent’s payment or redeemed invite. Supabase handles parent identity and access, Stripe hosts Checkout, and a verified payment event records payment access. Invite redemption is atomic and bound to the verified parent email. The trial uses four instruments, Folk, and two Farm scenes. The service worker caches the web shell and recordings for offline play.
+
 ## Runtime areas
 
 - `src/App.jsx` coordinates screen transitions, caregiver dialogs, hints, help, and gameplay session lifetime. `useFamily` owns the active family/settings snapshot, profile save policies, and read recovery; `useCaregiver` owns shared familiarity and its legacy seeding. Each persistence hook reports its own save status, and retry attempts remain independent.
 - `src/components/` implements reusable UI, child setup and profile editing, settings, guides, live gesture coaching, instruments, and practice controls.
-- `src/scenes/` renders the seven landscapes and their interactive objects. `LandscapeArt.jsx` and `scene-art.css` hold authored scenery artwork and styling.
+- `src/data/environments.js` defines each environment's seven-scene cycle, morning entrance and music defaults. `src/scenes/` renders the landscapes, their interactive objects, and the illustrated travel map. Artwork positions on the map share coordinates with the bicycle's route.
 - Habitat trees render in a separate foreground SVG at depth 30, above bank structures (20) and below animals and tree-mounted objects (45). Both SVG layers use the same world metrics; editor selectors distinguish the background and foreground.
 - `src/data/artStyle.js` holds shared authored illustration materials. [Visual standards](visual-standards.md) define how artwork, habitat anchors, hierarchy, and responsive scale fit together.
 - `src/utils/sceneComposition.js` owns object size tiers/contact points, shared tree anchors, and house/doorway/path geometry in actual world pixels. `App` measures the available world with `ResizeObserver`; opening a performance panel updates both illustration scale and habitat positions. Scene objects and scenery consume the same coordinates. Optional editor overrides remain an explicit layer over this authored composition.
@@ -25,7 +27,7 @@ Tempo holds resume only the active practice run, preserving its transport positi
 
 Each owned startup load has a 15-second deadline. A stalled recording returns the menu to its retryable error state. The failed attempt retains ownership of any unfinished browser decode until it settles, preventing late completion from changing or disposing a newer attempt.
 
-Landscape changes update the requested key. The current bar completes in its captured key; the latest requested key takes effect on the next downbeat. The transport is shared and is not restarted for scene changes.
+Landscape changes update the requested key. The current bar completes in its captured key and the latest requested key takes effect on the next downbeat. On a bicycle trip, arrival requests the destination's morning key and default genre before the map folds away. The transport continues through the trip. Opening the map releases held input and suspends learning time while the dialog owns focus.
 
 Composition styles also own per-instrument tone cutoff, articulation gate and accent depth. The movement planner derives a small, fixed colour from each movement seed and blends it at movement handoffs; genre interpolation supplies the larger change. Immutable bar plans carry the resulting performance settings and gated events. The engine schedules gentle high-frequency shelf automation at the bar's audio timestamp and routes both sampler and manual voices through the same resource-owned filter before the existing mixer/reverb. The shelf only attenuates (up to 4 dB); it never boosts. A separate resource-owned style gain node follows the shelf and precedes the user mixer. It applies the genre’s bounded −2 to +1.5 dB trim to both sampled and manual pitched voices; bar-time automation and cancellation follow the same ownership as tone. User volume values and mute state are not changed. Replanning replaces future automation, and playback cleanup cancels it.
 
@@ -36,7 +38,7 @@ If a genre blend is reversed before finishing, the new tone/articulation transit
 - Family profile records own child identity, appearance, age range, and child-specific settings.
 - One caregiver preference record owns familiarity shared across children in this browser.
 - One learning record owns guide read revisions and each child's hint settings, practice preference, and caregiver acknowledgment.
-- React session state owns transient UI, active play, and current sound-mix values.
+- React session state owns transient UI, active play, the current environment and weather, and current sound-mix values. Starting a new session begins on the Farm in Folk.
 - The service worker owns cached application assets and its update lifecycle, not family profile data.
 
 Persistence schemas and update safety are documented in [storage and updates](storage-and-updates.md). For a feature-level overview, see [the caregiver guide](caregiver-guide.md). Detailed authored music behavior is in [the musical reference](musical-reference.md).
@@ -57,4 +59,4 @@ The local-only visual editor previews real application components and saves vali
 
 ## Instrument availability
 
-`src/utils/featureFlags.js` owns instrument availability. `FEATURE_FLAGS.flute` is currently false. Set it to true to restore the retained flute implementation. `INSTRUMENTS` remains the complete definition catalog for persistence and implementation tests; runtime UI, editor and audio entry points enumerate `AVAILABLE_INSTRUMENTS`. Saved disabled slots are replaced individually with an unused enabled default, preserving the other five slots and the hidden instrument�s saved options. Pan flute remains available.
+`src/utils/featureFlags.js` owns instrument availability. `FEATURE_FLAGS.flute` is currently false. Set it to true to restore the retained flute implementation. `INSTRUMENTS` remains the complete definition catalog for persistence and implementation tests; runtime UI, editor and audio entry points enumerate `AVAILABLE_INSTRUMENTS`. Saved disabled slots are replaced individually with an unused enabled default, preserving the other five slots and the hidden instrument’s saved options. Pan flute remains available.

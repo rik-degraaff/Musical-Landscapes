@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {practiceProfile} from '../src/utils/practiceComposition.js';
+import {GENRE_OPTIONS} from '../src/data/compositionStyles.js';
 import {equippedProfile} from '../src/utils/difficulty.js';
 import {compositionProfile} from '../src/utils/composition.js';
 import {INSTRUMENTS} from '../src/utils/music.js';
@@ -83,19 +84,22 @@ for(const root of roots)for(const complexity of [.35,1,1.5])test(`practice motif
 });
 
 test('practice caches each genre separately and includes its tiered motifs after the original exercises',()=>{
+  const genres=GENRE_OPTIONS.map(({id})=>id);
   for(const name of names)for(const complexity of [.35,1,1.5]){
     const legacy=equippedProfile(name,'Am',{complexity});
-    const profiles=['folk','jazz','rock'].map(genre=>practiceProfile(name,'Am',{complexity,genre}));
-    assert.equal(new Set(profiles).size,3);
-    for(const [index,genre] of ['folk','jazz','rock'].entries()){
+    const profiles=genres.map(genre=>practiceProfile(name,'Am',{complexity,genre}));
+    assert.equal(new Set(profiles).size,genres.length);
+    for(const [index,genre] of genres.entries()){
       const profile=profiles[index];
       assert.equal(practiceProfile(name,'Am',{complexity,genre}),profile);
       assert.deepEqual(profile.phrases.slice(0,legacy.phrases.length),legacy.phrases);
       const expected=compositionProfile(name,'Am',{complexity,genre});
       assert.deepEqual(profile.phrases.slice(legacy.phrases.length,legacy.phrases.length+expected.length),expected);
     }
-    assert.ok(profiles[2].phrases.some(phrase=>phrase.name?.startsWith('rock')));
-    assert.ok(!profiles[0].phrases.some(phrase=>phrase.name?.startsWith('rock')));
+    for(const genre of ['rock','samba']){
+      assert.ok(profiles[genres.indexOf(genre)].phrases.some(phrase=>phrase.name?.startsWith(genre)));
+      assert.ok(!profiles[genres.indexOf('folk')].phrases.some(phrase=>phrase.name?.startsWith(genre)));
+    }
   }
 });
 

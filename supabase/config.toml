@@ -1,0 +1,13 @@
+project_id = "farmjam"
+
+[functions.delete-parent]
+verify_jwt = false
+
+[functions.farmjam-access]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.send-invite]
+verify_jwt = false

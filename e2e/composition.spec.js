@@ -311,6 +311,7 @@ test('native double-tapping the equipped avatar preserves a pinned motif through
     }finally{await client.detach();}
   }else await page.mouse.dblclick(point.x,point.y);
   await expect(page.getByRole('dialog',{name:'Farm practice room'})).toBeVisible();
+  await openFullPractice(page);
   await expect(page.getByRole('combobox',{name:'Practice instrument'})).toHaveValue('ukulele');
   expect(await page.evaluate(()=>window.practiceEntryToggles.slice(0,2))).toEqual([{active:false,pinned:true},{active:true,pinned:true}]);
   expect(await page.evaluate(()=>{

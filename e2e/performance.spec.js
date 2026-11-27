@@ -436,7 +436,11 @@ test('sun and moon advance the day, remain circular, and keep controls aligned t
   });
   expect(skyLayers).toEqual({sunBeforeTerrain:true,pulse:'celestialPulse'});
   await page.emulateMedia({reducedMotion:'reduce'});
-  const sceneKeys=await page.evaluate(async()=>{const {SCENES}=await import('/src/scenes/Scene.jsx');return SCENES.map(({id,root})=>({id,root}));});
+  const sceneKeys=await page.evaluate(async()=>{
+    const {SCENES}=await import('/src/scenes/Scene.jsx');
+    const {ENVIRONMENTS}=await import('/src/data/environments.js');
+    return SCENES.filter(({id})=>ENVIRONMENTS.farm.scenes.includes(id)).map(({id,root})=>({id,root}));
+  });
   expect(sceneKeys).toEqual([{id:'farm',root:'A'},{id:'garden',root:'E'},{id:'pond',root:'A'},{id:'dusk',root:'C#m'},{id:'night',root:'Am'},{id:'late-night',root:'Fm'},{id:'dawn',root:'Db'}]);
   const positions = [];
   for (const [index,scene] of ['farm','garden','pond','dusk','night','late-night','dawn'].entries()) {

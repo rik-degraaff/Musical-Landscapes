@@ -9,7 +9,9 @@ import {GuidedPracticeView} from './GuidedPractice';
 import {guidedExercise,practiceOpening} from '../utils/guidedPractice';
 import {GesturePointer} from './GesturePointer';
 import {useDemonstrationTarget} from './useDemonstrationTargets';
-import {practiceProfile} from '../utils/practiceComposition';
+import {editionPracticeProfile} from '../utils/practiceComposition';
+import {useEdition} from './EditionContext';
+import {TRIAL_INSTRUMENTS} from '../utils/editions';
 import {PRACTICE_STAGES,practiceDisplayOptions} from '../utils/practice';
 import {practiceDemonstration,gestureTrack,guidePracticePhrase} from '../utils/guideDemonstrations';
 
@@ -32,11 +34,13 @@ export function GuidePracticePreview(props) {
 }
 
 function GuidedPreview({instrument,child,activity,focus,elapsed,reduced,options}) {
+  const {trial}=useEdition();
+  const root=trial?'A':'C';
   const host=useRef(null);
   const opening=practiceOpening(child?.age,instrument);
   const name=activity==='band'?instrument:opening.instrument;
-  const profile=practiceProfile(name,'C',options);
-  const bank=guidedExercise(name,profile,3);
+  const profile=editionPracticeProfile(name,root,options,trial);
+  const bank=trial?profile.phrases[0]:guidedExercise(name,profile,3);
   const exercise=activity==='rhythm'?bank:{...bank,events:bank.events.slice(0,activity==='copy'?2:opening.count)};
   const chooser=focus==='activities';
   const phase=chooser?'ready':activity==='copy'?'copy':activity==='band'?(elapsed>=900&&elapsed<6200?'playing':'ready')
@@ -51,18 +55,19 @@ function GuidedPreview({instrument,child,activity,focus,elapsed,reduced,options}
   const beats=exercise.events.map((_,index)=>index<step?'complete':null);
   return <GuidedPracticeView room={host} roomProps={{inert:true,'data-guide-focus':focus??activity}}
     activity={activity} phase={phase} chooser={chooser} count={activity==='rhythm'?3:exercise.events.length} step={step} beats={beats} leadBeat={Number(elapsed>=3750)}
-    name={name} child={child} root="C" audio={silentAudio} profile={profile} options={options}
+    name={name} child={child} root={root} audio={silentAudio} profile={profile} options={options}
     cue={cue} focusEvents={activity==='band'?undefined:bank.events}
     older={opening.showTools} shared={opening.shared} fullName={instrument}
-    fullProfile={practiceProfile(instrument,'C',options)}
+    fullProfile={editionPracticeProfile(instrument,root,options,trial)}
     overlay={showHand?<GesturePointer frame={gestureTrack({elapsed:elapsed%1800,duration:1800,reduced,from:target,gesture:'tap'})} percent className="guide-practice-hand"/>:<span hidden/>}/>;
 }
 
 function GuidePracticeRoom({instrument,child,stage='Listen',focus,detail=false,elapsed=0,reduced=false,options}) {
+  const {trial}=useEdition();
   const host=useRef(null);
   const index=Math.max(0,PRACTICE_STAGES.indexOf(stage));
   const displayOptions=practiceDisplayOptions(options);
-  const profile=practiceProfile(instrument,'C',displayOptions);
+  const profile=editionPracticeProfile(instrument,trial?'A':'C',displayOptions,trial);
   const {phrase,index:phraseIndex}=guidePracticePhrase(profile);
   const state=practiceDemonstration({stage:index,elapsed,phrase,reduced});
   const overview=!detail&&!focus;
@@ -75,7 +80,7 @@ function GuidePracticeRoom({instrument,child,stage='Listen',focus,detail=false,e
   const showHand=!overview&&(exit||(index!==0||state.beforePhrase)&&!state.countIn&&!state.complete);
   const {eventDuration,eventElapsed}=state;
   const notes=(state.cue?.notes??(state.cue?.note?[state.cue.note]:[])).join(' + ');
-  const selected=child?.settings?.selected??DEFAULT_INSTRUMENTS;
+  const selected=child?.settings?.selected??(trial?TRIAL_INSTRUMENTS:DEFAULT_INSTRUMENTS);
   const companions=index===3&&state.running&&!state.countIn?Object.fromEntries(selected.filter(name=>name!==instrument).slice(0,2).map(name=>[name,0])):{};
   return <PracticeRoomLayout roomRef={host} roomProps={{inert:true,className:`full-practice ${overview?'guide-room-canvas':'guide-room-detail'}`,'data-demo-stage':stage,'data-demo-event':state.index,'data-demo-action':action,'data-guide-focus':focus??'room'}}
     header={<PracticeRoomHeader child={child} name={instrument} selected={selected} companions={companions} phrases={profile.phrases} phraseIndex={phraseIndex} onInstrument={noop} onPhrase={noop} onHelp={noop} onClose={noop} onGuided={noop}

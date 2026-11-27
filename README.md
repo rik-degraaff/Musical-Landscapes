@@ -1,6 +1,6 @@
 # FarmJam
 
-FarmJam is a touch-first music toy for children. Choose a child profile, then explore instruments, landscapes, and musical patterns. Profiles and preferences are stored in the browser on this device.
+FarmJam is a touch-first music toy for children and an installable web app. Start an illustrated band, visit seven scenes in each environment, and ride a bicycle between the Farm and Jungle. Anyone with the link can currently play the full game.
 
 ## Quick start
 
@@ -13,6 +13,8 @@ npm run dev
 
 Open the local URL printed by Vite. Create a production build with `npm run build`.
 
+`npm run dev` and `npm run build` default to open access. Set `VITE_FARMJAM_EDITIONS=true` at build time when you are ready to enable the trial and full-version split. See [PWA release setup](docs/pwa-release.md) for parent sign-in, web checkout, invitations, hosting, and release checks.
+
 ## Useful links
 
 - [Caregiver guide](docs/caregiver-guide.md)
@@ -20,6 +22,7 @@ Open the local URL printed by Vite. Create a production build with `npm run buil
 - [Storage and updates](docs/storage-and-updates.md)
 - [Contributing and checks](docs/contributing.md)
 - [Release validation](docs/release-validation.md)
+- [PWA release setup](docs/pwa-release.md)
 - [Musical and instrument reference](docs/musical-reference.md)
 - [Development visual editor](docs/visual-editor.md)
 - [Visual standards](docs/visual-standards.md)

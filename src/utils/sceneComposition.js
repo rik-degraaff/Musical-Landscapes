@@ -37,12 +37,14 @@ export function cloudLayouts({width, height}, scene='farm') {
     return {x, y, scale, left, top:y-cloudHeight, width:cloudWidth, height:cloudHeight};
   });
 }
-export function landscapeMetrics({width, height}) {
+export function landscapeMetrics({width, height, scene}) {
   const unit = Math.min(width / 1150, height / 650, 1.5);
   const tree = (x, y) => ({x: width * x, y: height * y, scale: unit});
+  const lowerCanopy = scene==='jungle-canopy'||scene==='jungle-dawn';
   return {
     width, height, unit,
-    leftTree: tree(.12, .73), rightTree: tree(.91, .70),
+    leftTree: tree(lowerCanopy?Math.max(.12,84/width):.12, scene==='jungle-dawn'?.79:.73),
+    rightTree: tree(.91, .70),
     cottage: {x: width * .75, y: height * .66, scale: unit * .74},
   };
 }
@@ -101,6 +103,23 @@ export const OBJECT_PLACEMENT = Object.freeze({
   balloon: {habitat:'sky', x:.60, y:.23, tier:.92, contact:[80,70]},
   moth: {habitat:'sky', x:.82, y:.45, tier:.76, contact:[80,70]},
   shootingStar: {habitat:'sky', x:.46, y:.23, tier:.92, contact:[80,70]},
+  bikeBell: {habitat:'path', x:.89, y:.96, tier:.92, contact:[80,130]},
+  macaw: {habitat:'perch', tree:'leftTree', tier:.91, contact:[80,97]},
+  tapir: {habitat:'ground', x:.73, y:.85, tier:1.2},
+  toucan: {habitat:'perch', tree:'leftTree', tier:.91, contact:[79,114]},
+  morpho: {habitat:'flowers', x:.73, y:.70, tier:.8, contact:[80,70]},
+  riverTurtle: {habitat:'water', x:.29, y:.84, tier:1, contact:[80,104]},
+  heron: {habitat:'bank', x:.74, y:.85, tier:1.15},
+  crocodile: {habitat:'water', x:.29, y:.84, tier:1.33, contact:[80,104]},
+  capybara: {habitat:'bank', x:.74, y:.85, tier:1.12},
+  sloth: {habitat:'hanging', tree:'leftTree', tier:.9, contact:[80,22]},
+  monkey: {habitat:'hanging', tree:'leftTree', tier:.95, contact:[80,22]},
+  treeFrog: {habitat:'bank', x:.74, y:.85, tier:.83},
+  kinkajou: {habitat:'perch', tree:'leftTree', tier:.9, contact:[80,124]},
+  firefly: {habitat:'wetland', x:.74, y:.71, tier:.75, contact:[80,70]},
+  iguana: {habitat:'bank', x:.29, y:.86, tier:1.12},
+  pangolin: {habitat:'ground', x:.73, y:.85, tier:1.1},
+  hummingbird: {habitat:'flowers', x:.73, y:.68, tier:.8, contact:[80,70]},
 });
 
 export function habitatAnchor(sound, size) {

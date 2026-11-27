@@ -1,3 +1,5 @@
+import {TRIAL_CONTENT,TRIAL_DESCRIPTION,TRIAL_PHRASES} from './editions.js';
+
 // Optional reference pages. Page navigation never records completion or changes play.
 const page=(id,title,paragraphs,illustration,notes)=>({id,title,paragraphs,illustration,notes});
 
@@ -23,11 +25,12 @@ export const GUIDE_PAGES={
   ],
   landscape:[
     page('scenes','Visit another landscape',[
-      'Tap the sun or moon to move through the day, night and dawn. You can also use the circular arrow at the bottom right.',
-      'Each landscape changes the musical key. The band finishes the current bar before the change, so its parts stay together.'
+      'Tap the sun or moon to move through the seven scenes in your current environment, from morning through night and dawn.',
+      'In the morning, tap the bicycle and choose another place on the map. You’ll see your child’s avatar ride there and arrive in the new morning scene.',
+      'The band finishes the current bar before changing key, so its parts stay together.'
     ],{kind:'sun',gesture:'tap'},{new:'A key is a group of notes that gives the music its home sound.',some:'Changing key shifts the notes and can change the mood.',confident:'The scenes change both the tonic and mode at the next downbeat.'}),
     page('weather','Change the musical style',[
-      'Tap a cloud to cycle through Folk, Jazz and Rock. Pale, sparse clouds show Folk; denser blue-gray clouds show Jazz; warm peach clouds show Rock.',
+      'Tap a cloud to cycle through Folk, Jazz and Rock on the Farm. The Jungle starts in Samba, shown by mint-green clouds, and its cycle includes the three other styles.',
       'Keep listening as the music changes gradually. The band continues playing through the change.'
     ],{kind:'weather',gesture:'tap'}),
     page('tempo','Change the beat',[
@@ -143,5 +146,32 @@ export const GUIDE_PAGES={
   ],null)]
 };
 
-export function guidePages(id) { return GUIDE_PAGES[id]??[]; }
+const trialPages={
+  landscape:{
+    scenes:page('scenes','Explore morning and night',[TRIAL_DESCRIPTION,TRIAL_CONTENT,'Tap the sun or moon to switch between Sunny Farm and Sleepy Night. Tap the animals and scenery to hear them.'],{kind:'sun',gesture:'tap'}),
+    weather:null,
+  },
+  practice:{
+    enter:page('enter','Open Farm Practice',['Double-tap the musician or the instrument they’re holding. You can also focus the musician and press Enter or Space, or choose Open practice in caregiver help.','The age range in Settings → Caregiver changes where the guided activities begin.'],{kind:'profile',gesture:'double-tap'}),
+    room:page('room','Start where your child is comfortable',[GUIDE_PAGES.practice[1].paragraphs[0],'Children can follow the headphones, the hand and the highlighted target. Choose an activity opens every activity and Phrase practice.'],{kind:'practice-guided',activity:'hear',focus:'activities'}),
+    tools:page('tools','Open Phrase practice',[`Choose an activity, then Phrase practice, for ${TRIAL_PHRASES} phrases per instrument, the instrument controls and metronome. Replay the phrases as often as you like.`,'The guided activities start with the first phrase. The hand button in the header returns to guided practice. The full version includes the complete phrase library.'],{kind:'practice-room'}),
+    controls:page('controls','Repeat, restart or leave',[GUIDE_PAGES.practice.at(-1).paragraphs[0]],{kind:'practice-room',focus:'exit'}),
+  },
+  settings:{
+    open:page('open','Open Settings',[GUIDE_PAGES.settings[0].paragraphs[0],'Use Caregiver to change the child’s age range. Instruments and Guides are available from the menu. Sound is available during play.'],{kind:'settings',gesture:'double-tap'}),
+    choose:null,
+    display:page('display','Choose useful labels',['Use the display options in Instruments to show note and control labels, sounding note names or finger placement diagrams for ukulele.','Choose the clues that help your child. Display choices stay on this device.'],{kind:'settings',focus:'display',gesture:'tap'}),
+    sound:page('sound','Balance the sound',[GUIDE_PAGES.settings[4].paragraphs[0],'Restore defaults resets the mix. Sound levels last for this play session. Complexity and display settings stay on this device.'],{kind:'settings',focus:'sound',gesture:'drag'}),
+    hints:page('hints','Change the child’s age range',['Open Settings → Caregiver, then choose Child age range. The range guides the starting difficulty and the practice activities.','You can also choose how familiar you are with music. This changes explanations in the guides and help.']),
+  },
+};
+
+export function guidePages(id,{trial=false}={}) {
+  if(trial&&id==='profiles')return [];
+  return (GUIDE_PAGES[id]??[]).flatMap(value=>{
+    if(trial&&Object.hasOwn(trialPages[id]??{},value.id))return trialPages[id][value.id]??[];
+    if(trial&&id==='practice')return {...value,paragraphs:value.paragraphs.map(text=>text.replaceAll('Full practice','Phrase practice'))};
+    return value;
+  });
+}
 export function guidePageNote(page,familiarity='some') { return page.notes?.[familiarity]??page.notes?.some??null; }

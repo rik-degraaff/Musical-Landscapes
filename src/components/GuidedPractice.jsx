@@ -2,7 +2,8 @@ import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {AudioLines,Check,Hand,Headphones,ListMusic,Music,RotateCcw,Square,Users} from 'lucide-react';
 import {PRACTICE_ACTIVITIES,guidedExercise,practiceOpening,rhythmEcho} from '../utils/guidedPractice';
 import {attemptSummary,createTimingAttempt,expireSteps,practiceDisplayOptions,scoreTimedInput,timingInvitation} from '../utils/practice';
-import {practiceProfile} from '../utils/practiceComposition';
+import {editionPracticeProfile} from '../utils/practiceComposition';
+import {useEdition} from './EditionContext';
 import {AVAILABLE_INSTRUMENTS} from '../utils/music';
 import {PracticeRoomLayout} from './PracticeRoomLayout';
 import {PracticeExit,PracticeSelectors} from './PracticeRoomControls';
@@ -37,6 +38,7 @@ export function GuidedPracticeView({
   fullName=name,fullProfile=profile,notice,audioStatus,soundMuted,onSoundHelp,onHelp,onClose,onChoose,onToggleChooser,
   onStart,onStop,onCopy,onExtend,onReplay,onHearAgain,onDetails,onFull,onInstrument,onPhrase,onEasier,overlay,caregiverNotice,
 }) {
+  const {trial}=useEdition();
   const [instruction,Icon]=phaseInstructions[activity==='hear'&&phase==='done'?'copy':phase];
   const noteNames=(cue?.notes??[cue?.note]).filter(Boolean).join(' + ');
   const copyInstruction=cue?.fingering?.length
@@ -64,7 +66,7 @@ export function GuidedPracticeView({
       <div className="guided-choices">{PRACTICE_ACTIVITIES.map(({id,label})=><Action key={id} icon={activityIcons[id]} aria-pressed={activity===id} onClick={()=>onChoose(id)}>{label}</Action>)}</div>
       <div className="guided-tools">
         <PracticeSelectors name={fullName} onInstrument={onInstrument} phrasePrompt onPhrase={onPhrase} phrases={fullProfile.phrases}/>
-        <Action icon={Music} onClick={onFull}>Full practice</Action>
+        <Action icon={Music} onClick={onFull}>{trial?'Phrase practice':'Full practice'}</Action>
         {hasDetails&&<Action icon={ListMusic} aria-pressed={details} onClick={onDetails}>{details?'Hide details':'Show details'}</Action>}
       </div>
     </section>}
@@ -110,6 +112,7 @@ export function GuidedPracticeView({
 }
 
 export function GuidedPractice({room,roomProps,child,name,root,settings,audio,onInstrument,onFull,blocked,...header}) {
+  const {trial}=useEdition();
   const opening=practiceOpening(child?.age,name);
   const [activity,setActivity]=useState('hear');
   const [phase,setPhase]=useState('ready');
@@ -130,9 +133,9 @@ export function GuidedPractice({room,roomProps,child,name,root,settings,audio,on
   const guidedName=activity==='band'?name:opening.instrument;
   const saved=settings.instruments[guidedName];
   const options=practiceDisplayOptions(saved,activity==='band'||details);
-  const profile=practiceProfile(guidedName,root,{...saved,genre:audio.genre});
-  const fullProfile=practiceProfile(name,root,{...settings.instruments[name],genre:audio.genre});
-  const bank=useMemo(()=>guidedExercise(guidedName,profile,3),[guidedName,profile]);
+  const profile=editionPracticeProfile(guidedName,root,{...saved,genre:audio.genre},trial);
+  const fullProfile=editionPracticeProfile(name,root,{...settings.instruments[name],genre:audio.genre},trial);
+  const bank=useMemo(()=>trial?profile.phrases[0]:guidedExercise(guidedName,profile,3),[guidedName,profile,trial]);
   const exercise={...bank,events:bank.events.slice(0,count)};
   const rhythm=rhythmEcho(bank,steady);
   const source=activity==='rhythm'?rhythm:exercise;

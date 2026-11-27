@@ -5,7 +5,8 @@ import { Mixer } from './components/Mixer';
 import { StartScreen } from './components/StartScreen';
 import { Scene, SCENES } from './scenes/Scene';
 import { AudioEngine } from './audio/AudioEngine';
-import {GENRE_OPTIONS} from './data/compositionStyles';
+import {ENVIRONMENTS,HOME_ENVIRONMENT,sceneEnvironment} from './data/environments';
+import {TravelMap} from './scenes/TravelMap';
 import {SettingsButton} from './components/GameButtons';
 import { YoungMusician } from './components/YoungMusician';
 import { PerformancePanel } from './components/PerformancePanel';
@@ -33,23 +34,38 @@ import {useLearningClock} from './components/useLearningClock';
 import {LearningBeacon,LearningHint} from './components/LearningHint';
 import {useInstallation} from './components/useInstallation';
 import {SoundHelp,SoundHelpButton} from './components/SoundHelp';
+import {useEdition} from './components/EditionContext.js';
+import {useTrialPreferences} from './components/useTrialPreferences.js';
+import {SCENE_VISITORS} from './utils/sceneVisitors.js';
+import {TRIAL_SCENES,editionAllowsTravel} from './utils/editions.js';
 
-function initialInstruments(selected, preview = false) {
+const sceneIndexFor=id=>SCENES.findIndex(scene=>scene.id===id);
+const trialSceneSounds=['moo','tractor','bell','owl',...TRIAL_SCENES.flatMap(scene=>SCENE_VISITORS[scene].map(visitor=>visitor.sound))];
+
+function initialInstruments(selected, preview = false,catalog=INSTRUMENTS) {
   const size = {width:window.innerWidth,height:window.innerHeight};
-  return Object.fromEntries(Object.entries(INSTRUMENTS).map(([name,value])=>{
+  return Object.fromEntries(Object.entries(catalog).map(([name,value])=>{
     const home = {...value,...(selected.includes(name)?INSTRUMENT_SLOTS[selected.indexOf(name)]:{})};
     return [name,{...(preview?home:instrumentHome(savedVisuals,name,home,size)),active:false}];
   }));
 }
 
 export default function App({developmentPreview}={}) {
+  const {trial,catalog,openMembership,membershipOpen}=useEdition();
+  const trialPreferences=useTrialPreferences(trial);
   const audioRef = useRef(developmentPreview?.audio ?? null);
   const [started,setStarted] = useState(Boolean(developmentPreview)&&developmentPreview.playing!==false);
   const [loading,setLoading] = useState(false);
   const [error,setError] = useState(null);
   const [sceneIndex,setSceneIndex] = useState(developmentPreview?.sceneIndex ?? 0);
-  const [genre,setGenre] = useState('folk');
-  const [performanceRoot,setPerformanceRoot] = useState(SCENES[0].root);
+  const scene=SCENES[sceneIndex];
+  const environmentId=sceneEnvironment(scene.id);
+  const environment=ENVIRONMENTS[environmentId];
+  const [genre,setGenre] = useState(environment.defaultGenre);
+  const [performanceRoot,setPerformanceRoot] = useState(scene.root);
+  const [mapOpen,setMapOpen] = useState(false);
+  const bikeRef=useRef(null);
+  const restoreBikeFocus=useRef(false);
   const [harmonyPlan,setHarmonyPlan] = useState(null);
   const weatherPlanRef=useRef(null);
   const practiceActive=useRef(false);
@@ -65,15 +81,17 @@ export default function App({developmentPreview}={}) {
   const [practiceNoticeId,setPracticeNoticeId]=useState(null);
   const [deferredPracticeNotices,setDeferredPracticeNotices]=useState(()=>new Set());
   const [hintView,setHintView]=useState(null);
-  const learning=useLearning(Boolean(developmentPreview));
+  const learning=useLearning(Boolean(developmentPreview),trial);
   const installation=useInstallation();
-  const profiles=useFamily(developmentPreview);
-  const {family,settings,selectedChild}=profiles;
+  const profiles=useFamily(developmentPreview,trial);
+  const {family,selectedChild}=profiles;
+  const settings=trialPreferences?.settings??profiles.settings;
+  const musician=trial?{age:trialPreferences.age,settings}:selectedChild;
   const caregiver=useCaregiver(profiles.initial,Boolean(developmentPreview));
-  const saveWarning=profiles.error||caregiver.error||learning.error;
+  const saveWarning=Boolean(profiles.error||caregiver.error||learning.error||trialPreferences?.error);
   const [sceneVolume,setSceneVolume] = useState(-4);
   const mixerTap = useRef(null);
-  const [instruments,setInstruments] = useState(()=>initialInstruments(settings.selected,Boolean(developmentPreview)));
+  const [instruments,setInstruments] = useState(()=>initialInstruments(settings.selected,Boolean(developmentPreview),catalog));
   const stateRef = useRef(instruments);
   const drag = useRef(null);
   const startInProgress = useRef(false);
@@ -87,10 +105,11 @@ export default function App({developmentPreview}={}) {
   const [nearChild,setNearChild] = useState(false);
   const startupState=useRef({settings,sceneIndex});
   const mounted=useRef(false);
-  const activeLandscape=started&&!loading&&!mixer&&!metronomeOpen&&!practice&&!parentGuide&&!editingId&&!help&&!soundHelp&&!guideView&&!practiceNoticeId&&!developmentPreview;
+  const activeLandscape=started&&!loading&&!mixer&&!metronomeOpen&&!practice&&!parentGuide&&!editingId&&!help&&!soundHelp&&!guideView&&!practiceNoticeId&&!membershipOpen&&!developmentPreview&&!mapOpen;
+  const showBike=started&&editionAllowsTravel(trial)&&scene.id===environment.scenes[0];
   const soundMuted=started&&sceneVolume<=-60&&settings.selected.every(name=>instruments[name].volume<=-60);
   const learningActive=activeLandscape&&!hintView;
-  const practiceEnabled=isPracticeEnabled(learning.state,selectedChild?.id);
+  const practiceEnabled=trial||isPracticeEnabled(learning.state,selectedChild?.id);
   const pendingPracticeChild=!started&&!loading&&[selectedChild,...family.children].find(child=>
     child&&!deferredPracticeNotices.has(child.id)&&hasPracticeReminder(learning.startup,learning.state,child.id));
   const showRoomNotice=practice&&selectedChild&&practiceEnabled&&!developmentPreview&&
@@ -104,7 +123,7 @@ export default function App({developmentPreview}={}) {
       learning.change(state=>updateHint(state,selectedChild.id,suggestion.id,{suggested:true}));
     }
   },[learningActive,suggestion,learning.state,selectedChild,learning.change]);
-  useAppUpdates({started,loading,parentGuide:parentGuide||mixer||soundHelp||Boolean(guideView)||Boolean(hintView)||Boolean(editingId)||Boolean(help)||Boolean(practiceNoticeChild)||saveWarning});
+  useAppUpdates({started,loading,parentGuide:parentGuide||mixer||membershipOpen||soundHelp||Boolean(guideView)||Boolean(hintView)||Boolean(editingId)||Boolean(help)||Boolean(practiceNoticeChild)||saveWarning});
 
   function discovered(id,coached=false) {
     if(!started||!selectedChild||developmentPreview)return;
@@ -117,18 +136,25 @@ export default function App({developmentPreview}={}) {
   useLayoutEffect(()=>{startupState.current={settings,sceneIndex,genre};},[settings,sceneIndex,genre]);
   useEffect(()=>{mounted.current=true;return ()=>{mounted.current=false;audioRef.current?.dispose();};},[]);
   useEffect(()=>{if(developmentPreview)setSceneIndex(developmentPreview.sceneIndex);},[developmentPreview?.sceneIndex]);
+  useLayoutEffect(()=>{
+    if(!mapOpen&&restoreBikeFocus.current){
+      bikeRef.current?.focus({preventScroll:true});
+      restoreBikeFocus.current=false;
+    }
+  },[mapOpen]);
   useEffect(()=>{
     if(audioRef.current)audioRef.current.updatePerformanceSettings(settings.instruments);
   },[settings]);
 
   async function start() {
-    if(!selectedChild){setParentGuide(true);return;}
+    if(trial&&!trialPreferences.age)return;
+    if(!trial&&!selectedChild){setParentGuide(true);return;}
     if(startInProgress.current) return;
     requestLandscape();
     startInProgress.current=true;
     setLoading(true); setError(null);
     try {
-      if(!audioRef.current)audioRef.current = new AudioEngine();
+      if(!audioRef.current)audioRef.current = new AudioEngine(trial?{instruments:settings.selected,sceneSounds:trialSceneSounds}:undefined);
       const engine=audioRef.current;
       engine.onAudioStatus=status=>{if(mounted.current&&audioRef.current===engine)setAudioStatus(status);};
       engine.onSceneKeyChange=root=>{if(mounted.current&&audioRef.current===engine)setPerformanceRoot(root);};
@@ -196,6 +222,7 @@ export default function App({developmentPreview}={}) {
   }
 
   function updateSettings(next) {
+    if(trial){trialPreferences.updateSettings(next);return;}
     const saved=profiles.updateSettings(next);
     arrangeSelection(saved.settings);
   }
@@ -221,6 +248,7 @@ export default function App({developmentPreview}={}) {
   function retrySave() {
     if(learning.error)learning.retry();
     caregiver.retry();
+    if(trial){trialPreferences.retry();return;}
     const retried=profiles.retry();
     if(retried?.recovered){
       const {snapshot}=retried;
@@ -351,7 +379,7 @@ export default function App({developmentPreview}={}) {
 
   useLayoutEffect(()=>{
     let frame;
-    const layout=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{if(equippedRef.current)attachToChild(equippedRef.current);for(const name of Object.keys(INSTRUMENTS))settle(name);});};
+    const layout=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{if(equippedRef.current)attachToChild(equippedRef.current);for(const name of Object.keys(catalog))settle(name);});};
     if(started)layout();
     window.addEventListener('resize',layout);
     return ()=>{cancelAnimationFrame(frame);window.removeEventListener('resize',layout);};
@@ -370,7 +398,32 @@ export default function App({developmentPreview}={}) {
 
   function rotateScene() {
     discovered('landscape');
-    setSceneIndex(i=>{ const next=(i+1)%SCENES.length; audioRef.current?.setSceneKey(SCENES[next].root); return next; });
+    const cycle=trial?TRIAL_SCENES:environment.scenes;
+    const next=sceneIndexFor(cycle[(cycle.indexOf(scene.id)+1)%cycle.length]);
+    audioRef.current?.setSceneKey(SCENES[next].root);
+    setSceneIndex(next);
+  }
+
+  function openMap() {
+    if(!activeLandscape||!showBike)return;
+    const held=drag.current;
+    drag.current=null;
+    setDragging(null);setNearChild(false);
+    if(held)settle(held.name);
+    window.dispatchEvent(new Event('farmjam-input-reset'));
+    audioRef.current?.playSceneSound('bikeBell');
+    restoreBikeFocus.current=true;
+    setMapOpen(true);
+  }
+
+  function arriveAt(destination) {
+    if(!editionAllowsTravel(trial)||destination===environmentId)return;
+    const next=ENVIRONMENTS[destination];
+    const morning=sceneIndexFor(next.scenes[0]);
+    audioRef.current?.setSceneKey(SCENES[morning].root);
+    audioRef.current?.setGenre(next.defaultGenre);
+    setGenre(next.defaultGenre);
+    setSceneIndex(morning);
   }
 
   function changeGenre(next) {
@@ -423,14 +476,17 @@ export default function App({developmentPreview}={}) {
     drag.current=null;equippedRef.current=null;mixerTap.current=null;
     setEquipped(null);setDragging(null);setNearChild(false);setPractice(null);
     setHasEquipped(false);setHasPracticed(false);
-    setMixer(false);setMetronomeOpen(false);setHintView(null);setSoundHelp(false);setAudioStatus('unavailable');setStarted(false);setSceneIndex(0);setError(null);setSceneVolume(-4);
-    const next=initialInstruments(settings.selected);stateRef.current=next;setInstruments(next);
+    setMixer(false);setMetronomeOpen(false);setHintView(null);setSoundHelp(false);setAudioStatus('unavailable');setStarted(false);setSceneIndex(0);setGenre(ENVIRONMENTS[HOME_ENVIRONMENT].defaultGenre);setError(null);setSceneVolume(-4);
+    const next=initialInstruments(settings.selected,false,catalog);stateRef.current=next;setInstruments(next);
   }
 
-  return <main className={`app-shell ${equipped?'manual-open':''}`}>
-    <div className="landscape-world" ref={worldRef} style={{'--world-width':`${worldSize.width}px`,'--world-height':`${worldSize.height}px`}} inert={mixer||Boolean(practice)}>
-    <Scene worldSize={worldSize} sceneIndex={sceneIndex} playing={started} audio={audioRef.current} genre={audibleGenre} genreTransition={weatherTransition} onGenreChange={()=>changeGenre(GENRE_OPTIONS[(GENRE_OPTIONS.findIndex(option=>option.id===genre)+1)%GENRE_OPTIONS.length].id)} onRotate={rotateScene} onCelestialSettled={()=>{if(started)for(const name of Object.keys(INSTRUMENTS))settle(name);}}/>
-    {started&&<YoungMusician child={selectedChild} equipped={equipped?INSTRUMENTS[equipped].label:null} accepting={nearChild} onPractice={practiceEnabled?enterPractice:undefined}/>}
+  return <main className={`app-shell ${equipped?'manual-open':''}`} data-edition={trial?'trial':'full'}>
+    <div className="landscape-world" ref={worldRef} style={{'--world-width':`${worldSize.width}px`,'--world-height':`${worldSize.height}px`}} inert={mixer||Boolean(practice)||mapOpen}>
+    <Scene key={environmentId} worldSize={worldSize} sceneIndex={sceneIndex} playing={started} audio={audioRef.current} genre={audibleGenre} genreTransition={weatherTransition}
+      onGenreChange={trial?undefined:()=>changeGenre(environment.genres[(environment.genres.indexOf(genre)+1)%environment.genres.length])}
+      onRotate={rotateScene} onCelestialSettled={()=>{if(started)for(const name of Object.keys(catalog))settle(name);}}
+      showBike={showBike} onOpenMap={developmentPreview?undefined:openMap} bikeRef={bikeRef}/>
+    {started&&<YoungMusician child={musician} equipped={equipped?INSTRUMENTS[equipped].label:null} accepting={nearChild} onPractice={practiceEnabled?enterPractice:undefined}/>}
     <div className="instrument-layer">
       {settings.selected.map(name=>{const i=instruments[name];return <Instrument key={name} name={name} label={i.label} x={i.x} y={i.y} active={i.active} equipped={equipped===name} sliding={dragging!==name} onEquip={()=>equip(name)} onToggle={toggle}
         onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}/>;}) }
@@ -441,33 +497,34 @@ export default function App({developmentPreview}={}) {
       {started && <SettingsButton open={mixer} onClick={activateMixer}/>}
     </div>
 
-    {mixer && <Mixer playing={started} child={selectedChild} learning={learning.state} onLearning={learning.change} onGuide={setGuideView} onPracticeIntro={openPracticeIntro} familiarity={caregiver.familiarity} onFamiliarity={caregiver.update} onHelp={()=>setHelp({topic:'settings',instrument:equipped})} saveError={saveWarning} onRetrySave={retrySave} instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} onRestoreSound={restoreSound} settings={settings} onSettings={updateSettings} onMenu={returnToMenu} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
+    {mixer && <Mixer playing={started} child={selectedChild} trialPreferences={trialPreferences} learning={learning.state} onLearning={learning.change} onGuide={setGuideView} onPracticeIntro={trial?undefined:openPracticeIntro} familiarity={caregiver.familiarity} onFamiliarity={caregiver.update} onHelp={()=>setHelp({topic:'settings',instrument:equipped})} saveError={saveWarning} onRetrySave={retrySave} instruments={instruments} onVolume={volume} sceneVolume={sceneVolume} onSceneVolume={changeSceneVolume} onRestoreSound={restoreSound} settings={settings} onSettings={updateSettings} onMenu={returnToMenu} onClose={()=>{setMixer(false);mixerTap.current=null;}}/>}
     {started&&<Metronome audio={audioRef.current} open={metronomeOpen} disabled={mixer||Boolean(practice)} onOpen={()=>setMetronomeOpen(true)} onClose={()=>setMetronomeOpen(false)}/>}
 
     {equipped&&!practice&&<PerformancePanel key={equipped} name={equipped} audio={audioRef.current} root={performanceRoot} options={settings.instruments[equipped]} settingsOpen={mixer} harmonyPlan={harmonyPlan} onClose={()=>equip(null)}/>}
-    {practice&&<PracticeRoom child={selectedChild} audio={audioRef.current} audioStatus={audioStatus} soundMuted={soundMuted} onSoundHelp={openSoundHelp} blocked={Boolean(help||soundHelp||guideView||practiceNoticeChild)}
+    {practice&&<PracticeRoom child={musician} audio={audioRef.current} audioStatus={audioStatus} soundMuted={soundMuted} onSoundHelp={openSoundHelp} blocked={Boolean(help||soundHelp||guideView||practiceNoticeChild)}
       caregiverNotice={showRoomNotice&&<PracticeVisitTrigger child={selectedChild} inRoom onOpen={openPracticeIntro}/>} initialInstrument={practice} settings={settings} root={SCENES[sceneIndex].root} onHelp={(instrument,practiceStage)=>setHelp({topic:'practice',instrument,practiceStage})} onClose={leavePractice}/>}
 
-    {!started && <StartScreen inert={mixer||parentGuide||Boolean(editingId)} onSettings={()=>setMixer(true)} practiceReminder={pendingPracticeChild} onPracticeReminder={()=>setPracticeNoticeId(pendingPracticeChild.id)} unreadGuides={GUIDES.filter(guide=>guideStatus(learning.state,guide)!=='Read').length} saveError={saveWarning&&!mixer} onRetrySave={retrySave} children={family.children} selectedId={family.selectedId} loading={loading} error={error} onStart={start} onSelect={selectChild} onEdit={setEditingId} onAdd={()=>setParentGuide(true)}/>}
+    {!started && <StartScreen trialPreferences={trialPreferences} onMembership={openMembership} inert={mixer||parentGuide||Boolean(editingId)} onSettings={()=>setMixer(true)} practiceReminder={pendingPracticeChild} onPracticeReminder={()=>setPracticeNoticeId(pendingPracticeChild.id)} unreadGuides={GUIDES.filter(guide=>guideStatus(learning.state,guide)!=='Read').length} saveError={saveWarning&&!mixer} onRetrySave={retrySave} children={family.children} selectedId={family.selectedId} loading={loading} error={error} onStart={start} onSelect={selectChild} onEdit={setEditingId} onAdd={()=>setParentGuide(true)}/>}
     {!started&&parentGuide&&<ParentGuide learning={learning.state} onGuide={setGuideView} familiarity={caregiver.familiarity} familiarityEstablished={caregiver.established} settings={settings} onComplete={addChild} onClose={()=>{profiles.cancelChildSetup();setParentGuide(false);}}/>}
     {!started&&editingId&&<ChildEditor child={family.children.find(child=>child.id===editingId)} onSave={draft=>saveFamily(editChild(family,editingId,draft))} onDelete={()=>saveFamily(removeChild(family,editingId))} onClose={()=>setEditingId(null)}/>}
     {!mixer&&!practice&&!parentGuide&&!editingId&&!loading&&<HelpButton className="caregiver-help-corner" onOpen={()=>{window.dispatchEvent(new Event('farmjam-input-reset'));setHelp({topic:started?(equipped?'instruments':'landscape'):'menu',instrument:equipped});}}/>}
     {!mixer&&!practice&&!parentGuide&&!editingId&&!loading&&!developmentPreview&&<SoundHelpButton className="sound-help-corner" status={audioStatus} muted={soundMuted} onOpen={openSoundHelp}/>}
     {learningActive&&suggestion&&childLearning(learning.state,selectedChild.id).hints[suggestion.id]?.suggested&&<LearningBeacon hint={suggestion} onOpen={()=>{setHintView(suggestion);learning.change(state=>updateHint(state,selectedChild.id,suggestion.id,{seen:true,dismissed:false}));}}/>}
-    {hintView&&<LearningHint hint={hintView} instruments={settings.selected} equipped={equipped} practice={practice} suspended={!started||loading||mixer||metronomeOpen||parentGuide||soundHelp||Boolean(editingId)||Boolean(help)||Boolean(guideView)||Boolean(practiceNoticeChild)} onComplete={id=>{discovered(id,true);setHintView(null);}} onClose={()=>{learning.change(state=>updateHint(state,selectedChild.id,hintView.id,{dismissed:true}));setHintView(null);}}/>}
+    {hintView&&<LearningHint hint={hintView} instruments={settings.selected} equipped={equipped} practice={practice} suspended={!started||loading||mixer||metronomeOpen||mapOpen||parentGuide||soundHelp||Boolean(editingId)||Boolean(help)||Boolean(guideView)||Boolean(practiceNoticeChild)} onComplete={id=>{discovered(id,true);setHintView(null);}} onClose={()=>{learning.change(state=>updateHint(state,selectedChild.id,hintView.id,{dismissed:true}));setHintView(null);}}/>}
     {practiceNoticeChild&&<PracticeVisitNotice key={practiceNoticeChild.id} child={practiceNoticeChild}
       read={hasReadPracticeIntro(learning.state,practiceNoticeChild.id)} enabled={isPracticeEnabled(learning.state,practiceNoticeChild.id)}
       onClose={()=>setPracticeNoticeId(null)} onDisable={disablePracticeFromIntro}
       onLater={()=>{setDeferredPracticeNotices(previous=>new Set([...previous,practiceNoticeId]));setPracticeNoticeId(null);}}
       onAcknowledge={()=>{learning.change(state=>notePracticeVisit(state,practiceNoticeId,true));setPracticeNoticeId(null);}}/>}
-    {help&&<CaregiverHelp {...help} child={selectedChild} instruments={started&&!practice?settings.selected:null}
+    {help&&<CaregiverHelp {...help} child={musician} instruments={started&&!practice?settings.selected:null}
       onEquip={name=>{setHelp(null);setMixer(false);equip(name);}}
       onPractice={practiceEnabled?()=>{setHelp(null);setMixer(false);enterPractice();}:null}
-      onGuides={setGuideView} onPracticeIntro={openPracticeIntro}
+      onGuides={setGuideView} onPracticeIntro={trial?undefined:openPracticeIntro}
       discovery={started&&help.topic!=='practice'?{hasEquipped,hasPracticed}:null}
       familiarity={caregiver.familiarity} onClose={()=>setHelp(null)}/>}
-    {guideView&&<GuideReader id={guideView} child={selectedChild} saveError={learning.error} onRetry={learning.retry} installation={installation} learning={learning.state} familiarity={caregiver.familiarity} onOpen={setGuideView} onRead={guide=>learning.change(state=>({...state,guides:{...state.guides,[guide.id]:Math.max(state.guides[guide.id]??0,guide.version)}}))} onClose={()=>setGuideView(null)}/>}
+    {guideView&&<GuideReader id={guideView} child={musician} saveError={learning.error} onRetry={learning.retry} installation={installation} learning={learning.state} familiarity={caregiver.familiarity} onOpen={setGuideView} onRead={guide=>learning.change(state=>({...state,guides:{...state.guides,[guide.id]:Math.max(state.guides[guide.id]??0,guide.version)}}))} onClose={()=>setGuideView(null)}/>}
     {soundHelp&&<SoundHelp audio={started?audioRef.current:null} status={audioStatus} muted={soundMuted} onClose={()=>setSoundHelp(false)} onRestore={started?restoreSound:null} onSettings={started&&!practice?()=>{setSoundHelp(false);setMixer(true);}:null}/>}
+    {mapOpen&&<TravelMap child={musician} environment={environmentId} onDepart={()=>audioRef.current?.playSceneSound('bikeBell')} onArrive={arriveAt} onClose={()=>setMapOpen(false)}/>}
     <LandscapeGuard/>
   </main>;
 }

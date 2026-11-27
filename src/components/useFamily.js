@@ -4,12 +4,12 @@ import {createFamilyStorage,recoverFamilySnapshot} from '../utils/familyStorage.
 import {defaultSettings} from '../utils/settings.js';
 
 // Own family persistence here; gameplay only consumes the resulting snapshot.
-export function useFamily(developmentPreview) {
-  const [storage]=useState(()=>developmentPreview?null:createFamilyStorage());
+export function useFamily(developmentPreview,disabled=false) {
+  const [storage]=useState(()=>developmentPreview||disabled?null:createFamilyStorage());
   const [initial]=useState(()=>developmentPreview?{
     family:{children:[developmentPreview.child],selectedId:developmentPreview.child.id},
     settings:developmentPreview.child.settings,saveError:null,
-  }:storage.load());
+  }:disabled?{family:{children:[],selectedId:null},settings:defaultSettings(),saveError:null}:storage.load());
   const [snapshot,setSnapshot]=useState(()=>({family:initial.family,settings:initial.settings}));
   const [error,setError]=useState(Boolean(initial.saveError));
   const readFailed=useRef(Boolean(initial.saveError));
@@ -47,7 +47,10 @@ export function useFamily(developmentPreview) {
   }
 
   function addChild(draft) {
-    if(!pendingChild.current)pendingChild.current={id:crypto.randomUUID()};
+    if(!pendingChild.current){
+      const id=crypto.randomUUID?.()??Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
+      pendingChild.current={id};
+    }
     const child=normalizeChild({...draft,id:pendingChild.current.id});
     if(!child)return null;
     const next={family:{children:[...snapshot.family.children,child],selectedId:child.id},settings:child.settings};

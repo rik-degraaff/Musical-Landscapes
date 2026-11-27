@@ -2,21 +2,27 @@
 
 For setup, profiles, caregiver settings, guides, and learning hints, see [the caregiver guide](caregiver-guide.md). This reference focuses on music, instruments, scenes, and audio behavior.
 
+The trial plays Folk in Morning (Sunny Farm) and Early Night (Sleepy Night) with Piano, Drums, Ukulele, and Trumpet. Each instrument has three practice choices voiced in the current landscape’s key. The choices stay the same across complexity levels. Guided activities use excerpts and rhythm variations of the first phrase. The full version uses the complete catalog and practice library described below.
+
 ## Musical system
 
-Landscape playback selects whole authored four- or eight-bar chord progressions through weighted Markov transitions. The original motifs in `src/data/compositionPhrases.js` remain shared source material for Folk, Jazz and Rock; each style layers its own extra phrases, family maps, weights, and movement shapes over that base. Random draws select progression and motif states, not individual notes; deterministic voice leading renders chord-relative contours within playable ranges and canonical string voicings.
+Landscape playback selects whole authored four- or eight-bar chord progressions through weighted Markov transitions. Folk, Jazz, Rock and Samba share the motifs in `src/data/compositionPhrases.js`. Each style adds its own phrases, family maps, weights, and movement shapes. Random draws select progression and motif states. Deterministic voice leading renders chord-relative contours within playable ranges and canonical string voicings.
 
-Tap one of the sky clouds to change the music weather. Cloud taps cycle Folk → Jazz → Rock → Folk. Sparse, pale clouds indicate Folk; a denser blue-gray cloud bank indicates Jazz; warm peach clouds indicate Rock. The same cloud forms keep their sky positions as landscapes rotate. Style changes begin at the next downbeat and blend their movement, harmony, motif, rhythm, ensemble-coordination, and voicing constraints over eight bars. Each movement selects a shape-dependent set of ideas, then schedules those families in long, overlapping phases instead of making every idea available all the time. Its next movement is planned before the handoff; tension, idea weights, and melodic anchors crossfade into it. A movement-level similarity value biases melody parts toward a shared contour or anchor, while the accompaniment pair can rotate slowly at movement boundaries. Small deterministic noise and bounded chord-tone/register variations add motion without leaving playable harmony. Style and movement definitions live separately from the bar renderer so additional genres can supply their own progressions, movement shapes, motif families, and numerical rules.
+Tap one of the sky clouds to change the music weather. Farm clouds cycle Folk → Jazz → Rock → Folk. Jungle clouds cycle Samba → Folk → Jazz → Rock → Samba. Sparse pale clouds indicate Folk, denser blue-gray clouds indicate Jazz, warm peach clouds indicate Rock and mint-green clouds indicate Samba. Style changes begin at the next downbeat and blend their movement, harmony, motif, rhythm, ensemble coordination, and voicing constraints over eight bars. Each movement selects a shape-dependent set of ideas and schedules them in long, overlapping phases. The next movement is planned before the handoff so tension, idea weights, and melodic anchors crossfade. Movement-level similarity biases melody parts toward a shared contour or anchor, while the accompaniment pair can rotate slowly at movement boundaries. Small deterministic noise and bounded chord-tone and register variations add motion within playable harmony. Style and movement data define the progressions, shapes, motifs and numerical rules used by the shared bar renderer.
 
 At most two active instruments from piano, guitar, ukulele, accordion and harp supply chordal accompaniment; other pitched parts play melodies and drums supply percussion. The pair stays stable within a movement, then may rotate gradually at the planned handoff. Equipping alone does not displace active accompaniment. Only the equipped instrument's saved tier restricts its motif pool and controls; unequipped parts use Advanced. The shared progression is filtered to remain playable for the planned parts, so equipped tier restrictions can also limit its harmony. These are structural constraints, not measured musical-quality scores.
 
 Changing the landscape changes both the tonic and mode: Morning (Sunny Farm) **A major**, Midday (Little Garden) **E major**, Afternoon (Pond Meadow) **A major**, Dusk **C-sharp minor**, Early Night **A minor**, Late Night **F minor**, Pre-Dawn (First Light) **D-flat major**, then back to Morning and Midday. Minor scenes use natural-minor harmony and diatonic minor chord libraries, not major phrases with a different root label. D-flat major and F minor use flat chord labels; internal sampler pitches retain sharp enharmonic spellings. Generated notes fit the instruments' playable banks; authored practice phrases retain octave folding for marimba and pan flute. Percussion labels remain unchanged.
+
+The Jungle has its own seven-scene progression. Morning Clearing begins in **D major**, followed by River Bend in **G major**, Waterfall in **F major**, Canopy Sunset in **E minor**, Night Pool in **B minor**, Moonlit Stream in **D minor**, and Misty Dawn in **B-flat major**. D minor and B-flat major use flat chord labels and sharp enharmonic sampler spellings. A bicycle trip asks the shared transport for the destination's morning key and default genre on arrival. The Farm opens in Folk and the Jungle opens in Samba.
 
 ## Instrument sounds
 
 Click-only activation of a note control plays one short note through the same owned voice path as held input. Guitar and ukulele chord activation selects a shape for subsequent string plucks; activating that chord again or resetting input clears the selection. Pointer and keyboard holds retain their existing release behavior.
 
 Rock uses the existing acoustic samples with straight eighths, a kick/snare backbeat on alternating quarter beats, soft hi-hat offbeats and occasional small tom turns. Nine tiered authored motifs add bouncy chord strums and repeating sing-along hooks; repeated contours keep their exact pitches. Verse/chorus and sing-along movement shapes favor shared melodic ideas, modest register variation and familiar I–V–IV–I / I–V–vi–IV progressions (diatonic equivalents in minor scenes). Simple parts keep four or fewer quarter-beat events. Rock tone gently rounds the acoustic samples and shortens their gates, with bounded accents and the existing .72 velocity ceiling. It adds no distortion; genre gain is separately bounded as described below. Its motifs also enter the existing phrase selector and composition-derived practice pool.
+
+Samba layers a two-beat low-drum pulse, light shaker and hat syncopation, short offbeat chord voicings, and melodic calls and answers. Its written motifs have three complexity tiers. The style uses distinct diatonic progressions and gently shortened acoustic articulation through the same tone path as the other genres.
 
 Jazz adds `brassCall` (Simple and above) and `brassRiff` (Standard and above): authored repeated chord tones, modest alternating accents, short gaps and a resolving answer. Trumpet is more likely to select them than the softer winds. Repeated contours retain their exact pitch through deterministic voicing; they do not gain random chromatic dissonance. Jazz eighth-note offbeats are delayed by .16 beats. Folk retains its straight pulse, open strums and lyrical phrases.
 
@@ -67,7 +73,7 @@ After adding recordings, `node scripts/analyze-audio.mjs --instruments-only --pr
 - Backgrounding, page hiding, or an audio-context interruption stops the transport, clears pending notes and UI cues, and releases held manual inputs and sounding samples. On return, active instruments and the metronome restart together at a fresh downbeat rather than trying to replay missed callbacks. Instrument selections, active states, tempo, and sound settings are retained. If the browser requires a gesture to resume audio, the next tap/key press retries recovery.
 - Trumpet lip and valve ownership is cleared on blur, backgrounding, and audio interruption. Window-level pointer release/cancel and mouse-button-loss handling prevent missed local releases from leaving an indefinitely looping wind voice.
 - Bar downbeats use the transport callback's audio timestamp directly; later notes use transport positions. Drum labels map to explicit sampler pitches and hit-specific durations.
-- All seven landscapes have at least two interactive objects.
+- Each scene has two scenery objects or visitors. Each environment's morning has a bicycle in addition to that pair.
 - Instrument volume settings are remembered when a muted instrument is switched back on.
 - Opening the mixer requires two clicks or taps within 450 ms; a single click/tap still closes it. Keyboard users can activate the focused mixer button twice with Enter or Space.
 - Equipping adds a transient +3 dB boost to that instrument's base mixer level, capped at 0 dB; -60 dB mute remains muted. Putting it down removes the boost without changing the base mix or stored preferences.
@@ -79,7 +85,7 @@ Manual pitched voices use native buffer sources, tracked after release in `retir
 
 ## Scenes
 
-Each scene entry makes one random roll: exactly **25%** selects the first visitor below, **5%** selects the second, and **70%** keeps the regular pair. These outcomes are mutually exclusive. A visitor replaces one of the scene's two existing interactive objects, never adds a third, so there are always exactly two objects in total. The chosen pair stays stable across taps, opening or changing Settings, and rerenders. Every landscape transition, including returning to a previously visited scene, makes a fresh roll. Entering gameplay from the child menu also rolls anew instead of reusing the menu's background pair. A fresh roll can select the same pair again.
+Each scene entry makes one random roll. Exactly **25%** selects the first visitor below, **5%** selects the second, and **70%** keeps the regular pair. A visitor replaces one member of the pair. The pair stays stable through taps, the travel map, Settings and rerenders. Starting play or entering a scene, including a return to a previously visited scene, makes a fresh roll.
 
 | Scene | First visitor (25%) | Second visitor (5%) |
 | --- | --- | --- |
@@ -90,8 +96,15 @@ Each scene entry makes one random roll: exactly **25%** selects the first visito
 | Night (Sleepy Night) | Fox | Badger |
 | Late night (Moonlit Meadow) | Luna moth | Shooting star |
 | Dawn (First Light) | Dove | Deer |
+| Jungle Morning Clearing | Toucan | Blue morpho butterfly |
+| Jungle River Bend | Crocodile | Capybara |
+| Jungle Waterfall | Iguana | Otter |
+| Jungle Canopy Sunset | Monkey | Bumblebee |
+| Jungle Night Pool | Kinkajou | Firefly |
+| Jungle Moonlit Stream | Pangolin | Bat |
+| Jungle Misty Dawn | Hummingbird | Dove |
 
-The usual regular objects listed under **Environments** remain the default, with their existing sounds and tap responses; a visitor changes only its replacement slot for that visit. Visitors have matching illustrations, tap animations and sound effects. Sheep, horse, duck, fox and dove use real **CC0 1.0 recordings**. The other nine visitors use original illustrative foley matched to their actions, not recorded wildlife: bumblebee wing buzz, woodpecker knocks, otter splashes, cicada rasp, hot-air balloon burner air, badger leaf scuffs and sniffs, luna moth flutter, an imaginary shooting-star whistle and shimmer, and deer hoof impacts and a snort. Detailed recording sources, creators, licenses, excerpt processing and original foley descriptions are in [Scenery Attribution](../public/audio/scenery/ATTRIBUTION.md#visitor-recordings).
+Visitors have matching illustrations, tap animations and sound effects. Sheep, horse, duck, fox and dove use **CC0 1.0 recordings**. New Jungle animals and the bicycle bell use original illustrative foley. The bell rings when the map opens and when the rider departs, through the same **Scenery sounds** volume control as the animals. Recording sources, licenses and processing details are in [Scenery Attribution](../public/audio/scenery/ATTRIBUTION.md#visitor-recordings).
 
 ## Manual Performance
 
@@ -133,7 +146,17 @@ Guided and full views share the same instrument note ownership. Stop, help, inst
 6. **Moonlit Meadow** — a distinct late-night willow grove, silver stream and moonflowers, with a fluttering bat and rustling hedgehog
 7. **First Light** — pale, cold pre-dawn light over blue-grey misty fields, a recorded rooster crow and swaying wind chimes
 
-The circular arrow control in the bottom-right rotates through the scenes. The illustrations include rolling fields, a flower garden, reflective pond water, and a moonlit woodland with fireflies. Scenery proportions adapt to portrait and landscape screens.
+The sun or moon advances to the next scene in the current environment. The morning bicycle opens travel to the other environment.
+
+| Jungle scene | Regular objects |
+| --- | --- |
+| Morning Clearing | Macaw and tapir |
+| River Bend | River turtle and heron |
+| Waterfall | River turtle and tree frog |
+| Canopy Sunset | Sloth and heron |
+| Night Pool | Owl and tree frog |
+| Moonlit Stream | Owl and tapir |
+| Misty Dawn | Macaw and heron |
 
 In Evening Meadow, tapping the cricket makes it hop and rub its wings to a real CC0 cricket recording. The farm cow also plays a real CC0 moo recording. Source credits and reproducible processing commands are in [the scenery attribution file](../public/audio/scenery/ATTRIBUTION.md). The airplane triggers a short banking flyby, spinning propeller and a soft tapered engine sound. Late-night bat wings and hedgehog footsteps have distinct original foley rendered to local WAVs. All effects use offline loudness analysis and the shared scenery mixer; reduced-motion preferences apply to their visual reactions.
 

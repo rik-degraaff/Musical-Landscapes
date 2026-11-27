@@ -1,0 +1,100 @@
+.scene [data-sound] .reacting:has(.jungle-animal-art) {
+  animation: jungleAnimalResponse 1.5s linear;
+}
+
+.scene [data-sound='treeFrog'] .reacting:has(.jungle-animal-art) {
+  animation: jungleFrogHop 1.5s ease-in-out;
+}
+
+.scene :is([data-sound='hummingbird'], [data-sound='morpho'], [data-sound='firefly']) .reacting:has(.jungle-animal-art) {
+  animation: jungleHover 1.5s ease-in-out;
+  transform-origin: center;
+}
+
+.jungle-animal-art g, .jungle-animal-art path {
+  transform-box: view-box;
+}
+
+.jungle-macaw-head { transform-origin: 95px 51px; }
+.jungle-tapir-head { transform-origin: 62px 72px; }
+.jungle-toucan-head { transform-origin: 98px 55px; }
+.jungle-turtle-head { transform-origin: 113px 83px; }
+.jungle-crocodile-head { transform-origin: 55px 87px; }
+.jungle-capybara-head { transform-origin: 68px 81px; }
+.jungle-sloth-head { transform-origin: 60px 81px; }
+.jungle-monkey-head { transform-origin: 67px 75px; }
+.jungle-kinkajou-head { transform-origin: 70px 75px; }
+.jungle-iguana-head { transform-origin: 51px 82px; }
+.jungle-pangolin-head { transform-origin: 53px 90px; }
+.jungle-hummingbird-head { transform-origin: 91px 71px; }
+
+.is-tapped :is(
+  .jungle-macaw-head, .jungle-tapir-head, .jungle-toucan-head, .jungle-turtle-head,
+  .jungle-crocodile-head, .jungle-capybara-head, .jungle-sloth-head, .jungle-monkey-head,
+  .jungle-kinkajou-head, .jungle-iguana-head, .jungle-pangolin-head, .jungle-hummingbird-head
+) {
+  animation: jungleNod 1.35s ease-in-out;
+}
+
+.jungle-macaw-wing { transform-origin: 77px 60px; }
+.jungle-heron-wing { transform-origin: 78px 87px; }
+.jungle-morpho-wing { transform-origin: 80px 72px; }
+.jungle-firefly-wings { transform-origin: 81px 64px; }
+.jungle-hummingbird-wing-near { transform-origin: 74px 72px; }
+.jungle-hummingbird-wing-far { transform-origin: 81px 66px; }
+
+.is-tapped :is(.jungle-macaw-wing, .jungle-heron-wing) {
+  animation: jungleWingFold .32s ease-in-out 4;
+}
+
+.is-tapped :is(.jungle-morpho-wing, .jungle-firefly-wings, .jungle-hummingbird-wing-near, .jungle-hummingbird-wing-far) {
+  animation: jungleWingFold .17s ease-in-out 8;
+}
+
+.jungle-monkey-tail { transform-origin: 104px 103px; }
+.jungle-kinkajou-tail { transform-origin: 101px 102px; }
+.jungle-iguana-tail { transform-origin: 98px 97px; }
+.jungle-pangolin-tail { transform-origin: 98px 94px; }
+
+.is-tapped :is(.jungle-monkey-tail, .jungle-kinkajou-tail, .jungle-iguana-tail, .jungle-pangolin-tail) {
+  animation: jungleTailSweep 1.35s ease-in-out;
+}
+
+.is-tapped .jungle-treefrog-throat {
+  animation: jungleThroatPuff .43s ease-in-out 3;
+  transform-origin: 80px 99px;
+}
+
+.is-tapped .jungle-firefly-glow { animation: jungleGlow 1.3s ease-in-out; }
+
+.scene .object-effect:is(.effect-riverTurtle, .effect-crocodile) i {
+  left: 18%;
+  top: 73.5%;
+  width: 64%;
+  height: 9px;
+  border: 2px solid #c5eef0;
+  background: none;
+  animation-name: pondRipple;
+}
+
+@keyframes jungleAnimalResponse { from, to { opacity: 1; } }
+@keyframes jungleNod {
+  0%, 100% { transform: rotate(0); }
+  25%, 65% { transform: rotate(-9deg); }
+  45%, 85% { transform: rotate(4deg); }
+}
+@keyframes jungleWingFold { 50% { transform: rotate(-14deg) scaleX(.65); } }
+@keyframes jungleTailSweep {
+  25%, 75% { transform: rotate(-12deg); }
+  50% { transform: rotate(8deg); }
+}
+@keyframes jungleHover {
+  30% { transform: translate(9%, -18%) rotate(-5deg); }
+  65% { transform: translate(-6%, -9%) rotate(4deg); }
+}
+@keyframes jungleFrogHop {
+  18%, 62% { transform: scale(1.07, .89); }
+  35%, 78% { transform: translateY(-19%) scale(.96, 1.04); }
+}
+@keyframes jungleThroatPuff { 50% { transform: scale(1.15); } }
+@keyframes jungleGlow { 30%, 65% { filter: brightness(1.22); } }

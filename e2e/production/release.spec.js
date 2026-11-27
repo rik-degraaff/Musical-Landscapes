@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { test as base, expect } from '@playwright/test';
 import {AVAILABLE_INSTRUMENTS as INSTRUMENTS} from '../../src/utils/music.js';
+import {openFullPractice} from '../fixtures.js';
 
 function recordings(directory, prefix = '/audio') {
   return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
@@ -23,7 +24,7 @@ const failedRecording = '/audio/instruments/piano/C3.mp3';
 function unexpectedErrors(errors) {
   const optionalFont = 'https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap';
   return errors.filter(error => !(error.type === 'console'
-    && error.location?.url === optionalFont
+    && (error.location?.url === optionalFont||error.location?.url?.endsWith('/functions/v1/farmjam-access'))
     && error.message === 'Failed to load resource: net::ERR_INTERNET_DISCONNECTED'));
 }
 
@@ -163,6 +164,7 @@ async function verifyOfflineSession(page, context, testInfo, { decodeRecordings 
     await page.keyboard.up('Space');
     await expect(note).toHaveAttribute('aria-pressed', 'false');
     await page.locator('#young-musician').focus();await page.keyboard.press('Enter');
+    await openFullPractice(page);
     for(const name of ['accordion','harp']){
       await page.getByRole('combobox',{name:'Practice instrument',exact:true}).selectOption(name);
       const key=page.locator(`.touch-${name} .note-key`).first();
@@ -170,6 +172,16 @@ async function verifyOfflineSession(page, context, testInfo, { decodeRecordings 
       await expect(key).toHaveAttribute('aria-pressed','true');await page.keyboard.up('Space');
     }
     await page.getByRole('button',{name:'Leave practice through the open door',exact:true}).click();
+    if(decodeRecordings){
+      await page.getByRole('button',{name:'Open travel map with the bicycle'}).press('Enter');
+      const map=page.getByRole('dialog',{name:'Travel map'});
+      await expect(map).toHaveAttribute('data-phase','ready');
+      await map.getByRole('button',{name:'Jungle',exact:true}).click();
+      await expect(map).toHaveCount(0);
+      await expect(page.locator('.scene-jungle-clearing')).toBeVisible();
+      await page.getByRole('button',{name:'Change landscape'}).press('Enter');
+      await expect(page.locator('.scene-jungle-river')).toBeVisible();
+    }
     await page.getByRole('button', { name: 'Open settings', exact: true }).dblclick();
     await expect(page.getByRole('dialog', { name: 'Settings', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Return to main menu', exact: true }).click();

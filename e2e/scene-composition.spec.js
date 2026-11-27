@@ -33,7 +33,7 @@ for(const [layout,width,height] of [['desktop',1440,900],['tablet',1024,768],['p
           if(join&&(join.missing||join.x>1||join.y>1))failures.push(`${scene}: road does not meet doorway`);
         };
         await checkDoorway();
-        const objects=host.locator('.interactive-object');await expect(objects).toHaveCount(2);
+        const objects=host.locator('.interactive-object:not([data-sound="bikeBell"])');await expect(objects).toHaveCount(2);
         const checkCloud=async()=>{
           const clear=await host.locator('.cloud-1').evaluate(element=>{
             const box=element.getBoundingClientRect();

@@ -1,6 +1,10 @@
 # Storage and updates
 
-FarmJam stores family and learning data locally in browser storage. It has no account or cloud-sync layer. Browser storage is fallible and can be cleared or evicted by the browser or operating system.
+FarmJam stores family and learning data locally in browser storage. An optional parent account uses email sign-in and carries paid or invited access across devices. Local browser storage can be cleared by the user or operating system.
+
+When editions are enabled, the trial stores one age range and the four instrument settings together in `farmjam-trial-v1`. Trial guide read revisions use `farmjam-trial-guides-v1`. Trial setup leaves the family record untouched. Unlocking opens existing full-version families in the same browser and preserves the keys listed below. FarmJam stores the last verified full access locally for offline use and checks the server when it reconnects. Sign-out and account deletion clear that access in the current browser. Local profiles can be removed individually from the child menu. See [PWA release setup](pwa-release.md) for payment and invitation storage.
+
+Environment, scene and weather belong to the current play session. Starting play opens the Farm in Folk. The service worker includes the map, Jungle art and scenery audio in the bundled precache for offline play after installation.
 
 ## Records and ownership
 
@@ -27,7 +31,7 @@ Do not add automatic migration that discards original data. Do not clear all sit
 
 ## Learning-time accounting
 
-Hint elapsed time advances only while the document is focused and visible, gameplay is in landscape, and no dialog blocks play. Setup, menus, Settings, help, and guide dialogs do not accrue it. At most one eligible hint is suggested at once; the app never opens a hint automatically. Reset and eligibility overrides are explicit caregiver actions.
+Hint elapsed time advances only during focused, visible landscape play. The travel map pauses that clock along with settings, setup, help, guides and menus. FarmJam offers at most one eligible hint at a time, and a child chooses when to open it. Reset and eligibility overrides are explicit caregiver actions.
 
 Age and elapsed-time values in the interface are defaults for when optional suggestions become eligible. They are not child-development standards or claims about readiness.
 

@@ -1,3 +1,5 @@
+import {JUNGLE_SCENES} from '../data/environments.js';
+
 export const SCENE_VISITORS={
   farm:[{sound:'sheep',label:'Sheep',slot:0},{sound:'horse',label:'Horse',slot:1}],
   garden:[{sound:'bee',label:'Bumblebee',slot:1},{sound:'woodpecker',label:'Woodpecker',slot:0}],
@@ -6,6 +8,7 @@ export const SCENE_VISITORS={
   night:[{sound:'fox',label:'Fox',slot:1},{sound:'badger',label:'Badger',slot:0}],
   'late-night':[{sound:'moth',label:'Luna moth',slot:0},{sound:'shootingStar',label:'Shooting star',slot:1}],
   dawn:[{sound:'dove',label:'Dove',slot:0},{sound:'deer',label:'Deer',slot:1}],
+  ...Object.fromEntries(Object.entries(JUNGLE_SCENES).map(([id,scene])=>[id,scene.visitors])),
 };
 
 export function visitorRoll() {return Math.random();}

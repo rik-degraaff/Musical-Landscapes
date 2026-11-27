@@ -40,7 +40,7 @@ function buildChords(root,tuning,fretCount,events) {
   const scale=key.scale;
   const chordQualities=key.minor?['m','dim','','m','m','','']:qualities;
   const chordSevenths=key.minor?['m7','m7b5','maj7','m7','m7','maj7','7']:sevenths;
-  const labels=root.includes('b')||root==='Fm'?['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B']:names;
+  const labels=root.includes('b')||root==='Fm'||root==='Dm'?['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B']:names;
   const chords=[];
   for(let degree=0;degree<7;degree++)for(const size of [3,4]) {
     const tones=Array.from({length:size},(_,index)=>(tonic+scale[(degree+index*2)%7])%12);
@@ -86,7 +86,7 @@ function annotate(events,chords) {
 }
 
 function buildLibrary(name,tuning,fretCount) {
-  return Object.fromEntries([...names,'C#m','Am','Fm','Db'].map(root=>{
+  return Object.fromEntries([...names,'C#m','Am','Fm','Db','Em','Bm','Dm','Bb'].map(root=>{
     const source=patterns[name].map(phrase=>({...phrase,events:transposeEvents(phrase.events,root,{preserveUnisons:true})}));
     const chords=buildChords(root,tuning,fretCount,source.flatMap(phrase=>phrase.events));
     const phrases=source.map(phrase=>({...phrase,events:annotate(phrase.events,chords)}));

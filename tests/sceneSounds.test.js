@@ -80,6 +80,22 @@ test('samples are deterministic and work at the device sample rate', () => {
   for (const type of Object.keys(FIELD_RECORDINGS)) assert.throws(() => createSceneSample(type), /Unknown landscape sound/);
 });
 
+test('the bicycle bell rings twice in quick succession with space between the strikes', () => {
+  for (const rate of [44100, 48000]) {
+    const sample = createSceneSample('bikeBell', rate);
+    const rms = (start, end) => {
+      const window = sample.subarray(Math.round(start * rate), Math.round(end * rate));
+      return Math.sqrt(window.reduce((sum, value) => sum + value * value, 0) / window.length);
+    };
+    assert.deepEqual(sample, createSceneSample('bikeBell', rate));
+    assert.ok(sample.length / rate < 1.1);
+    assert.ok(rms(0.06, 0.11) > 0.2);
+    assert.equal(rms(0.24, 0.28), 0);
+    assert.ok(rms(0.30, 0.35) > 0.2);
+    assert.ok(rms(0.8, 0.9) < 0.01);
+  }
+});
+
 test('faucet has three gentle impacts and silence between drops', () => {
   const rate = 48000;
   const bytes = readFileSync(new URL('../public/audio/scenery/water.wav', import.meta.url));

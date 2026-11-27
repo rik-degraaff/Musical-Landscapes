@@ -2,11 +2,14 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 import App from './App.jsx';
+import {PwaApp} from './accounts/PwaApp.jsx';
 import { installGestureGuard } from './utils/gestureGuard.js';
 import { observeAppUpdates } from './utils/updatePolicy.js';
 import visualOverrides from './data/visual-overrides.json';
 import { installVisualOverrides } from './utils/visualOverrides.js';
 
+const fullPreview=import.meta.env.DEV&&import.meta.env.MODE==='full-preview';
+const editionsEnabled=import.meta.env.VITE_FARMJAM_EDITIONS==='true'&&!fullPreview;
 const editorRoute = import.meta.env.DEV && location.pathname.startsWith('/__editor');
 if (!editorRoute) {
 	const removeGestureGuard = installGestureGuard();
@@ -28,4 +31,4 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 const root = createRoot(document.getElementById('root'));
 if (import.meta.env.DEV && editorRoute) {
 	import('./dev/VisualEditor.jsx').then(({ mountVisualEditor }) => mountVisualEditor(root));
-} else root.render(<App />);
+} else root.render(editionsEnabled?<PwaApp/>:<App/>);

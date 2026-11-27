@@ -5,7 +5,7 @@ import {guitarInput,guitarInputs,noteMidi} from '../src/utils/autoplay.js';
 import {patterns,transposeEvents} from '../src/utils/music.js';
 
 test('ukulele has fourteen all-string diatonic shapes in every supported major and minor key',()=>{
-  assert.equal(Object.keys(UKULELE_LIBRARY).length,16);
+  assert.equal(Object.keys(UKULELE_LIBRARY).length,20);
   assert.deepEqual(UKULELE_STRINGS,['G4','C4','E4','A4']);
   for(const [root,library] of Object.entries(UKULELE_LIBRARY)) {
     assert.equal(library.chords.length,14);

@@ -16,7 +16,7 @@ test('entering gameplay and every scene transition roll anew, including revisiti
     await expect(page.locator('.celestial-control')).toHaveAttribute('data-settled','true');
     await page.getByRole('button',{name:'Change landscape'}).click();
     const scene=scenes[index%7];await expect(page.locator(`.scene-${scene} .visitor-object`)).toHaveAttribute('data-sound',visitors[index%7][1]);
-    await expect(page.locator(`.scene-${scene} .interactive-object`)).toHaveCount(2);
+    await expect(page.locator(`.scene-${scene} .interactive-object:not([data-sound="bikeBell"])`)).toHaveCount(2);
   }
   await page.evaluate(()=>window.__testVisitorRoll=.9);
   for(let index=0;index<7;index++){
@@ -45,7 +45,7 @@ for(const [tier,roll] of [[0,.1],[1,.27]])test.describe(`visitor tier ${tier+1}`
     for(const [index,scene] of scenes.entries()){
       const host=page.locator(`.scene-${scene}`);await expect(host).toBeVisible();
       await expect(host.locator('.celestial-control')).toHaveAttribute('data-settled','true');
-      await expect(host.locator('.interactive-object')).toHaveCount(2);await expect(host.locator('.visitor-object')).toHaveCount(1);
+      await expect(host.locator('.interactive-object:not([data-sound="bikeBell"])')).toHaveCount(2);await expect(host.locator('.visitor-object')).toHaveCount(1);
       const sound=visitors[index][tier];const object=host.locator(`[data-sound="${sound}"]`);
       await expect(object).toBeVisible();expect(await object.locator('.visitor-art path').count()).toBeGreaterThan(2);
       const bounds=await object.boundingBox();expect(bounds.x).toBeGreaterThanOrEqual(0);expect(bounds.y).toBeGreaterThanOrEqual(0);

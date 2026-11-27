@@ -25,7 +25,7 @@ function chordAt(root,degree) {
   const key=musicalKey(root);
   const tones=[0,2,4].map(offset=>(key.pitch+key.scale[(degree+offset)%7])%12);
   const quality=(tones[1]-tones[0]+12)%12===3?((tones[2]-tones[0]+12)%12===6?'dim':'m'):'';
-  const labels=root.includes('b')||root==='Fm'?['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B']:pitches;
+  const labels=root.includes('b')||root==='Fm'||root==='Dm'?['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B']:pitches;
   return {name:labels[tones[0]]+quality,degree,size:3,tones};
 }
 

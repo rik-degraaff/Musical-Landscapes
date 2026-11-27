@@ -11,7 +11,7 @@ import {noteMidi,trumpetInput} from '../src/utils/autoplay.js';
 import {fluteInput} from '../src/utils/wind.js';
 import {PIANO_NOTES,MARIMBA_NOTES,PANFLUTE_NOTES,ACCORDION_NOTES,HARP_NOTES} from '../src/utils/performance.js';
 
-const roots=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B','C#m','Am','Fm','Db'];
+const roots=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B','C#m','Am','Fm','Db','Em','Bm','Dm','Bb'];
 const names=Object.keys(INSTRUMENTS);
 
 test('Jazz brass repeats exact playable pitches with gentle accents at every supported tier and key',()=>{
@@ -136,7 +136,7 @@ for(const root of roots)for(const complexity of [.35,1,1.5])test(`composition po
 });
 
 test('flat scene chord labels match string libraries while pitches stay sharp',()=>{
-  for(const root of ['Db','Fm'])for(const name of ['guitar','ukulele']){
+  for(const root of ['Db','Fm','Dm','Bb'])for(const name of ['guitar','ukulele']){
     const profile=equippedProfile(name,root,{complexity:1.5});
     const composer=new Composition({random:random()});
     for(let bar=0;bar<20;bar++){
@@ -317,6 +317,36 @@ test('Rock supplies straight, gentle hooks and backbeats across scene keys and d
     for(const role of ['accompaniment','melody','rhythm'])assert.ok(style.phrases[role].some(phrase=>seen.has(phrase.name)),`${root} plays Rock ${role}`);
     assert.ok([...progressions].some(name=>name.startsWith('rock')));
     assert.ok(movements.size>=3);
+  }
+});
+
+test('Samba uses its two-beat drum pulse, offbeat strums and authored calls throughout Jungle',()=>{
+  const style=COMPOSITION_STYLES.samba;
+  const progressionNames=new Set(style.progressions.map(progression=>progression.name));
+  const movementNames=new Set(style.movementShapes.map(movement=>movement.name));
+  for(const root of ['D','G','F','Em','Bm','Dm','Bb']){
+    const drums=compositionProfile('drums',root,{genre:'samba',complexity:.35}).find(phrase=>phrase.name==='sambaTwoBeat');
+    assert.deepEqual(drums.events.map(event=>[event.time,event.note]),[['0:0:0','hat'],['0:1:0','kick'],['0:2:0','hat'],['0:3:0','kick']]);
+    assert.ok(drums.events[1].velocity>drums.events[0].velocity);
+    assert.ok(drums.events[3].velocity>drums.events[2].velocity);
+    const strum=compositionProfile('guitar',root,{genre:'samba',complexity:1}).find(phrase=>phrase.name==='sambaOffbeats');
+    assert.deepEqual(strum.events.map(event=>event.time),['0:0:0','0:0:2','0:1:2','0:2:2','0:3:0','0:3:2']);
+    const composer=new Composition({random:random(91)}),replay=new Composition({random:random(91)});
+    const options={genre:'samba',active:names};
+    const seen=new Set(),progressions=new Set();
+    for(let bar=0;bar<64;bar++){
+      const plan=composer.planBar(bar,root,options);
+      assert.deepEqual(plan,replay.planBar(bar,root,options));
+      assert.ok(movementNames.has(plan.movement.name));
+      progressions.add(plan.progression);
+      for(const [name,phrase] of Object.entries(plan.phrases)){
+        seen.add(phrase.name);
+        assertPlayable(name,root,1.5,phrase,name==='drums'?undefined:plan.currentChord);
+        assert.ok(phrase.events.every(event=>event.swingOffset===0&&event.velocity<=.72));
+      }
+    }
+    for(const pool of Object.values(style.phrases))assert.ok(pool.some(phrase=>seen.has(phrase.name)),root);
+    assert.ok([...progressions].filter(name=>progressionNames.has(name)).length>=2,root);
   }
 });
 

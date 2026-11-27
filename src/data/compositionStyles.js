@@ -104,6 +104,38 @@ const jazzProgressions=[
   {name:'jazzTurnaround',degrees:[0,5,1,4],modes:['major'],tension:.72,transitions:{jazzBlueCycle:2,jazzTwoFive:4,jazzTurnaround:3,home:2}},
 ];
 
+// The low drum answers on the second beat of each two-beat pulse. Short
+// guitar strokes, shaker and rim hits place the syncopation around that pulse.
+const sambaPhrases={
+  accompaniment:[
+    authoredMotif('sambaPulse',0,.36,.24,[[0,[0],1],[1,[1,2],.5],[2,[0],1],[3,[1,2],.5]],[-.03,.05,-.04,.06]),
+    authoredMotif('sambaOffbeats',1,.58,.54,[[0,[0],.5],[.5,[1,2],.5],[1.5,[0,2],.5],[2.5,[1,2],.5],[3,[0],.5],[3.5,[1,2],.5]],[-.04,.05,.02,.06,-.05,.02]),
+    authoredMotif('sambaAnticipation',2,.73,.74,[[0,[0],.5],[.75,[1,2],.25],[1.5,[0,2],.5],[2,[0],.5],[2.75,[1,2],.25],[3.5,[0,2],.25],[3.75,[1,2],.25]],[-.04,.06,.02,-.04,.06,.02,-.03]),
+  ],
+  melody:[
+    authoredMotif('sambaCall',0,.42,.26,[[0,[0],1],[1,[2],1],[3,[1],.5]],[-.03,.08,.03]),
+    {...authoredMotif('sambaReply',1,.57,.52,[[.5,[2],.5],[1,[2],.5],[1.5,[1],1],[3,[0],.5],[3.5,[0],.5]],[.08,-.04,.04,.03,-.05]),repeatContour:true},
+    authoredMotif('sambaTurn',2,.73,.72,[[0,[0],.5],[.75,[1],.25],[1,[2],.5],[1.5,[1],.5],[2.5,[2],.5],[3.25,[1],.25],[3.5,[0],.5]],[-.03,.06,.03,-.03,.06,.03,-.04]),
+  ],
+  rhythm:[
+    authoredMotif('sambaTwoBeat',0,.42,.26,[[0,'hat',.5],[1,'kick',.5],[2,'hat',.5],[3,'kick',.5]],[-.07,.06,-.08,.07]),
+    authoredMotif('sambaShaker',1,.59,.56,[[0,'shaker',.5],[.5,'rim',.5],[1,'kick',.5],[1.5,'shaker',.5],[2,'shaker',.5],[2.5,'rim',.5],[3,'kick',.5],[3.5,'shaker',.5]],[-.07,.02,.07,-.04,-.06,.02,.07,-.05]),
+    authoredMotif('sambaDrumTurn',2,.75,.76,[[0,'shaker',.5],[.5,'rim',.25],[.75,'shaker',.25],[1,'floorTom',.5],[1.5,'shaker',.5],[2,'shaker',.5],[2.75,'rim',.25],[3,'kick',.5],[3.5,'shaker',.5]],[-.07,.02,-.05,.05,-.06,-.07,.02,.06,-.06]),
+  ],
+};
+
+const sambaIdeas={
+  sambaOpening:{accompaniment:['sambaPulse','pulse'],melody:['sambaCall','answer'],rhythm:['sambaTwoBeat']},
+  sambaExchange:{accompaniment:['sambaPulse','sambaOffbeats'],melody:['sambaCall','sambaReply'],rhythm:['sambaTwoBeat','sambaShaker']},
+  sambaBreak:{accompaniment:['sambaPulse','sambaOffbeats','sambaAnticipation'],melody:['sambaCall','sambaReply','sambaTurn'],rhythm:['sambaTwoBeat','sambaShaker','sambaDrumTurn']},
+};
+
+const sambaProgressions=[
+  {name:'sambaCircle',degrees:[0,3,0,4],modes:['major','minor'],tension:.35,transitions:{sambaCircle:4,sambaCadence:4,sambaRefrain:3}},
+  {name:'sambaCadence',degrees:[0,0,1,4,0,3,4,0],modes:['major','minor'],tension:.48,transitions:{sambaCircle:3,sambaCadence:3,sambaRefrain:4}},
+  {name:'sambaRefrain',degrees:[0,5,1,4],modes:['major','minor'],tension:.59,transitions:{sambaCircle:5,sambaCadence:3,sambaRefrain:2}},
+];
+
 export const COMPOSITION_STYLES={
   folk:{
     id:'folk',label:'Folk',phrases:folkPhrases,ideas:folkIdeas,progressions:folkProgressions,
@@ -174,6 +206,29 @@ export const COMPOSITION_STYLES={
       accordion:{cutoff:9000,gate:.88,accent:1.1,gainDb:0},harp:{cutoff:10000,gate:.9,accent:1.08,gainDb:0},
       piano:{cutoff:10000,gate:.88,accent:1.12,gainDb:0},guitar:{cutoff:10000,gate:.88,accent:1.12,gainDb:1.5},ukulele:{cutoff:10000,gate:.88,accent:1.12,gainDb:1.5},
       melody:{cutoff:7600,gate:.88,accent:1.12,gainDb:0},marimba:{cutoff:10000,gate:.9,accent:1.1,gainDb:0},flute:{cutoff:10000,gate:.9,accent:1.08,gainDb:0},panflute:{cutoff:10000,gate:.9,accent:1.08,gainDb:0},
+    },
+  },
+  samba:{
+    id:'samba',label:'Samba',phrases:sambaPhrases,ideas:sambaIdeas,progressions:sambaProgressions,
+    progressionWeights:{sambaCircle:1.6,sambaCadence:1.5,sambaRefrain:1.3,home:.45,journey:.4,song:.4,minorWalk:.2,majorTurn:.3},harmonyTensionBias:1.25,
+    movementShapes:[
+      {name:'samba-call-and-response',length:16,points:[.32,.44,.56,.42,.66,.54,.7,.36],ideaCount:2,sections:['call','answer','break','return']},
+      {name:'samba-refrain',length:24,points:[.32,.52,.61,.45,.62,.74,.57,.68,.36],ideaCount:3,sections:['opening','refrain','response','break','return']},
+    ],
+    movementNoise:.045,noiseScale:6.5,familyWeights:{sambaOpening:1.05,sambaExchange:1.35,sambaBreak:1.1},
+    motifTransitions:{
+      sambaPulse:{sambaPulse:4,sambaOffbeats:4,pulse:1},sambaOffbeats:{sambaPulse:3,sambaOffbeats:5,sambaAnticipation:3},sambaAnticipation:{sambaPulse:4,sambaOffbeats:4,sambaAnticipation:2},
+      sambaCall:{sambaCall:3,sambaReply:5,answer:2},sambaReply:{sambaCall:5,sambaReply:3,sambaTurn:3},sambaTurn:{sambaCall:4,sambaReply:5,sambaTurn:1},
+      sambaTwoBeat:{sambaTwoBeat:4,sambaShaker:5},sambaShaker:{sambaTwoBeat:3,sambaShaker:5,sambaDrumTurn:2},sambaDrumTurn:{sambaTwoBeat:4,sambaShaker:5,sambaDrumTurn:1},
+    },
+    roleTension:{melody:1.06,accompaniment:1.04,rhythm:1.12},
+    coordination:{sharedIdeaBias:.5,callResponseBias:.62,responseMotifs:['sambaReply','answer']},
+    movementControls:{shapeVariation:.08,lengthVariation:2,ideaCountVariation:1,melodicSimilarity:[.32,.55,.76],transitionBars:2,ideaOverlap:.22,ideaPhaseVariation:.05,ideaStickiness:2.6,ideaContinuity:3.5,ideaHoldWeight:.13,anchorStickiness:4.5},accompanimentStickiness:6.5,
+    swing:0,variation:{maxToneStep:.18,registerSemitones:2},
+    performance:{
+      accordion:{cutoff:8400,gate:.73,accent:1.18,gainDb:-.5},harp:{cutoff:9200,gate:.78,accent:1.12,gainDb:0},
+      piano:{cutoff:8900,gate:.75,accent:1.17,gainDb:0},guitar:{cutoff:10500,gate:.72,accent:1.25,gainDb:.8},ukulele:{cutoff:10800,gate:.74,accent:1.25,gainDb:1},
+      melody:{cutoff:7100,gate:.78,accent:1.14,gainDb:-.5},marimba:{cutoff:11000,gate:.73,accent:1.23,gainDb:1.2},flute:{cutoff:9200,gate:.8,accent:1.13,gainDb:0},panflute:{cutoff:9600,gate:.81,accent:1.13,gainDb:.5},
     },
   },
 };

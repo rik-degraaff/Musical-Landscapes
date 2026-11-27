@@ -7,6 +7,9 @@ import {AVAILABLE_INSTRUMENTS as INSTRUMENTS} from '../utils/music';
 import {GestureDemo} from './GestureDemo';
 import {GuideIllustration} from './GuideIllustration';
 import {PlayActions} from './LearningHint';
+import {useEdition} from './EditionContext';
+import {TrialInformation} from './TrialInformation';
+import {TRIAL_PHRASES} from '../utils/editions';
 import './guides.css';
 
 export function HelpButton({onOpen,className=''}) {
@@ -14,16 +17,18 @@ export function HelpButton({onOpen,className=''}) {
 }
 
 export function GuideTopic({topic,familiarity,heading=true,child,instrument,practiceStage,illustrate=false}) {
-  const content=contextualHelp(topic,familiarity,practiceStage);
+  const {trial}=useEdition();
+  const content=contextualHelp(topic,familiarity,practiceStage,trial);
   return <section className={`help-topic ${illustrate?'guide-task':''}`}>
     <div className="guide-task-copy">{heading&&<h3>{content.title}</h3>}{content.paragraphs.map(text=><p key={text}>{text}</p>)}{content.note&&<p>{content.note}</p>}</div>
-    {illustrate&&<GuideIllustration {...content.illustration} child={child} instrument={instrument??undefined}/>}
+    {illustrate&&content.illustration&&<GuideIllustration {...content.illustration} child={child} instrument={instrument??undefined}/>}
   </section>;
 }
 
 export function CaregiverHelp({topic,familiarity,instrument,child,practiceStage,onClose,onGuides,instruments,onEquip,onPractice,onPracticeIntro}) {
+  const {trial}=useEdition();
   const playing=topic==='instruments'?instrumentHelp(instrument,familiarity):null;
-  const content=contextualHelp(topic,familiarity,practiceStage);
+  const content=contextualHelp(topic,familiarity,practiceStage,trial);
   const guide=GUIDES.find(value=>value.id===(playing?'instruments':content.guide));
   const openGuide=id=>{onClose();onGuides(id);};
   return <CaregiverDialog title="Caregiver help" onClose={onClose} footer={<button onClick={onClose}>Back to {topic==='menu'?'main menu':topic==='practice'?'practice':topic==='settings'?'Settings':'play'}</button>}>
@@ -31,6 +36,8 @@ export function CaregiverHelp({topic,familiarity,instrument,child,practiceStage,
       <div className="guide-task-copy"><h3>Play the {INSTRUMENTS[instrument].label.toLowerCase()}</h3><p>{playing.action}</p><p>{playing.note}</p></div>
       <GestureDemo instrument={instrument} child={child} gesture={['guitar','ukulele','panflute'].includes(instrument)?'swipe':['flute','melody'].includes(instrument)?'hold':'tap'}/>
     </section>:<GuideTopic topic={topic} familiarity={familiarity} child={child} instrument={instrument} practiceStage={practiceStage} illustrate/>}
+    {trial&&topic==='menu'&&<TrialInformation/>}
+    {trial&&topic==='practice'&&<p>Phrase practice includes {TRIAL_PHRASES} phrases per instrument, with unlimited replays.</p>}
     {['instruments','landscape'].includes(topic)&&instruments?.length>0&&onEquip&&<PlayActions instruments={instruments} onEquip={onEquip} onPractice={onPractice}/>}
     {topic==='practice'&&onPracticeIntro&&<button className="learning-action" onClick={onPracticeIntro}><BookOpen size={17}/>Practice guide for caregivers</button>}
     {onGuides&&<nav className="help-guide-links" aria-label="More caregiver help">

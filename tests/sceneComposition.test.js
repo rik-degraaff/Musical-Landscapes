@@ -4,6 +4,7 @@ import {SCENE_SOUNDS} from '../src/audio/sceneSounds.js';
 import {OBJECT_PLACEMENT,sceneObjectGeometry,habitatAnchor,landmarkGeometry,cloudLayouts,SCENE_SKY_RESIDENTS} from '../src/utils/sceneComposition.js';
 import {DAY_PHASES,celestialPosition} from '../src/utils/dayCycle.js';
 import {SCENE_VISITORS,sceneObjectPair} from '../src/utils/sceneVisitors.js';
+import {ENVIRONMENTS,JUNGLE_SCENES} from '../src/data/environments.js';
 
 const sizes=[[1440,900],[1024,768],[852,393],[780,284],[640,360],[360,240],[1920,1080],[768,700],[1180,250]]
   .flatMap(([width,height])=>[{width,height},{width,height:height-Math.max(110,Math.min(270,height*.42))}]);
@@ -22,11 +23,17 @@ test('weather silhouettes stay inside short worlds and clear of every settled ce
 });
 
 test('every regular and visitor pair stays separate across full and panel worlds',()=>{
-  const residents={farm:['moo','tractor'],garden:['water','bird'],pond:['frog','windmill'],dusk:['cricket','airplane'],night:['bell','owl'],'late-night':['bat','hedgehog'],dawn:['rooster','chimes']};
+  const residents={farm:['moo','tractor'],garden:['water','bird'],pond:['frog','windmill'],dusk:['cricket','airplane'],night:['bell','owl'],'late-night':['bat','hedgehog'],dawn:['rooster','chimes'],
+    ...Object.fromEntries(Object.entries(JUNGLE_SCENES).map(([id,scene])=>[id,scene.residents.map(({sound})=>sound)]))};
+  const mornings=Object.values(ENVIRONMENTS).map(environment=>environment.scenes[0]);
   for(const size of sizes)for(const [scene,sounds] of Object.entries(residents))for(const roll of [.9,.1,.27]){
-    const pair=sceneObjectPair(scene,sounds.map(sound=>({sound})),roll).map(({sound})=>sceneObjectGeometry(sound,size));
+    const pair=sceneObjectPair(scene,sounds.map(sound=>({sound})),roll).map(({sound})=>sceneObjectGeometry(sound,{...size,scene}));
     const [one,two]=pair;
     assert.ok(Math.abs(one.x-two.x)>=(one.width+two.width)/2||Math.abs(one.y-two.y)>=(one.height+two.height)/2,`${size.width}×${size.height} ${scene} tier ${roll} overlaps`);
+    if(mornings.includes(scene)){
+      const bike=sceneObjectGeometry('bikeBell',size);
+      for(const animal of pair)assert.ok(Math.abs(animal.x-bike.x)>=(animal.width+bike.width)/2||Math.abs(animal.y-bike.y)>=(animal.height+bike.height)/2,`${size.width}×${size.height} ${scene} tier ${roll} bike overlaps`);
+    }
   }
 });
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import {Headphones,Footprints,Timer,Users,Play,Pause,RotateCcw,DoorOpen,ArrowRight,Music,Check,CircleAlert} from 'lucide-react';
-import {AVAILABLE_INSTRUMENTS as INSTRUMENTS} from '../utils/music';
+import {useEdition} from './EditionContext';
 import {PRACTICE_STAGES} from '../utils/practice';
 import {InstrumentArt} from './InstrumentArt';
 
@@ -24,8 +24,9 @@ export function PracticeStageTabs({stage,onChange}) {
 }
 
 export function PracticeSelectors({name,onInstrument,phraseIndex,onPhrase,phrases,phrasePrompt}) {
+  const {catalog}=useEdition();
   return <>
-    <label className="practice-select"><span className="practice-instrument-tools" aria-hidden="true"><InstrumentArt type={name}/></span><select aria-label="Practice instrument" value={name} onChange={event=>onInstrument(event.target.value)}>{Object.entries(INSTRUMENTS).map(([id,instrument])=><option key={id} value={id}>{instrument.label}</option>)}</select></label>
+    <label className="practice-select"><span className="practice-instrument-tools" aria-hidden="true"><InstrumentArt type={name}/></span><select aria-label="Practice instrument" value={name} onChange={event=>onInstrument(event.target.value)}>{Object.entries(catalog).map(([id,instrument])=><option key={id} value={id}>{instrument.label}</option>)}</select></label>
     <label className="practice-select"><select aria-label="Practice phrase" value={phrasePrompt?'':Math.min(phraseIndex,phrases.length-1)} onChange={event=>onPhrase(Number(event.target.value))}>{phrasePrompt&&<option value="" disabled>Choose a phrase</option>}{phrases.map((value,index)=><option key={index} value={index}>{value.role?`${value.name[0].toUpperCase()}${value.name.slice(1)} · ${value.role} · ${value.chord}`:`Phrase ${index+1}`} · {value.events.length} actions</option>)}</select></label>
   </>;
 }

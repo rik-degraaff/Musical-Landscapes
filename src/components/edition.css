@@ -1,0 +1,13 @@
+.start-overlay.trial-menu{justify-content:safe center;gap:clamp(8px,2.6vh,18px);padding:14px 52px 20px;overflow:auto;touch-action:pan-y}
+.trial-menu h1{font-size:clamp(40px,9vh,72px)}
+.trial-menu .trial-menu-note{font-size:clamp(13px,3.8vh,17px);margin:0;max-width:35rem}
+.trial-menu .start-button{margin-bottom:4px}
+.trial-menu-actions,.membership-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.trial-menu .start-settings{position:static;transform:none;margin:0}
+.trial-age,.membership-field{display:grid;gap:5px;font-weight:800;text-align:left;max-width:28rem}
+.trial-age select,.membership-field input{min-height:40px;border:1px solid #90a6b5;border-radius:9px;background:#fff;color:#25354a;font:inherit;padding:6px 10px;width:100%}
+.membership-field input{user-select:text}
+.edition-comparison h3{margin:.8rem 0 .25rem}
+.edition-comparison p,.settings-content .edition-comparison p{font-size:inherit;text-align:left;color:inherit;margin:.35rem 0;border:0;padding:0}
+.membership-form{display:grid;gap:12px;margin:12px 0}
+.membership-actions{justify-content:flex-start;margin:.75rem 0}

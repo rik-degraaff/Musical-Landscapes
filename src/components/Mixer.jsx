@@ -7,21 +7,25 @@ import {useDismissible} from './useDismissible';
 import {SaveStatus} from './SaveStatus';
 import {HelpButton} from './CaregiverHelp';
 import {CAREGIVER_FAMILIARITY,caregiverHelp} from '../utils/caregiverHelp';
-import {GUIDES,HINTS,childLearning,guideStatus,isPracticeEnabled,setPracticeEnabled,updateChildLearning,updateHint} from '../utils/learning';
-import {GuideLibrary} from './Guides';
+import {HINTS,childLearning,guideStatus,isPracticeEnabled,setPracticeEnabled,updateChildLearning,updateHint} from '../utils/learning';
+import {GuideLibrary,editionGuides} from './Guides';
+import {useEdition} from './EditionContext';
+import {TrialAge,TrialInformation} from './TrialInformation';
 
-export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onRestoreSound,onClose,onMenu,settings,onSettings,saveError,onRetrySave,familiarity,onFamiliarity,onHelp,playing=true,child,learning,onLearning,onGuide,onPracticeIntro}) {
+export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onRestoreSound,onClose,onMenu,settings,onSettings,saveError,onRetrySave,familiarity,onFamiliarity,onHelp,playing=true,child,learning,onLearning,onGuide,onPracticeIntro,trialPreferences}) {
+  const edition=useEdition();
+  const {trial,openMembership,membershipOpen}=edition;
   const [tab,setTab]=useState(playing?'Sound':'Caregiver');
   const [selected,setSelected]=useState(settings.selected[2]);
   const modal=useRef(null);
   const latest=useRef({settings,onSettings});
   latest.current={settings,onSettings};
-  useDismissible(modal,true,onClose);
+  useDismissible(modal,!membershipOpen,onClose);
   useEffect(()=>{
     const previous=document.activeElement;
     modal.current.querySelector('button').focus();
     const keydown=event=>{
-      if(event.key!=='Tab')return;
+      if(event.key!=='Tab'||document.querySelector('dialog[open]'))return;
       const elements=[...modal.current.querySelectorAll('button,input,select,summary,[tabindex="0"]')].filter(element=>!element.disabled&&element.tabIndex>=0&&element.getClientRects().length>0&&(!element.closest('details:not([open])')||element.tagName==='SUMMARY'));
       const first=elements[0],last=elements.at(-1);
       if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
@@ -36,10 +40,10 @@ export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onRestoreS
     const current=latest.current.settings;
     updateSettings({...current,instruments:{...current.instruments,[selected]:{...current.instruments[selected],[key]:value}}});
   }
-  const tabs=[...(playing?[['Sound',Volume2]]:[]),...(child?[['Instruments',Music]]:[]),['Caregiver',Users],['Guides',BookOpen]];
+  const tabs=[...(playing?[['Sound',Volume2]]:[]),...(child||trial?[['Instruments',Music]]:[]),['Caregiver',Users],['Guides',BookOpen]];
   const progress=learning?childLearning(learning,child?.id):null;
   const practiceEnabled=progress&&isPracticeEnabled(learning,child?.id);
-  const unread=learning?GUIDES.filter(guide=>guideStatus(learning,guide)!=='Read').length:0;
+  const unread=learning?editionGuides(edition).filter(guide=>guideStatus(learning,guide)!=='Read').length:0;
   function selectSlot(index,name) {
     const current=latest.current.settings;
     const slots=[...current.selected];
@@ -59,7 +63,7 @@ export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onRestoreS
           <VolumeControl scenery label="Scenery sounds" value={sceneVolume} onChange={onSceneVolume}/>
           <p className="settings-explanation">{familiarity==='confident'?'These dB controls change relative gain, not pitch or tempo. Mix levels last for this play session.':familiarity==='new'?'Move a slider left for quieter sound or right for louder sound. This changes loudness, not the notes or beat. Sound levels last for this play session.':'Balance the band and scenery here. Volume changes loudness, not tempo; the mix lasts for this play session.'}</p>
         </div>:tab==='Instruments'?<>
-          <InstrumentSlots selected={settings.selected} instruments={instruments} onSelect={selectSlot}/>
+          {!trial&&<InstrumentSlots selected={settings.selected} instruments={instruments} onSelect={selectSlot}/>}
           <div className="instrument-configuration">
           <label className="settings-instrument configure-instrument"><i className="settings-art configuration-art" aria-hidden="true"><InstrumentArt type={selected}/></i>Configure instrument<select aria-label="Configure instrument" value={selected} onChange={event=>setSelected(event.target.value)}>{Object.entries(instruments).map(([name,instrument])=><option key={name} value={name}>{instrument.label}</option>)}</select></label>
           <ComplexityControl value={options.complexity} onChange={value=>change('complexity',value)}/>
@@ -70,7 +74,9 @@ export function Mixer({instruments,onVolume,sceneVolume,onSceneVolume,onRestoreS
           </details>
           </div>
         </>:tab==='Guides'?<><p>Read a guide whenever you like. The ? button also offers help for your current screen.</p><GuideLibrary learning={learning} onOpen={onGuide}/></>:<>
-          <fieldset className="parent-choices caregiver-familiarity"><legend>Caregiver music familiarity</legend><div>{CAREGIVER_FAMILIARITY.map(([value,label])=><label key={value} className={familiarity===value?'is-selected':''}><input type="radio" name="caregiver-familiarity" checked={familiarity===value} onChange={()=>onFamiliarity(value)}/><span>{label}</span></label>)}</div><p className="settings-explanation">Shared by all children on this device. Changes explanations in help and setup, not the music or complexity.</p></fieldset>
+          {trial&&<><TrialAge value={trialPreferences.age} onChange={trialPreferences.setAge}/><p className="settings-explanation">Age guides the practice activities and the starting difficulty. This setting stays on this device.</p><TrialInformation/></>}
+          {openMembership&&<button className="learning-action" onClick={openMembership}>{trial?'Unlock FarmJam':'Manage parent account'}</button>}
+          <fieldset className="parent-choices caregiver-familiarity"><legend>Caregiver music familiarity</legend><div>{CAREGIVER_FAMILIARITY.map(([value,label])=><label key={value} className={familiarity===value?'is-selected':''}><input type="radio" name="caregiver-familiarity" checked={familiarity===value} onChange={()=>onFamiliarity(value)}/><span>{label}</span></label>)}</div><p className="settings-explanation">{trial?'Changes the explanations in help and guides.':'Shared by all children on this device. Changes explanations in help and setup, not the music or complexity.'}</p></fieldset>
           {child&&progress&&<section className="hint-controls">
             <h3>Practice room for {child.name}</h3>
             <label className="settings-check"><input type="checkbox" checked={practiceEnabled} onChange={event=>{

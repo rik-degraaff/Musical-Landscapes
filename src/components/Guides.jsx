@@ -3,14 +3,24 @@ import {ArrowLeft,ArrowRight,BookOpen,Check,Download,Play,RotateCcw} from 'lucid
 import {GUIDES,guideStatus} from '../utils/learning';
 import {guidePages,guidePageNote} from '../utils/guidePages';
 import {instrumentHelp} from '../utils/caregiverHelp';
-import {AVAILABLE_INSTRUMENTS as INSTRUMENTS} from '../utils/music';
+import {useEdition} from './EditionContext';
+import {TrialInformation} from './TrialInformation';
 import {installationGuide} from '../utils/installation';
 import {CaregiverDialog} from './CaregiverDialog';
 import {GuideIllustration} from './GuideIllustration';
 import './guides.css';
 
+export function editionGuides({trial}) {
+  return GUIDES.filter(guide=>!trial||guide.id!=='profiles').map(guide=>{
+    if(trial&&guide.id==='landscape')return {...guide,summary:'Play in Sunny Farm and Sleepy Night and change the beat.'};
+    if(trial&&guide.id==='settings')return {...guide,summary:'Change the age range, playing controls and sound.'};
+    return guide;
+  });
+}
+
 export function GuideLibrary({learning,onOpen}) {
-  return <div className="guide-library">{GUIDES.map(guide=>{
+  const edition=useEdition();
+  return <div className="guide-library">{editionGuides(edition).map(guide=>{
     const status=guideStatus(learning,guide);
     return <article className="guide-card" key={guide.id}>
       <h3>{guide.title}<span className={`guide-status ${status==='Read'?'is-read':''}`}>{status}</span></h3>
@@ -57,13 +67,15 @@ function GuidePageArt({illustration,child,instrument}) {
   return <figure ref={visual} className="guide-task-visual">
     <GuideIllustration key={replay} {...illustration} instrument={instrument} child={child} detail={detail} speed={speed} demonstrating={replay>0}/>
     {animated&&<div className="guide-demo-controls"><button className="guide-replay" onClick={replayGesture}>{replay?<RotateCcw size={16}/>:<Play size={16}/>}<span>{replay?'Replay gesture':'Show gesture'}</span></button><label>Speed <select aria-label="Demonstration speed" value={speed} onChange={event=>setSpeed(Number(event.target.value))}><option value={1}>Gentle</option><option value={.75}>Slower</option></select></label></div>}
-    {['surface','practice-stage','practice-guided'].includes(illustration.kind)&&<label className="guide-demo-detail">Controls <select aria-label="Demonstration controls" value={detail} onChange={event=>setDetail(event.target.value)}><option value="simple">Simple</option>{child&&<option value="child">{child.name}'s controls</option>}</select></label>}
+    {['surface','practice-stage','practice-guided'].includes(illustration.kind)&&<label className="guide-demo-detail">Controls <select aria-label="Demonstration controls" value={detail} onChange={event=>setDetail(event.target.value)}><option value="simple">Simple</option>{child?.settings&&<option value="child">{child.name?`${child.name}’s controls`:'Saved controls'}</option>}</select></label>}
   </figure>;
 }
 
 export function GuideReader({id,learning,familiarity,child,onOpen,onRead,onClose,installation,saveError,onRetry}) {
-  const guide=GUIDES.find(value=>value.id===id);
-  const pages=guidePages(id);
+  const edition=useEdition();
+  const {trial,catalog}=edition;
+  const guide=editionGuides(edition).find(value=>value.id===id);
+  const pages=guidePages(id,edition);
   const [location,setLocation]=useState({id,index:0});
   const [instrument,setInstrument]=useState('piano');
   const heading=useRef(null);
@@ -93,6 +105,7 @@ export function GuideReader({id,learning,familiarity,child,onOpen,onRead,onClose
     {saveError&&<div className="guide-save-error" role="alert"><p>{typeof saveError==='string'?saveError:'Guide progress could not be saved on this device.'}</p>{onRetry&&<button className="learning-action" onClick={onRetry}>Retry saving</button>}</div>}
     {!guide||!page?<>
       <p className="guide-library-intro" ref={heading} tabIndex={-1}>Choose any guide. You can leave, revisit pages or jump ahead whenever you like. Reading never changes what your child can play.</p>
+      {trial&&<TrialInformation/>}
       <GuideLibrary learning={learning} onOpen={onOpen}/>
     </>:<>
       <div className="guide-page-picker">
@@ -104,7 +117,7 @@ export function GuideReader({id,learning,familiarity,child,onOpen,onRead,onClose
         <div className="guide-task-copy">
           <h3 ref={heading} tabIndex={-1}>{page.title}</h3>
           {page.paragraphs.map(text=><p key={text}>{text}</p>)}
-          {playing&&<><label className="guide-instrument-picker">Instrument <select aria-label="Guide instrument" value={instrument} onChange={event=>setInstrument(event.target.value)}>{Object.entries(INSTRUMENTS).map(([name,value])=><option key={name} value={name}>{value.label}</option>)}</select></label><p>{playing.action}</p><p>{playing.note}</p></>}
+          {playing&&<><label className="guide-instrument-picker">Instrument <select aria-label="Guide instrument" value={instrument} onChange={event=>setInstrument(event.target.value)}>{Object.entries(catalog).map(([name,value])=><option key={name} value={name}>{value.label}</option>)}</select></label><p>{playing.action}</p><p>{playing.note}</p></>}
           {note&&<p className="guide-explanation">{note}</p>}
           {id==='installation'&&<InstallationPage pageId={page.id} installation={installation}/>}
           {id==='together'&&<p>Keep screen use brief and responsive to your child, especially for very young children. Follow your family’s professional guidance.</p>}

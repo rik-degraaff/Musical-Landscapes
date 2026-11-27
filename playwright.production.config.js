@@ -23,7 +23,7 @@ export default defineConfig({
     { name: 'production-compact-touch', use: { ...devices['Pixel 7'], viewport: { width: 780, height: 284 } } },
   ],
   webServer: {
-    command: 'npm run preview -- --host 127.0.0.1 --port 4173 --strictPort',
+    command: 'npm run preview -- --mode production-test --host 127.0.0.1 --port 4173 --strictPort',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: false,
   },

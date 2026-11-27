@@ -2,12 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { celestialPosition } from '../utils/dayCycle';
 import { ART } from '../data/artStyle';
 import { landscapeMetrics, habitatAnchor, landmarkGeometry, cloudLayouts } from '../utils/sceneComposition';
+import { JUNGLE_SKIES, JungleTerrain, JungleTree } from './JungleTerrain';
 
 import {CloudShape,CelestialArtwork} from './SkyArt';
 const cloudWeather={
   folk:{color:[255,253,242],opacity:[.5,.7,0],scale:[.82,.9,.78]},
   jazz:{color:[164,188,202],opacity:[.92,.98,.88],scale:[1,1.08,1.02]},
   rock:{color:[248,204,166],opacity:[.85,.92,.72],scale:[.94,1,.92]},
+  samba:{color:[181,224,189],opacity:[.86,.92,.76],scale:[.94,1.01,.97]},
 };
 
 function blendColor(from,to,amount) {
@@ -32,7 +34,7 @@ export function LandscapeArt({ scene, phase, worldSize, genre='folk', genreTrans
   const [measuredSize, setMeasuredSize] = useState(() => ({width:window.innerWidth,height:window.innerHeight}));
   const size=worldSize ?? measuredSize;
   const stretch=1440*size.height/(900*size.width);
-  const metrics=landscapeMetrics(size);
+  const metrics=landscapeMetrics({...size,scene});
   const landmark=landmarkGeometry(scene,size);
   const treeProps=tree=>({habitat:true,stretch,x:tree.x/size.width*1440,y:tree.y/size.height*900,size:tree.scale*900/size.height});
   useEffect(() => {
@@ -46,6 +48,8 @@ export function LandscapeArt({ scene, phase, worldSize, genre='folk', genreTrans
     return () => observer.disconnect();
   }, []);
   const night = scene === 'night'||scene==='late-night';
+  const jungleSky = JUNGLE_SKIES[scene];
+  const darkSky = night || scene === 'jungle-night' || scene === 'jungle-moonlit';
   const lateNight = scene === 'late-night';
   const weatherMix=cloudWeatherFrom?0:1;
   const oldWeather=cloudWeather[cloudWeatherFrom?.genre??genre];
@@ -74,21 +78,22 @@ export function LandscapeArt({ scene, phase, worldSize, genre='folk', genreTrans
   useEffect(()=>()=>clearTimeout(cloudWeatherTimer.current),[]);
   return <><svg ref={artRef} className="landscape-art landscape-background" viewBox="0 0 1440 900" preserveAspectRatio="none" role="presentation" aria-hidden="false">
     <defs>
-      <linearGradient id={`${scene}-sky`} x2="0" y2="1"><stop stopColor={palette[0]} /><stop offset="1" stopColor={palette[1]} /></linearGradient>
+      <linearGradient id={`${scene}-sky`} x2="0" y2="1"><stop stopColor={jungleSky?.[0] ?? palette[0]} /><stop offset="1" stopColor={jungleSky?.[1] ?? palette[1]} /></linearGradient>
       <linearGradient id={`${scene}-ground`} x2=".3" y2="1"><stop stopColor={palette[3]} /><stop offset="1" stopColor={palette[4]} /></linearGradient>
       <linearGradient id={`${scene}-water`} x2="0" y2="1"><stop stopColor="#8bc7cb" /><stop offset="1" stopColor="#468f9b" /></linearGradient>
     </defs>
     <path data-name="Sky" fill={`url(#${scene}-sky)`} d="M0 0H1440V900H0Z" />
-    <CelestialArtwork moon={celestial.moon} radius={celestialRadius} x={celestialX} y={celestialY} stretch={stretch} opacity={celestial.opacity} dusk={dusk} dawn={dawn}/>
-    {night ? <>
+    <CelestialArtwork moon={celestial.moon} radius={celestialRadius} x={celestialX} y={celestialY} stretch={stretch} opacity={celestial.opacity} dusk={dusk || scene === 'jungle-canopy'} dawn={dawn || scene === 'jungle-dawn'}/>
+    {darkSky ? <>
       {Array.from({ length: 28 }, (_, index) => <circle key={index} className="sky-star" cx={(index * 173 + 70) % 1400} cy={65 + (index * 67) % 310} r={index % 3 ? 1.7 : 3} fill="#fff5da" style={{ animationDelay: `${index % 5}s` }} />)}
     </> : <>
       {dusk && <g fill="#fff6d8" opacity=".7"><circle cx="210" cy="105" r="2.5"/><circle cx="420" cy="78" r="2"/><circle cx="800" cy="118" r="2.5"/><circle cx="1250" cy="90" r="2"/></g>}
       <g fill="none" stroke="#638b93" strokeWidth="3" strokeLinecap="round"><path d="M415 142q10-12 20 0q10-12 20 0 M476 170q8-10 16 0q8-10 16 0" /></g>
     </>}
-    <g className={`scenery-cloud${cloudPulse?' is-tapped':''}`} role="button" tabIndex={0} aria-label="Change music weather" onClick={changeWeather} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();changeWeather(event);}}} onAnimationEnd={()=>setCloudPulse(false)} fill={cloudColor}>
+    <g className={`scenery-cloud${cloudPulse?' is-tapped':''}`} {...(onGenreChange?{role:'button',tabIndex:0,'aria-label':'Change music weather',onClick:changeWeather,onKeyDown:event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();changeWeather(event);}}}:{'aria-hidden':true})} onAnimationEnd={()=>setCloudPulse(false)} fill={cloudColor}>
       {cloudLayouts(size,scene).map(({x,y,scale},index)=><CloudShape key={index} index={index} x={x/size.width*1440} y={y/size.height*900} stretch={stretch} scale={cloudScale[index]*scale*900/size.height} opacity={cloudOpacity[index]}/>)}
     </g>
+    {jungleSky ? <JungleTerrain scene={scene} stretch={stretch} /> : <>
     <path data-name="Distant hills" d="M0 403 Q180 269 370 376 T750 378 T1120 349 T1440 366 V900H0Z" fill={palette[2]} />
     <path data-name="Near hills" d="M0 482 Q220 332 474 463 Q699 521 923 417 T1440 481 V900H0Z" fill={palette[3]} />
     <g opacity=".6">{[0, 80, 148, 1270, 1340, 1440].map((position, index) => <Tree key={position} stretch={stretch} x={position} y={465 + index % 2 * 35} size={0.55 + index % 3 * 0.1} color={night ? '#3e5960' : '#6c9b7a'} />)}</g>
@@ -96,6 +101,7 @@ export function LandscapeArt({ scene, phase, worldSize, genre='folk', genreTrans
     {landmark && <path data-name="Doorway path" d={landmark.road} fill={night ? '#71847a' : '#ded5b4'} opacity=".64" />}
     {scene === 'farm' && <>
       <path d="M0 678Q262 580 535 640L331 900H0Z" fill="#adc168" /><path d="M0 730Q226 622 487 675 M0 791Q210 670 433 727 M0 853Q166 749 379 790" stroke="#6e944c" strokeWidth="8" opacity=".45" fill="none" />
+      <path data-name="Field path" fill="#d2cb9f" opacity=".64" d="M1440 776Q1315 810 1281 861Q1260 890 1213 900H1336Q1329 863 1361 844Q1395 823 1440 811Z" />
       <g data-name="Barn" transform={landmark.transform}><path d="M-118 12H118V154H-118Z" fill="#bf8b77" /><path d="M-143 15L0-108L143 15Z" fill="#7e7770" /><path d="M-111 15L0-79L111 15Z" fill="#cfa28a" /><path data-doorway="true" d="M-41 154V58H41V154" fill="#8b7663" stroke="#e4d8b6" strokeWidth="7" /><path d="M-37 63L37 150 M37 63L-37 150" stroke="#e4d8b6" strokeWidth="5" /><rect x="-17" y="-31" width="34" height="34" fill="#f3dba2" /><path d="M-110 36H-67 M66 36H110" stroke="#d4b59a" strokeWidth="6" /></g>
       <g data-name="Farm fence" stroke="#d9dbb5" strokeWidth="6" opacity=".65" fill="none"><path d="M0 578Q235 537 458 583 M0 607Q235 566 458 612 M1170 587L1440 562 M1170 616L1440 591" />{[24, 91, 158, 225, 292, 359, 426, 1190, 1257, 1324, 1391].map(position => <path key={position} d={`M${position} ${position < 460 ? 550 + Math.abs(230 - position) / 14 : 565}v86`} />)}</g>
     </>}
@@ -164,10 +170,17 @@ export function LandscapeArt({ scene, phase, worldSize, genre='folk', genreTrans
       {Array.from({ length: 10 }, (_, index) => <circle key={index} className="firefly-light" cx={90 + index * 130} cy={650 + (index * 59) % 210} r="3" fill="#f4dd8f" style={{ animationDelay: `${index % 4 * 0.6}s` }} />)}
     </>}
     <g fill={night ? '#6c8b76' : '#b7cd83'} opacity=".30">{Array.from({ length: 23 }, (_, index) => <path key={index} d={`M${index * 67} ${820 + (index * 31) % 80}l-4-12l8 9l5-14l-1 17Z`} />)}</g>
+    </>}
 
   </svg>
     {scene !== 'late-night' && <svg className="landscape-art landscape-foreground" viewBox="0 0 1440 900" preserveAspectRatio="none" role="presentation" aria-hidden="true">
-      <Tree {...treeProps(metrics.leftTree)} color={night ? '#3d625c' : '#719875'}/><Tree {...treeProps(metrics.rightTree)} color={night ? '#496d62' : '#86a07c'}/>
+      {jungleSky ? <>
+        <JungleTree {...treeProps(metrics.leftTree)} scene={scene} />
+        <JungleTree {...treeProps(metrics.rightTree)} scene={scene} />
+      </> : <>
+        <Tree {...treeProps(metrics.leftTree)} color={night ? '#3d625c' : '#719875'}/>
+        <Tree {...treeProps(metrics.rightTree)} color={night ? '#496d62' : '#86a07c'}/>
+      </>}
     </svg>}
   </>;
 }

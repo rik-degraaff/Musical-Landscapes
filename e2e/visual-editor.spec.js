@@ -57,7 +57,7 @@ test('SVG paths and colors update live, undo, and stay isolated until explicit s
 test('object library, real character dialog, replay, responsive viewport, and visitor choices work',async({page})=>{
   const preview=page.frameLocator('iframe');
   await page.getByRole('button',{name:'Objects',exact:true}).click();
-  await expect(preview.locator('.interactive-object')).toHaveCount(28);
+  await expect(preview.locator('.interactive-object')).toHaveCount(45);
   await expect(preview.locator('.instrument')).toHaveCount(9);
   await page.getByLabel('Instrument animations').check();
   await expect(preview.locator('.instrument.playing')).toHaveCount(9);
@@ -90,7 +90,7 @@ test('object library keeps scene placement overrides inside its preview cards',a
   await expect(page.getByRole('status')).toHaveText('Project loaded');
   await page.getByRole('button',{name:'Objects',exact:true}).click();
   const preview=page.frameLocator('iframe');
-  await expect(preview.locator('.interactive-object')).toHaveCount(28);
+  await expect(preview.locator('.interactive-object')).toHaveCount(45);
   for(const compact of [false,true]){
     if(compact)await page.getByRole('button',{name:'Compact landscape viewport',exact:true}).click();
     await expect.poll(()=>preview.locator('.interactive-object[data-sound="bird"]').evaluate(node=>{

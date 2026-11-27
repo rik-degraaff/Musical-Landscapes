@@ -21,7 +21,9 @@ const FADE_SECONDS = 0.045;
 const instrumentNames = Object.keys(INSTRUMENTS);
 
 export class AudioEngine {
-  constructor() {
+  constructor({instruments=instrumentNames,sceneSounds=SCENE_SOUNDS}={}) {
+    this.instrumentNames=instruments;
+    this.sceneSounds=sceneSounds;
     this.ready = false;
     this.started = false;
     this.transportEvent = null;
@@ -32,8 +34,8 @@ export class AudioEngine {
     this.onMetronomeBeat = null;
     this.beatIndex = 0;
     this.barIndex = 0;
-    this.active = Object.fromEntries(instrumentNames.map(name => [name, false]));
-    this.volumes = Object.fromEntries(instrumentNames.map(name => [name, INSTRUMENTS[name].volume]));
+    this.active = Object.fromEntries(instruments.map(name => [name, false]));
+    this.volumes = Object.fromEntries(instruments.map(name => [name, INSTRUMENTS[name].volume]));
     this.composition = new Composition();
     this.genre='folk';
     this.genreTransition=null;
@@ -113,7 +115,7 @@ export class AudioEngine {
     attempt.metronomeSynth = resources.own(new Tone.Synth({oscillator:{type:'sine'},envelope:{attack:.001,decay:.035,sustain:0,release:.015},volume:-20})).connect(attempt.master);
     attempt.reverb = resources.own(new Tone.Reverb({ decay: 1.2, preDelay: 0.018, wet: 0.09 })).connect(attempt.master);
     const loads = [resources.load(attempt.reverb, () => attempt.reverb.ready)];
-    for (const name of instrumentNames) {
+    for (const name of this.instrumentNames) {
       const gain = resources.own(new Tone.Volume(MIN_GAIN)).connect(name === 'drums' ? attempt.master : attempt.reverb);
       const styleGain = name==='drums'?null:resources.own(new Tone.Volume(compositionStyle(this.genre).performance[name].gainDb??0)).connect(gain);
       const tone = name==='drums'?null:resources.own(new Tone.Filter({type:'highshelf',frequency:compositionStyle(this.genre).performance[name].cutoff,gain:-4,rolloff:-12})).connect(styleGain);
@@ -297,7 +299,7 @@ export class AudioEngine {
     attempt.sceneBuffers = {};
     attempt.scenePlayers = {};
     attempt.sceneVoices = {};
-    await Promise.all(SCENE_SOUNDS.map(async type => {
+    await Promise.all(this.sceneSounds.map(async type => {
       const buffer = resources.own(new Tone.ToneAudioBuffer());
       attempt.sceneBuffers[type] = buffer;
       await resources.load(buffer, () => buffer.load(`${import.meta.env.BASE_URL}audio/scenery/${type}.wav`));
@@ -656,7 +658,7 @@ export class AudioEngine {
     for(const node of Object.values(this.nodes)){node.synth.releaseAll();node.gain.volume.value=MIN_GAIN;}
     Tone.Transport.stop();Tone.Transport.position=0;this.barIndex=0;this.beatIndex=0;
     this.composition.reset();this.harmonyPlan=null;this.onHarmonyChange?.(null);
-    this.active=Object.fromEntries(instrumentNames.map(id=>[id,false]));
+    this.active=Object.fromEntries(this.instrumentNames.map(id=>[id,false]));
     this.metronomeSound=false;this.tempoHeld=false;
     this.setManualInstrument(name);
     this.nodes[name].gain.volume.value=this.effectiveVolume(name);
@@ -901,7 +903,7 @@ export class AudioEngine {
     },time+(Tone.Draw.anticipation??.008)+.001);
     // Scheduled event IDs are indexed by bar so a replan can cancel only events at or after its boundary.
     const barPosition = bar * Tone.Transport.PPQ * 4;
-    for (const name of instrumentNames) {
+    for (const name of this.instrumentNames) {
       if (!this.shouldSchedule(name)) continue;
       const selected = plan.phrases[name];
       if(name===this.manualInstrument)this.equippedPhrase=selected;
@@ -1004,7 +1006,7 @@ export class AudioEngine {
   }
 
   setVolumes(volumes) {
-    for (const name of instrumentNames) {
+    for (const name of this.instrumentNames) {
       if (volumes[name] == null || !this.nodes[name]) continue;
       this.volumes[name] = Number(volumes[name]);
       this.nodes[name].gain.volume.rampTo(!this.tempoHeld && !this.backgrounded && (this.active[name] || name === this.manualInstrument) ? this.effectiveVolume(name) : MIN_GAIN, FADE_SECONDS);

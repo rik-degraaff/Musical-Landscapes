@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: '**/production/**',
+  testIgnore: ['**/production/**','**/pwa/**'],
   outputDir: 'test-results/development',
   forbidOnly: Boolean(process.env.CI),
   timeout: 90000,
@@ -17,8 +17,8 @@ export default defineConfig({
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
     // The scene geometry suite supplies its own nine viewports. Run that matrix
     // once; native touch/reachability is covered by the other scene suites.
-    { name: 'phone', testIgnore: ['**/production/**', '**/scene-composition.spec.js'], use: { ...devices['Pixel 7'], viewport: { width: 393, height: 851 } } },
-    { name: 'phone-landscape', testIgnore: ['**/production/**', '**/scene-composition.spec.js'], use: { ...devices['Pixel 7'], viewport: { width: 780, height: 284 } } },
+    { name: 'phone', testIgnore: ['**/production/**', '**/pwa/**', '**/scene-composition.spec.js'], use: { ...devices['Pixel 7'], viewport: { width: 393, height: 851 } } },
+    { name: 'phone-landscape', testIgnore: ['**/production/**', '**/pwa/**', '**/scene-composition.spec.js'], use: { ...devices['Pixel 7'], viewport: { width: 780, height: 284 } } },
   ],
-  webServer: { command: 'npm run dev -- --host 127.0.0.1 --port 5173 --strictPort', url: 'http://127.0.0.1:5173', reuseExistingServer: !process.env.CI },
+  webServer: { command: 'npm run dev:full -- --host 127.0.0.1 --port 5173 --strictPort', url: 'http://127.0.0.1:5173', reuseExistingServer: false },
 });

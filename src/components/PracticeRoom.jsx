@@ -1,5 +1,6 @@
 import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
-import {practiceProfile} from '../utils/practiceComposition';
+import {editionPracticeProfile} from '../utils/practiceComposition';
+import {useEdition} from './EditionContext';
 import {noteMidi} from '../utils/autoplay';
 import {PRACTICE_TIMING_TOLERANCE,beatOffset,timingInvitation,practiceDisplayOptions,learningSteps,createTimingAttempt,scoreTimedInput,expireSteps,attemptSummary} from '../utils/practice';
 import {InstrumentSurface} from './PerformancePanel';
@@ -48,6 +49,7 @@ export function PracticeRoom({initialInstrument,child,audio,onClose,blocked,...p
 }
 
 function FullPractice({child,audio,audioStatus,soundMuted,onSoundHelp,name,onInstrument,settings,root,onClose,onHelp,onGuided,room,roomProps,blocked,initialStage,initialPhrase,challenge,caregiverNotice}) {
+  const {trial}=useEdition();
   const [phraseIndex,setPhraseIndex]=useState(initialPhrase);
   const [stage,setStage]=useState(initialStage);
   const [step,setStep]=useState(0);
@@ -76,7 +78,7 @@ function FullPractice({child,audio,audioStatus,soundMuted,onSoundHelp,name,onIns
   const cueTimer=useRef(null);
   const [invitation,setInvitation]=useState(null);
   const options=practiceDisplayOptions(settings.instruments[name]);
-  const profile=practiceProfile(name,root,{...options,genre:audio?.genre??'folk'});
+  const profile=editionPracticeProfile(name,root,{...options,genre:audio?.genre??'folk'},trial);
   const phrase=profile.phrases[Math.min(phraseIndex,profile.phrases.length-1)];
   const steps=learningSteps(phrase);
   const finite=challenge&&stage>1;

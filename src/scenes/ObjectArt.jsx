@@ -1,6 +1,8 @@
 import React from 'react';
 import { ART, ART_STROKE } from '../data/artStyle';
 import { VisitorArt } from './VisitorArt';
+import { BicycleDrawing } from './TravelMapArt';
+import { JungleAnimalArt } from './JungleAnimalArt';
 
 const Detail = ({ children, ...props }) => <g strokeWidth={ART_STROKE.detail} {...props}>{children}</g>;
 const Eye = ({ x, y, r = 3.5 }) => <g stroke="none"><circle cx={x} cy={y} r={r} fill={ART.ink} /><circle cx={x + 1} cy={y - 1} r={r * .3} fill={ART.paper} /></g>;
@@ -10,6 +12,8 @@ const Eye = ({ x, y, r = 3.5 }) => <g stroke="none"><circle cx={x} cy={y} r={r} 
 export function ObjectArt({ type }) {
   return <svg viewBox="0 0 160 140" className={`object-art art-${type}`} aria-hidden="true" fill="none" stroke={ART.ink} strokeWidth={ART_STROKE.outline} strokeLinecap="round" strokeLinejoin="round">
     <VisitorArt type={type} />
+    {type === 'bikeBell' && <BicycleDrawing />}
+    <JungleAnimalArt type={type} />
     {type === 'bat' && <>
       <g className="bat-wings" fill={ART.violet}>
         <path d="M75 72Q46 26 8 39Q26 52 17 80Q37 64 44 91Q59 72 72 96Z" /><path d="M85 72Q114 26 152 39Q134 52 143 80Q123 64 116 91Q101 72 88 96Z" />

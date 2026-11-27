@@ -1,5 +1,10 @@
+import {JUNGLE_SCENES} from '../data/environments.js';
+
 export const SCENE_ROOTS = Object.freeze({farm:'A',garden:'E',pond:'A',dusk:'C#m',night:'Am',lateNight:'Fm',dawn:'Db'});
-export const DAY_PHASES = { farm: 0.22, garden: 0.5, pond: 0.77, dusk: 0.96, night: 1.28, 'late-night': 1.68, dawn: 0.04 };
+export const DAY_PHASES = {
+  farm:0.22, garden:0.5, pond:0.77, dusk:0.96, night:1.28, 'late-night':1.68, dawn:0.04,
+  ...Object.fromEntries(Object.entries(JUNGLE_SCENES).map(([id,scene])=>[id,scene.phase])),
+};
 
 export function nextDayPhase(current, scene) {
   const target = DAY_PHASES[scene];

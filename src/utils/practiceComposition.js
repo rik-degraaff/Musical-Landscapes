@@ -3,10 +3,25 @@ import {compositionProfile} from './composition.js';
 import {noteMidi} from './autoplay.js';
 import {PIANO_NOTES,MARIMBA_NOTES,ACCORDION_NOTES,HARP_NOTES} from './performance.js';
 import {CHORD_INSTRUMENTS} from './music.js';
+import {guidedExercise} from './guidedPractice.js';
+import {TRIAL_PHRASES} from './editions.js';
 
 const profileCache=new Map();
 const PROFILE_CACHE_LIMIT=96;
 const chordInstruments=CHORD_INSTRUMENTS;
+const trialProfiles=new Map();
+
+export function editionPracticeProfile(name,root,options,trial) {
+  if(!trial)return practiceProfile(name,root,options);
+  const key=JSON.stringify([name,root,difficultyLevel(options)]);
+  if(!trialProfiles.has(key)){
+    const source=practiceProfile(name,root,{complexity:.35,genre:'folk'});
+    const profile=practiceProfile(name,root,{complexity:options.complexity,genre:'folk'});
+    const phrases=Object.freeze([guidedExercise(name,source,3),...source.phrases.slice(0,TRIAL_PHRASES-1)]);
+    trialProfiles.set(key,Object.freeze({...profile,phrases}));
+  }
+  return trialProfiles.get(key);
+}
 
 export function practiceProfile(name,root,options={}) {
   const level=difficultyLevel(options);

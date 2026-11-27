@@ -1,0 +1,45 @@
+.travel-bike-rider .travel-bike-head {
+  width: 130px;
+  height: 170px;
+}
+
+.travel-bike-head [data-avatar-region="body"],
+.travel-bike-head [data-avatar-region="shadow"] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .travel-bike-rider.is-travelling .travel-bike-spokes {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: travel-bike-wheel .65s linear infinite;
+  }
+
+  .travel-bike-rider.is-travelling .travel-bike-leg {
+    transform-origin: 59px 65px;
+    animation: travel-bike-leg .38s ease-in-out infinite alternate;
+  }
+
+  .travel-bike-rider.is-travelling .travel-bike-leg--far {
+    animation-direction: alternate-reverse;
+  }
+
+  .travel-bike-rider.is-travelling .travel-bike-crank {
+    transform-origin: 77px 106px;
+    animation: travel-bike-crank .38s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes travel-bike-wheel {
+  to { transform: rotate(1turn); }
+}
+
+@keyframes travel-bike-leg {
+  from { transform: rotate(-4deg); }
+  to { transform: rotate(4deg); }
+}
+
+@keyframes travel-bike-crank {
+  from { transform: rotate(-12deg); }
+  to { transform: rotate(12deg); }
+}

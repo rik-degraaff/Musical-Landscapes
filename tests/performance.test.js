@@ -67,7 +67,7 @@ test('practice reset, cycle rollover and changed attempt length invalidate the p
   room.advanceCycle(1,practicePhrase);
   assert.deepEqual(room.published.at(-1),[]);
   assert.equal(room.resultSnapshot.current.length,0);
-  assert.equal(room.totals.current.total,3);
+  assert.equal(room.totals.current.total,2);
   room.updateResults();assert.equal(room.published.length,3);
   assert.deepEqual(room.published.at(-1),['pending','pending']);
   const attempt=room.attempt.current;

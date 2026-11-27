@@ -44,6 +44,14 @@ npm run audio:analyze -- --preserve-existing --sounds=sheep,horse,bee,woodpecker
 node --test tests/sceneSounds.test.js tests/audioLevels.test.js tests/visitorSounds.test.js
 ```
 
+## Jungle and bicycle
+
+The Jungle scenery and bicycle bell are original procedural foley from `src/audio/jungleSounds.js`. Soft splashes, wingbeats, chirps and rustles illustrate the animals' movements. The bicycle uses two short metal resonances.
+
+```sh
+npm run audio:analyze -- --preserve-existing --sounds=macaw,tapir,toucan,morpho,riverTurtle,heron,crocodile,capybara,sloth,monkey,treeFrog,kinkajou,firefly,iguana,pangolin,hummingbird,bikeBell
+```
+
 ## Reproduction
 
 Source licenses were verified on the linked Freesound pages on 2026-10-10. CC0 permits redistribution and modification, including commercial use. Anonymous HQ preview downloads follow the existing water/rooster convention; no account or API key is needed. Exact download URLs and processing parameters are in `FIELD_RECORDINGS` in `src/audio/sceneSounds.js`.

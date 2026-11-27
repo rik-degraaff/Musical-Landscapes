@@ -4,11 +4,21 @@ import { DAY_PHASES, SCENE_ROOTS, celestialPosition, nextDayPhase } from '../src
 import {transposeEvents} from '../src/utils/music.js';
 import {equippedProfile} from '../src/utils/difficulty.js';
 import {noteMidi} from '../src/utils/autoplay.js';
+import {ENVIRONMENTS,JUNGLE_SCENES} from '../src/data/environments.js';
 
 test('day cycle follows the requested major and minor tonal journey',()=>{
   const ids=['farm','garden','pond','dusk','night','lateNight','dawn'];
   const roots=ids.map(id=>SCENE_ROOTS[id]);
   assert.deepEqual(roots,['A','E','A','C#m','Am','Fm','Db']);
+});
+
+test('the Jungle follows its own day phases and keys before returning to morning',()=>{
+  const {scenes,defaultGenre}=ENVIRONMENTS.jungle;
+  assert.equal(defaultGenre,'samba');
+  assert.deepEqual(scenes.map(id=>JUNGLE_SCENES[id].root),['D','G','F','Em','Bm','Dm','Bb']);
+  const phases=[...scenes,scenes[0]].reduce((result,id)=>[...result,nextDayPhase(result.at(-1)??0,id)],[]);
+  assert.ok(phases.every((phase,index)=>index===0||phase>phases[index-1]));
+  assert.deepEqual(phases.map(phase=>celestialPosition(phase).moon),[false,false,false,false,true,true,false,false]);
 });
 
 test('minor keys flatten the third, sixth and seventh instead of merely changing the tonic',()=>{

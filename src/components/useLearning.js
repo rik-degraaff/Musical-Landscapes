@@ -1,8 +1,8 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {createLearningStorage,emptyLearning} from '../utils/learning';
 
-export function useLearning(preview=false) {
-  const [storage]=useState(()=>createLearningStorage(preview?()=>({getItem:()=>null,setItem(){}}):undefined));
+export function useLearning(preview=false,trial=false) {
+  const [storage]=useState(()=>createLearningStorage(preview?()=>({getItem:()=>null,setItem(){}}):undefined,trial?'farmjam-trial-guides-v1':undefined));
   const [initial]=useState(()=>preview?{state:emptyLearning(),error:null}:storage.load());
   const [startup,setStartup]=useState(initial.state);
   const [state,setState]=useState(initial.state);

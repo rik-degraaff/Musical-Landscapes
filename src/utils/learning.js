@@ -3,7 +3,7 @@ const PRACTICE_INTRO_REVISION=1;
 export const LEARNING_KEY = 'farmjam-learning-v1';
 export const GUIDES = [
   {id:'instruments',version:4,title:'Play an instrument',summary:'Start the band, then try the real playing controls.'},
-  {id:'landscape',version:4,title:'Explore the landscape',summary:'Change the scene, musical style and speed.'},
+  {id:'landscape',version:5,title:'Explore the landscape',summary:'Ride between environments and change the scene, musical style and speed.'},
   {id:'practice',version:5,title:'Use the practice room',summary:'Hear a sound, take turns, echo a rhythm or join the band.'},
   {id:'settings',version:3,title:'Choose instruments and settings',summary:'Set up instruments, sound and learning hints.'},
   {id:'installation',version:2,title:'Install and prepare your device',summary:'Separate steps for installing, offline play and device restrictions.'},
@@ -14,7 +14,7 @@ export const HINTS = [
   {id:'tap',title:'Start a little band',text:'Tap an instrument to start or stop its music.',gesture:'tap',seconds:0,ages:['under3','3to4','5to7','8plus']},
   {id:'landscape',title:'Follow the sun',text:'Tap the sun or moon to visit another landscape. The band keeps its beat.',gesture:'tap',seconds:45,ages:['under3','3to4','5to7','8plus']},
   {id:'equip',title:'Play it yourself',text:'Drag an instrument onto your avatar, then try its controls.',gesture:'drag',seconds:120,ages:['3to4','5to7','8plus']},
-  {id:'weather',title:'Change the musical weather',text:'Tap a cloud to cycle through Folk, Jazz and Rock. The music changes gradually while the band keeps playing.',gesture:'tap',seconds:180,ages:['3to4','5to7','8plus']},
+  {id:'weather',title:'Change the musical weather',text:'Tap a cloud to try another style. The music changes gradually while the band keeps playing.',gesture:'tap',seconds:180,ages:['3to4','5to7','8plus']},
   {id:'practice',title:'Try a musical conversation',text:'Double-tap your avatar to visit practice, then tap the headphones to hear a sound.',gesture:'double-tap',seconds:300,ages:['5to7','8plus'],requires:'equip'},
 ];
 
@@ -93,16 +93,16 @@ export function nextHint(state,child) {
     ??HINTS.find(hint=>available(hint)&&hint.ages.includes(child.age)&&progress.seconds>=hint.seconds&&(!hint.requires||progress.hints[hint.requires]?.completed))
     ??null;
 }
-export function createLearningStorage(storageProvider=()=>window.localStorage) {
+export function createLearningStorage(storageProvider=()=>window.localStorage,key=LEARNING_KEY) {
   let readError=null;
   return {
     load() {
-      try {const state=normalizeLearning(JSON.parse(storageProvider().getItem(LEARNING_KEY)??'null'));readError=null;return {state,error:null};}
+      try {const state=normalizeLearning(JSON.parse(storageProvider().getItem(key)??'null'));readError=null;return {state,error:null};}
       catch(error){readError=error;return {state:emptyLearning(),error};}
     },
     save(state) {
       if(readError)return {ok:false,error:readError};
-      try {storageProvider().setItem(LEARNING_KEY,JSON.stringify(normalizeLearning(state)));return {ok:true,error:null};}
+      try {storageProvider().setItem(key,JSON.stringify(normalizeLearning(state)));return {ok:true,error:null};}
       catch(error){return {ok:false,error};}
     }
   };

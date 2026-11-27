@@ -1,9 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {SCENE_VISITORS,chooseSceneVisitor,sceneObjectPair} from '../src/utils/sceneVisitors.js';
+import {ENVIRONMENTS} from '../src/data/environments.js';
 
-test('every scene has two unique visitors with exact 1/4 and 1/20 selection bands',()=>{
-  const sounds=new Set();
+test('each environment has seven scenes with distinct visitors and exact 1/4 and 1/20 selection bands',()=>{
+  for(const {scenes} of Object.values(ENVIRONMENTS)){
+    assert.equal(scenes.length,7);
+    assert.equal(new Set(scenes.flatMap(scene=>SCENE_VISITORS[scene].map(visitor=>visitor.sound))).size,14);
+  }
+  assert.deepEqual(Object.values(ENVIRONMENTS).flatMap(environment=>environment.scenes).sort(),Object.keys(SCENE_VISITORS).sort());
   for(const [scene,visitors] of Object.entries(SCENE_VISITORS)){
     assert.equal(visitors.length,2);
     assert.equal(chooseSceneVisitor(scene,0),visitors[0]);assert.equal(chooseSceneVisitor(scene,.249999),visitors[0]);
@@ -12,9 +17,9 @@ test('every scene has two unique visitors with exact 1/4 and 1/20 selection band
     const counts=[0,0,0];
     for(let index=0;index<200;index++){const visitor=chooseSceneVisitor(scene,(index+.5)/200);counts[visitor===visitors[0]?0:visitor===visitors[1]?1:2]++;}
     assert.deepEqual(counts,[50,10,140]);
-    for(const visitor of visitors){assert.ok(!sounds.has(visitor.sound));sounds.add(visitor.sound);assert.ok([0,1].includes(visitor.slot));}
+    assert.deepEqual(visitors.map(visitor=>visitor.slot).sort(),[0,1]);
   }
-  assert.equal(sounds.size,14);
+  assert.equal(chooseSceneVisitor('jungle-river',.1).sound,'crocodile');
 });
 
 test('visitors replace exactly one regular object and leave the input unchanged',()=>{

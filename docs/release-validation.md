@@ -1,5 +1,30 @@
 # Release validation
 
+## Jungle and bicycle travel — 2026-11-27
+
+The open-access build gives everyone the Farm and Jungle. Each environment has seven scenes. Bicycle travel switches environments at the destination morning and requests its default genre and key through the shared transport. The edition-enabled trial excludes the bicycle and Jungle.
+
+- Windows Node 24.14.0 passed 398 unique cases in split runs. A sandbox loopback denial in the visual editor server test passed on retry with localhost access. Targeted scene checks after the final placement changes passed.
+- All 30 selected development browser cases had passing executions across desktop and compact-touch Chromium. The initial split run passed 26. The two practice checks passed after opening Full practice through its current controls. Two desktop audio-timing cases passed on focused retry. The final four travel checks passed after responsive refinements.
+- Visual review covered all seven Jungle scenes, both visitor tiers and open piano views. Checks included the minimum 360 × 240, compact phone, wide, square, desktop and maximum canvas. The final travel tests verify minimum-size Canopy and Dawn hit targets.
+- The default production build passed, with 275 precache entries totaling 21,208.55 KiB and the existing Vite chunk-size warning.
+- All four compact-touch PWA tests passed with editions enabled and a mock parent service. The trial excludes the bicycle and Jungle sound requests. The bicycle appears after the test account receives full access.
+- All 14 production browser checks passed in the open-access configuration. Tests verified offline bicycle travel into the Jungle after a service-worker-controlled reload, decoded the full recording bank, and checked safe updates and interrupted-install recovery. Production evidence is in the ignored `test-results/production/results.json`.
+
+Physical-device controls, listening and installed-app behavior remain unverified.
+
+
+## PWA trial and full access — 2026-11-25
+
+This draft was tested with editions enabled and opened in the unlimited, ad-free trial. It includes Sunny Farm, Sleepy Night, Folk, four instruments, and three practice choices per instrument. Stripe Checkout and single-use invitations grant full access to the verified parent. Existing browser-local profiles are available after unlocking.
+
+- Windows Node 24 passed 117 focused cases across trial access, practice and audio ownership, family storage, guides, webhook signatures, and the update policy.
+- Four compact-touch PWA browser cases passed against a mock account service. They covered both trial scenes, age persistence, caregiver help, invitation redemption, checkout confirmation, and opening an existing local family.
+- The production site and the separate production-test build passed. Four production cases passed across desktop and compact-touch Chromium for cached offline playback and safe worker replacement. The first desktop worker run timed out because the full-edition save state was missing an explicit false value. The compact-touch case was stopped during that run. Both worker cases passed on retry.
+- All four Edge Functions passed Deno checking. Local handler tests with mocked providers verified authorized Checkout, signed payment processing, and invitation email delivery. An embedded PostgreSQL instance verified role permissions, checkout retries, refund ordering, invitation expiry and replay, and account deletion.
+
+Live Stripe payment and refund, Supabase email sign-in, invite email delivery, hosting, and installation on physical devices remain unverified. See [PWA release setup](pwa-release.md).
+
 ## Flute availability flag � 2026-10-30
 
 `FEATURE_FLAGS.flute=false` hides the retained flute implementation from the runtime catalog, audio initialization, landscape, Sound controls, instrument/practice/guide selectors, guide illustrations and visual editor. Pan flute stays enabled. Existing flute slots fall back individually to an unused enabled instrument; saved flute options remain readable for re-enabling.
